@@ -1,4 +1,10 @@
 require('dotenv').config();
+// Set fallback DNS servers to resolve MongoDB Atlas SRV records reliably
+try {
+  require('dns').setServers(['1.1.1.1', '8.8.8.8']);
+} catch (dnsErr) {
+  console.warn('Failed to set fallback DNS servers:', dnsErr.message);
+}
 const app = require('./app');
 const connectDB = require('./config/database');
 

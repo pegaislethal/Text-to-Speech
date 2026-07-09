@@ -67,9 +67,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         router.push('/dashboard');
       }
-    } catch (error) {
-      console.error(error);
-      alert(error instanceof Error ? error.message : 'Login failed');
+    } catch (error: any) {
+      console.error('Google login error:', error);
+      if (error instanceof TypeError || (error.message && error.message.includes('Failed to fetch'))) {
+        alert('Network Connection Error:\n\nUnable to connect to the backend server. Please verify that your backend API is running on http://localhost:5000 and that MongoDB is active.');
+      } else {
+        alert(error instanceof Error ? error.message : 'Login failed');
+      }
       throw error;
     } finally {
       setLoading(false);
@@ -107,9 +111,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         router.push('/dashboard');
       }
-    } catch (error) {
-      console.error(error);
-      alert('Mock Login failed');
+    } catch (error: any) {
+      console.error('Bypass login error:', error);
+      if (error instanceof TypeError || (error.message && error.message.includes('Failed to fetch'))) {
+        alert('Network Connection Error:\n\nUnable to connect to the backend server. Please verify that your backend API is running on http://localhost:5000.');
+      } else {
+        alert('Mock Login failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      }
     } finally {
       setLoading(false);
     }
