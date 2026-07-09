@@ -14,7 +14,10 @@
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
+    "edge-tts-universal": "^1.4.0",
     "express": "^5.2.1",
+    "google-auth-library": "^10.9.0",
+    "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.7.4"
   },
   "devDependencies": {
