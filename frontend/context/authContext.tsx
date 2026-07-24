@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { adminSignupApi, adminLoginApi } from '../services/api';
+import { userSignupApi, userLoginApi, adminSignupApi, adminLoginApi } from '../services/api';
 import { getApiUrl } from '../config/api';
 
 export interface User {
@@ -21,6 +21,8 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   loginWithGoogle: (credential: string) => Promise<void>;
+  userSignup: (name: string, email: string, password: string) => Promise<void>;
+  userLogin: (email: string, password: string) => Promise<void>;
   adminSignup: (name: string, email: string, password: string) => Promise<void>;
   adminLogin: (email: string, password: string) => Promise<void>;
   loginBypass: (role: 'user' | 'admin') => Promise<void>;
@@ -93,6 +95,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           : 'Authentication server unavailable. Check local backend.';
         throw new Error(friendlyMsg);
       }
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const userSignup = async (name: string, email: string, password: string) => {
+    setLoading(true);
+    try {
+      const data = await userSignupApi(name, email, password);
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setToken(data.token);
+      setUser(data.user);
+      router.push('/dashboard');
+    } catch (error: any) {
+      console.error('User signup error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const userLogin = async (email: string, password: string) => {
+    setLoading(true);
+    try {
+      const data = await userLoginApi(email, password);
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setToken(data.token);
+      setUser(data.user);
+      if (data.user.role === 'admin') {
+        router.push('/admin/dashboard');
+      } else {
+        router.push('/dashboard');
+      }
+    } catch (error: any) {
+      console.error('User login error:', error);
       throw error;
     } finally {
       setLoading(false);
@@ -217,7 +257,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, loginWithGoogle, adminSignup, adminLogin, loginBypass, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, loading, loginWithGoogle, userSignup, userLogin, adminSignup, adminLogin, loginBypass, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

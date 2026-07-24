@@ -1,14 +1,19 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/authContext';
 import { GoogleLogin } from '@react-oauth/google';
-import { AudioLines, Sparkles, AlertCircle, RefreshCw, ArrowRight, User } from 'lucide-react';
+import { AudioLines, Sparkles, AlertCircle, RefreshCw, ArrowRight, User, Mail, Lock, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function UserSignup() {
-  const { loginWithGoogle, loginBypass, loading } = useAuth();
-  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const { loginWithGoogle, userSignup, loading } = useAuth();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
     setErrorMsg(null);
@@ -23,6 +28,30 @@ export default function UserSignup() {
 
   const handleGoogleError = () => {
     setErrorMsg('Google Sign-Up failed. Please try again.');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    if (!name || !email || !password) {
+      setErrorMsg('Please fill in all required fields.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setErrorMsg('Password must be at least 6 characters long.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await userSignup(name, email, password);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Registration failed. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -51,8 +80,19 @@ export default function UserSignup() {
           </h1>
 
           <p className="text-neutral-400 text-sm leading-relaxed font-medium">
-            Sign up with your Google account to receive 100 free neural TTS credits immediately.
+            Sign up today to receive 100 free neural TTS credits immediately.
           </p>
+
+          <div className="pt-4 flex flex-col gap-2 text-xs text-neutral-400 border-t border-neutral-900">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>100 Free Neural Speech Credits upon registration</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>Access to all Edge AI voice synthesis models</span>
+            </div>
+          </div>
         </div>
 
         <div className="z-10 flex items-center justify-between text-xs text-neutral-500">
@@ -65,10 +105,10 @@ export default function UserSignup() {
 
       {/* Right Column: User Auth Card */}
       <div className="md:w-1/2 p-8 md:p-16 flex flex-col items-center justify-center relative bg-[#070708]">
-        <div className="w-full max-w-md flex flex-col gap-8">
-          <div className="flex flex-col gap-2">
+        <div className="w-full max-w-md flex flex-col gap-6">
+          <div className="flex flex-col gap-1.5">
             <h2 className="text-2xl font-bold tracking-tight text-white">Create Member Account</h2>
-            <p className="text-xs text-neutral-400 font-medium">Sign up using your Google Gmail credentials.</p>
+            <p className="text-xs text-neutral-400 font-medium">Sign up using Google or Email.</p>
           </div>
 
           {errorMsg && (
@@ -78,24 +118,99 @@ export default function UserSignup() {
             </div>
           )}
 
-          <div className="p-8 rounded-2xl border border-neutral-900 bg-neutral-950/60 backdrop-blur-xl shadow-2xl flex flex-col items-center gap-6">
-            {loading ? (
-              <div className="py-8 flex flex-col items-center justify-center gap-3">
-                <RefreshCw className="w-7 h-7 text-indigo-500 animate-spin" />
-                <span className="text-xs text-neutral-500 font-semibold uppercase tracking-wider">Creating Profile...</span>
+          {/* Auth Card Container */}
+          <div className="p-8 rounded-2xl border border-neutral-900 bg-neutral-950/60 backdrop-blur-xl shadow-2xl flex flex-col gap-6">
+            {/* Google SSO Button */}
+            <div className="w-full flex justify-center py-2 bg-neutral-900/60 border border-neutral-800 rounded-xl hover:border-neutral-750 transition duration-200">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                theme="filled_black"
+                shape="pill"
+                text="signup_with"
+                width="280px"
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="relative flex items-center justify-center">
+              <div className="w-full border-t border-neutral-900" />
+              <span className="absolute px-3 bg-[#0a0a0d] text-[10px] uppercase tracking-wider text-neutral-500 font-bold">
+                Or Register With Email
+              </span>
+            </div>
+
+            {/* Email + Password Signup Form */}
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-neutral-300">Full Name</label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-neutral-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="John Doe"
+                    required
+                    className="w-full bg-neutral-900/80 border border-neutral-800 focus:border-indigo-500/80 focus:ring-2 focus:ring-indigo-500/20 text-white text-xs rounded-xl pl-10 pr-4 py-3 outline-none transition placeholder:text-neutral-600"
+                  />
+                </div>
               </div>
-            ) : (
-              <div className="w-full flex justify-center py-2 bg-neutral-900/60 border border-neutral-800 rounded-xl hover:border-neutral-750 transition duration-200">
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
-                  theme="filled_black"
-                  shape="pill"
-                  text="signup_with"
-                  width="280px"
-                />
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-neutral-300">Email Address</label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-neutral-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="user@example.com"
+                    required
+                    className="w-full bg-neutral-900/80 border border-neutral-800 focus:border-indigo-500/80 focus:ring-2 focus:ring-indigo-500/20 text-white text-xs rounded-xl pl-10 pr-4 py-3 outline-none transition placeholder:text-neutral-600"
+                  />
+                </div>
               </div>
-            )}
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-neutral-300">Password</label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-neutral-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    minLength={6}
+                    required
+                    className="w-full bg-neutral-900/80 border border-neutral-800 focus:border-indigo-500/80 focus:ring-2 focus:ring-indigo-500/20 text-white text-xs rounded-xl pl-10 pr-10 py-3 outline-none transition placeholder:text-neutral-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || isSubmitting}
+                className="mt-2 w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold text-xs tracking-wide shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 transition disabled:opacity-50"
+              >
+                {loading || isSubmitting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" /> Creating Account...
+                  </>
+                ) : (
+                  <>
+                    Create Account & Get 100 Credits <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
 
             <div className="text-center text-neutral-500 text-[11px] font-medium leading-relaxed">
               Already registered?{' '}

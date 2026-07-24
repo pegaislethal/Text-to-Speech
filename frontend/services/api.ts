@@ -100,6 +100,23 @@ export const deletePreset = async (id: string) => {
   return res.json();
 };
 
+// User Authentication Endpoints
+export const userSignupApi = async (name: string, email: string, password: string) => {
+  const res = await apiFetch('/api/auth/signup', {
+    method: 'POST',
+    body: JSON.stringify({ name, email, password }),
+  });
+  return res.json();
+};
+
+export const userLoginApi = async (email: string, password: string) => {
+  const res = await apiFetch('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+  return res.json();
+};
+
 // Admin Authentication Endpoints
 export const adminSignupApi = async (name: string, email: string, password: string) => {
   const res = await apiFetch('/api/auth/admin/signup', {

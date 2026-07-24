@@ -23,6 +23,8 @@ router.get('/health', (req, res) => {
 // Authentication Routes
 console.log('Google auth route initialized');
 router.post('/auth/google', authController.googleLogin);
+router.post('/auth/signup', authController.userSignup);
+router.post('/auth/login', authController.userLogin);
 router.post('/auth/admin/signup', authController.adminSignup);
 router.post('/auth/admin/login', authController.adminLogin);
 router.post('/auth/logout', authController.logout);

@@ -1,15 +1,19 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/authContext';
 import { GoogleLogin } from '@react-oauth/google';
-import { AudioLines, Sparkles, AlertCircle, RefreshCw, ArrowRight, ShieldCheck, User } from 'lucide-react';
+import { AudioLines, Sparkles, AlertCircle, RefreshCw, ArrowRight, User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 
 export default function UserLogin() {
-  const { loginWithGoogle, loginBypass, loading } = useAuth();
-  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
-  const [showDevBypass, setShowDevBypass] = React.useState<boolean>(false);
+  const { loginWithGoogle, userLogin, loginBypass, loading } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDevBypass, setShowDevBypass] = useState(false);
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
     setErrorMsg(null);
@@ -24,6 +28,25 @@ export default function UserLogin() {
 
   const handleGoogleError = () => {
     setErrorMsg('Google Sign-In was unsuccessful. Please try again.');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    if (!email || !password) {
+      setErrorMsg('Please enter both email and password.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await userLogin(email, password);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Login failed. Please check your credentials.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -75,10 +98,10 @@ export default function UserLogin() {
 
       {/* Right Column: User Auth Card */}
       <div className="md:w-1/2 p-8 md:p-16 flex flex-col items-center justify-center relative bg-[#070708]">
-        <div className="w-full max-w-md flex flex-col gap-8">
-          <div className="flex flex-col gap-2">
+        <div className="w-full max-w-md flex flex-col gap-6">
+          <div className="flex flex-col gap-1.5">
             <h2 className="text-2xl font-bold tracking-tight text-white">Welcome Back</h2>
-            <p className="text-xs text-neutral-400 font-medium">Sign in to your member account using Google Gmail.</p>
+            <p className="text-xs text-neutral-400 font-medium">Sign in to your account with Google or Email.</p>
           </div>
 
           {errorMsg && (
@@ -88,25 +111,83 @@ export default function UserLogin() {
             </div>
           )}
 
-          {/* Google Auth Container */}
-          <div className="p-8 rounded-2xl border border-neutral-900 bg-neutral-950/60 backdrop-blur-xl shadow-2xl flex flex-col items-center gap-6">
-            {loading ? (
-              <div className="py-8 flex flex-col items-center justify-center gap-3">
-                <RefreshCw className="w-7 h-7 text-indigo-500 animate-spin" />
-                <span className="text-xs text-neutral-500 font-semibold uppercase tracking-wider">Authenticating...</span>
+          {/* Auth Card Container */}
+          <div className="p-8 rounded-2xl border border-neutral-900 bg-neutral-950/60 backdrop-blur-xl shadow-2xl flex flex-col gap-6">
+            {/* Google SSO Button */}
+            <div className="w-full flex justify-center py-2 bg-neutral-900/60 border border-neutral-800 rounded-xl hover:border-neutral-750 transition duration-200">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                theme="filled_black"
+                shape="pill"
+                text="continue_with"
+                width="280px"
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="relative flex items-center justify-center">
+              <div className="w-full border-t border-neutral-900" />
+              <span className="absolute px-3 bg-[#0a0a0d] text-[10px] uppercase tracking-wider text-neutral-500 font-bold">
+                Or Continue With Email
+              </span>
+            </div>
+
+            {/* Email + Password Form */}
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-neutral-300">Email Address</label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-neutral-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="user@example.com"
+                    required
+                    className="w-full bg-neutral-900/80 border border-neutral-800 focus:border-indigo-500/80 focus:ring-2 focus:ring-indigo-500/20 text-white text-xs rounded-xl pl-10 pr-4 py-3 outline-none transition placeholder:text-neutral-600"
+                  />
+                </div>
               </div>
-            ) : (
-              <div className="w-full flex justify-center py-2 bg-neutral-900/60 border border-neutral-800 rounded-xl hover:border-neutral-750 transition duration-200">
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
-                  theme="filled_black"
-                  shape="pill"
-                  text="continue_with"
-                  width="280px"
-                />
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-neutral-300">Password</label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-neutral-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    className="w-full bg-neutral-900/80 border border-neutral-800 focus:border-indigo-500/80 focus:ring-2 focus:ring-indigo-500/20 text-white text-xs rounded-xl pl-10 pr-10 py-3 outline-none transition placeholder:text-neutral-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
-            )}
+
+              <button
+                type="submit"
+                disabled={loading || isSubmitting}
+                className="mt-2 w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold text-xs tracking-wide shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 transition disabled:opacity-50"
+              >
+                {loading || isSubmitting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" /> Signing In...
+                  </>
+                ) : (
+                  <>
+                    Sign In to Account <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
 
             <div className="text-center text-neutral-500 text-[11px] font-medium leading-relaxed">
               Don't have an account yet?{' '}
@@ -117,7 +198,7 @@ export default function UserLogin() {
           </div>
 
           {/* Hidden Dev Bypass Trigger */}
-          <div className="mt-4 text-center">
+          <div className="mt-2 text-center">
             <button
               onClick={() => setShowDevBypass(!showDevBypass)}
               className="text-[10px] text-neutral-600 hover:text-neutral-500 font-semibold"

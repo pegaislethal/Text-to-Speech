@@ -90,6 +90,134 @@ exports.googleLogin = async (req, res) => {
   }
 };
 
+// Regular User Signup Handler (Email + Password)
+exports.userSignup = async (req, res) => {
+  const { name, email, password } = req.body;
+
+  if (!name || !email || !password) {
+    return res.status(400).json({ success: false, message: 'Name, email, and password are required' });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+  }
+
+  try {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'An account with this email already exists' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    const newUser = new User({
+      name,
+      email,
+      passwordHash,
+      role: 'user',
+      premiumAccess: false,
+      isActive: true,
+      freeCredits: 100,
+      usedCredits: 0
+    });
+
+    await newUser.save();
+
+    const token = jwt.sign(
+      { id: newUser._id, email: newUser.email, role: newUser.role },
+      process.env.JWT_SECRET || 'fallback_secret_key_123',
+      { expiresIn: '7d' }
+    );
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    res.status(201).json({
+      success: true,
+      token,
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        profileImage: newUser.profileImage,
+        role: newUser.role,
+        premiumAccess: newUser.premiumAccess,
+        freeCredits: newUser.freeCredits,
+        usedCredits: newUser.usedCredits
+      }
+    });
+  } catch (error) {
+    console.error('User signup error:', error);
+    res.status(500).json({ success: false, message: 'Registration failed: ' + error.message });
+  }
+};
+
+// Regular User Login Handler (Email + Password)
+exports.userLogin = async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ success: false, message: 'Email and password are required' });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+    }
+
+    if (!user.passwordHash) {
+      return res.status(400).json({ success: false, message: 'This account was created via Google Sign-In. Please sign in using Google.' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({ success: false, message: 'Account is deactivated. Please contact support.' });
+    }
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET || 'fallback_secret_key_123',
+      { expiresIn: '7d' }
+    );
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    res.status(200).json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        profileImage: user.profileImage,
+        role: user.role,
+        premiumAccess: user.premiumAccess,
+        freeCredits: user.freeCredits,
+        usedCredits: user.usedCredits
+      }
+    });
+  } catch (error) {
+    console.error('User login error:', error);
+    res.status(500).json({ success: false, message: 'Login failed: ' + error.message });
+  }
+};
+
 // Admin Signup Handler (Email + Password)
 exports.adminSignup = async (req, res) => {
   const { name, email, password } = req.body;
