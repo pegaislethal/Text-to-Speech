@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthProvider } from '../context/authContext';
-import { GoogleOAuthProvider } from '@react-oauth/google';
+import GoogleAuthProvider from '../components/GoogleAuthProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -16,16 +16,14 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
-
   return (
     <html lang="en" className="dark">
       <body className={`${inter.className} bg-neutral-950 text-neutral-50 min-h-screen antialiased`}>
-        <GoogleOAuthProvider clientId={googleClientId}>
+        <GoogleAuthProvider>
           <AuthProvider>
             {children}
           </AuthProvider>
-        </GoogleOAuthProvider>
+        </GoogleAuthProvider>
       </body>
     </html>
   );

@@ -7,12 +7,13 @@ const presetController = require('../controllers/presetController');
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
 
-// Health check
+// Health check endpoint
 router.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Server is healthy' });
+  res.status(200).json({ status: 'Backend running' });
 });
 
-// Authentication
+// Authentication Routes
+console.log('Google auth route initialized');
 router.post('/auth/google', authController.googleLogin);
 router.post('/auth/admin/signup', authController.adminSignup);
 router.post('/auth/admin/login', authController.adminLogin);

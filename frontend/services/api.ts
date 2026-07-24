@@ -1,9 +1,10 @@
 export const getBackendUrl = () => {
+  const envApiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
     if (host.endsWith('.vercel.app') || (process.env.NODE_ENV === 'production' && host !== 'localhost' && host !== '127.0.0.1')) {
-      if (process.env.NEXT_PUBLIC_BACKEND_URL && !process.env.NEXT_PUBLIC_BACKEND_URL.includes('localhost')) {
-        return process.env.NEXT_PUBLIC_BACKEND_URL;
+      if (envApiUrl && !envApiUrl.includes('localhost')) {
+        return envApiUrl;
       }
       return '/api/backend';
     }
@@ -11,7 +12,7 @@ export const getBackendUrl = () => {
       return `http://${host}:5000`;
     }
   }
-  return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+  return envApiUrl || 'http://localhost:5000';
 };
 
 const getHeaders = () => {
@@ -24,6 +25,7 @@ const getHeaders = () => {
 
 const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   const backendUrl = getBackendUrl();
+  console.log('API_URL:', backendUrl);
   const headers = getHeaders();
   const res = await fetch(`${backendUrl}${endpoint}`, {
     ...options,

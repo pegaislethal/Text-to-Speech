@@ -1,12 +1,18 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const path = require('path');
 const routes = require('./routes');
 
 const app = express();
 
-// Middleware
+// Security Headers: Disable Cross-Origin-Opener-Policy to prevent blocking Google OAuth popup postMessage
+app.use(helmet({
+  crossOriginOpenerPolicy: false
+}));
+
+// CORS Middleware
 const allowedOrigins = [
   'http://localhost:3000',
   process.env.FRONTEND_URL

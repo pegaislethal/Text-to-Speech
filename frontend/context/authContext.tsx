@@ -89,6 +89,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error: any) {
       console.error('Google login error:', error);
+      if (error instanceof TypeError || (error.message && error.message.includes('Failed to fetch'))) {
+        throw new Error('Unable to connect to authentication server. Please verify that your backend API is running on port 5000.');
+      }
       throw error;
     } finally {
       setLoading(false);
