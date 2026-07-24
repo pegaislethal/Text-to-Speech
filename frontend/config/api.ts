@@ -1,26 +1,31 @@
 /**
  * Centralized API Configuration
- * Supports Environment Variables, Vercel Rewrites, LAN IP Testing, and Localhost Fallbacks
+ * Supports Environment Variables, Production Deployed Backend, and Localhost Fallbacks
  */
+const sanitizeUrl = (url: string): string => {
+  const trimmed = url.trim().replace(/\/+$/, '');
+  return trimmed.endsWith('/api') ? trimmed.slice(0, -4) : trimmed;
+};
+
 export const getApiUrl = (): string => {
-  // Highest priority: Explicit environment variable (e.g., https://your-backend.onrender.com)
+  // Highest priority: Explicit environment variable (process.env.NEXT_PUBLIC_API_URL)
   if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
+    return sanitizeUrl(process.env.NEXT_PUBLIC_API_URL);
   }
   if (process.env.NEXT_PUBLIC_BACKEND_URL) {
-    return process.env.NEXT_PUBLIC_BACKEND_URL;
+    return sanitizeUrl(process.env.NEXT_PUBLIC_BACKEND_URL);
   }
 
-  // Client-side dynamic resolution for Vercel and LAN devices
+  // Client-side resolution for production vs development
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
 
-    // Production / Vercel Domain Resolution
+    // Deployed production environment on Vercel
     if (host.endsWith('.vercel.app') || (process.env.NODE_ENV === 'production' && host !== 'localhost' && host !== '127.0.0.1')) {
-      return '/api/backend';
+      return 'https://text-to-speech-cudm.vercel.app';
     }
 
-    // LAN / Wi-Fi Multi-device resolution (e.g. mobile phone visiting http://192.168.1.50:3000)
+    // LAN / Wi-Fi Multi-device testing (e.g. mobile phone visiting http://192.168.1.50:3000)
     if (host !== 'localhost' && host !== '127.0.0.1') {
       return `http://${host}:5000`;
     }

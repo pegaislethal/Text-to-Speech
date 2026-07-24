@@ -15,6 +15,7 @@ app.use(helmet({
 // CORS Middleware
 const allowedOrigins = [
   'http://localhost:3000',
+  'https://text-to-speech-theta-tawny.vercel.app',
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
