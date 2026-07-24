@@ -25,6 +25,8 @@ router.get('/auth/me', authMiddleware, (req, res) => {
 router.post('/tts/generate', authMiddleware, ttsController.generateSpeech);
 router.post('/tts/preview', ttsController.previewSpeech);
 router.get('/history', authMiddleware, ttsController.getHistory);
+router.delete('/history/:id', authMiddleware, ttsController.deleteHistoryItem);
+router.delete('/history', authMiddleware, ttsController.clearHistory);
 
 // Preset Operations
 router.get('/presets', authMiddleware, presetController.getPresets);

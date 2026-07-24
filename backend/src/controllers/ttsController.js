@@ -143,7 +143,6 @@ exports.previewSpeech = async (req, res) => {
 
     console.log('Generating voice preview for:', targetVoiceId, '->', outputPath);
 
-    // Call Edge TTS dynamically with selected targetVoiceId
     const communicate = new CommClass(previewText, {
       voice: targetVoiceId,
       rate: '+0%'
@@ -185,5 +184,51 @@ exports.getHistory = async (req, res) => {
   } catch (error) {
     console.error('Fetch history error:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch history' });
+  }
+};
+
+exports.deleteHistoryItem = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const item = await AudioHistory.findOne({ _id: id, userId: req.user._id });
+    if (!item) {
+      return res.status(404).json({ success: false, message: 'History item not found' });
+    }
+
+    if (item.audioUrl && item.audioUrl.startsWith('/uploads/')) {
+      const filePath = path.join(__dirname, '../../public', item.audioUrl);
+      if (fs.existsSync(filePath)) {
+        fs.unlink(filePath, (err) => {
+          if (err) console.error('Failed to delete audio file:', err);
+        });
+      }
+    }
+
+    await AudioHistory.deleteOne({ _id: id, userId: req.user._id });
+    res.status(200).json({ success: true, message: 'History item deleted' });
+  } catch (error) {
+    console.error('Delete history item error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete history item' });
+  }
+};
+
+exports.clearHistory = async (req, res) => {
+  try {
+    const items = await AudioHistory.find({ userId: req.user._id });
+    for (const item of items) {
+      if (item.audioUrl && item.audioUrl.startsWith('/uploads/')) {
+        const filePath = path.join(__dirname, '../../public', item.audioUrl);
+        if (fs.existsSync(filePath)) {
+          fs.unlink(filePath, (err) => {
+            if (err) console.error('Failed to delete audio file:', err);
+          });
+        }
+      }
+    }
+    await AudioHistory.deleteMany({ userId: req.user._id });
+    res.status(200).json({ success: true, message: 'Audio history cleared' });
+  } catch (error) {
+    console.error('Clear history error:', error);
+    res.status(500).json({ success: false, message: 'Failed to clear history' });
   }
 };

@@ -1,9 +1,15 @@
-const getBackendUrl = () => {
+export const getBackendUrl = () => {
   if (process.env.NEXT_PUBLIC_BACKEND_URL) {
     return process.env.NEXT_PUBLIC_BACKEND_URL;
   }
-  if (typeof window !== 'undefined' && window.location.hostname.endsWith('.vercel.app')) {
-    return '/api/backend';
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host.endsWith('.vercel.app') || process.env.NODE_ENV === 'production') {
+      return '/api/backend';
+    }
+    if (host !== 'localhost' && host !== '127.0.0.1') {
+      return `http://${host}:5000`;
+    }
   }
   return 'http://localhost:5000';
 };
@@ -61,6 +67,24 @@ export const getHistory = async () => {
   const res = await apiFetch('/api/history');
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || 'Failed to fetch history');
+  return data;
+};
+
+export const deleteHistoryItemApi = async (id: string) => {
+  const res = await apiFetch(`/api/history/${id}`, {
+    method: 'DELETE',
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to delete history item');
+  return data;
+};
+
+export const clearHistoryApi = async () => {
+  const res = await apiFetch('/api/history', {
+    method: 'DELETE',
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || 'Failed to clear history');
   return data;
 };
 

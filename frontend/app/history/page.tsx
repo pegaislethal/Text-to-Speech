@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { getHistory } from '../../services/api';
-import { Play, Pause, Download, Music, Calendar, Volume2, Clock, FileText, Search } from 'lucide-react';
+import { getHistory, deleteHistoryItemApi, clearHistoryApi } from '../../services/api';
+import { Play, Pause, Download, Music, Calendar, Volume2, Clock, FileText, Search, Trash2 } from 'lucide-react';
 
 interface HistoryItem {
   _id: string;
@@ -20,14 +20,22 @@ export default function AudioHistory() {
   const [loading, setLoading] = useState<boolean>(true);
   const [activeClip, setActiveClip] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [clearing, setClearing] = useState<boolean>(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const getBackendUrl = () => {
     if (process.env.NEXT_PUBLIC_BACKEND_URL) {
       return process.env.NEXT_PUBLIC_BACKEND_URL;
     }
-    if (typeof window !== 'undefined' && window.location.hostname.endsWith('.vercel.app')) {
-      return '/api/backend';
+    if (typeof window !== 'undefined') {
+      const host = window.location.hostname;
+      if (host.endsWith('.vercel.app') || process.env.NODE_ENV === 'production') {
+        return '/api/backend';
+      }
+      if (host !== 'localhost' && host !== '127.0.0.1') {
+        return `http://${host}:5000`;
+      }
     }
     return 'http://localhost:5000';
   };
@@ -62,6 +70,46 @@ export default function AudioHistory() {
       console.error('Error fetching history:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteItem = async (id: string) => {
+    setDeletingId(id);
+    try {
+      const res = await deleteHistoryItemApi(id);
+      if (res.success) {
+        const updated = history.filter(item => item._id !== id);
+        setHistory(updated);
+        setFilteredHistory(updated);
+        if (activeClip === id) {
+          if (audioRef.current) audioRef.current.pause();
+          setIsPlaying(false);
+          setActiveClip(null);
+        }
+      }
+    } catch (err: any) {
+      alert('Failed to delete history item: ' + (err.message || 'Unknown error'));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleClearAllHistory = async () => {
+    if (!window.confirm('Are you sure you want to clear your entire audio history?')) return;
+    setClearing(true);
+    try {
+      const res = await clearHistoryApi();
+      if (res.success) {
+        setHistory([]);
+        setFilteredHistory([]);
+        if (audioRef.current) audioRef.current.pause();
+        setIsPlaying(false);
+        setActiveClip(null);
+      }
+    } catch (err: any) {
+      alert('Failed to clear audio history: ' + (err.message || 'Unknown error'));
+    } finally {
+      setClearing(false);
     }
   };
 
@@ -105,17 +153,28 @@ export default function AudioHistory() {
           <p className="text-neutral-400 text-sm mt-1">Review and manage your converted neural audio assets.</p>
         </div>
 
-        {/* Search Bar */}
+        {/* Header Actions */}
         {history.length > 0 && (
-          <div className="relative w-full md:w-80">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
-            <input
-              type="text"
-              placeholder="Search by voice name or text..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-sm bg-neutral-900/40 border border-neutral-800 rounded-xl focus:outline-none focus:border-indigo-500/50 text-neutral-200 placeholder-neutral-500 transition duration-200"
-            />
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="relative flex-1 md:w-72">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+              <input
+                type="text"
+                placeholder="Search by voice or text..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 text-sm bg-neutral-900/40 border border-neutral-800 rounded-xl focus:outline-none focus:border-indigo-500/50 text-neutral-200 placeholder-neutral-500 transition duration-200"
+              />
+            </div>
+
+            <button
+              onClick={handleClearAllHistory}
+              disabled={clearing}
+              className="px-3.5 py-2 rounded-xl bg-red-950/30 border border-red-900/40 hover:bg-red-900/40 text-red-400 text-xs font-bold transition flex items-center gap-1.5 shrink-0"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{clearing ? 'Clearing...' : 'Clear All'}</span>
+            </button>
           </div>
         )}
       </div>
@@ -198,6 +257,14 @@ export default function AudioHistory() {
                 >
                   <Download className="w-3.5 h-3.5" /> Download MP3
                 </a>
+                <button
+                  onClick={() => handleDeleteItem(item._id)}
+                  disabled={deletingId === item._id}
+                  className="p-2.5 rounded-xl border border-neutral-800 bg-neutral-900 text-neutral-400 hover:text-red-400 hover:bg-neutral-850 transition"
+                  title="Delete audio entry"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
               </div>
             </div>
           ))}
