@@ -38,8 +38,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
 
-  const API_URL = getApiUrl();
-
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
@@ -54,8 +52,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithGoogle = async (credential: string) => {
     setLoading(true);
     try {
-      console.log('Sending Google credential to:', `${API_URL}/api/auth/google`);
-      const res = await fetch(`${API_URL}/api/auth/google`, {
+      const apiUrl = getApiUrl();
+      console.log('Sending Google credential to:', `${apiUrl}/api/auth/google`);
+      const res = await fetch(`${apiUrl}/api/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential }),
@@ -185,7 +184,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'
       };
 
-      const res = await fetch(`${API_URL}/api/auth/google`, {
+      const apiUrl = getApiUrl();
+      const res = await fetch(`${apiUrl}/api/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential: `mock_${role}`, bypass: true, mockUser }),
@@ -215,7 +215,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await fetch(`${API_URL}/api/auth/logout`, {
+      const apiUrl = getApiUrl();
+      await fetch(`${apiUrl}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include'
       });
@@ -232,7 +233,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshUser = async () => {
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/auth/me`, {
+      const apiUrl = getApiUrl();
+      const res = await fetch(`${apiUrl}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
         credentials: 'include',
       });

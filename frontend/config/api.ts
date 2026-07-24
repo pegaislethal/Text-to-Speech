@@ -20,15 +20,20 @@ export const getApiUrl = (): string => {
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
 
-    // Deployed production environment on Vercel
-    if (host.endsWith('.vercel.app') || (process.env.NODE_ENV === 'production' && host !== 'localhost' && host !== '127.0.0.1')) {
+    // Deployed production environment on Vercel or custom domain
+    if (host.endsWith('.vercel.app') || (host !== 'localhost' && host !== '127.0.0.1' && !host.startsWith('192.168.'))) {
       return 'https://text-to-speech-cudm.vercel.app';
     }
 
     // LAN / Wi-Fi Multi-device testing (e.g. mobile phone visiting http://192.168.1.50:3000)
-    if (host !== 'localhost' && host !== '127.0.0.1') {
+    if (host.startsWith('192.168.')) {
       return `http://${host}:5000`;
     }
+  }
+
+  // Server-side/SSR resolution during Production build
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://text-to-speech-cudm.vercel.app';
   }
 
   // Development Fallback
