@@ -35,7 +35,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
 
-  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+  const getBackendUrl = () => {
+    if (process.env.NEXT_PUBLIC_BACKEND_URL) {
+      return process.env.NEXT_PUBLIC_BACKEND_URL;
+    }
+    if (typeof window !== 'undefined' && window.location.hostname.endsWith('.vercel.app')) {
+      return '/api/backend';
+    }
+    return 'http://localhost:5000';
+  };
+
+  const BACKEND_URL = getBackendUrl();
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');

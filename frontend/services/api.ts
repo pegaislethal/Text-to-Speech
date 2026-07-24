@@ -1,4 +1,12 @@
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const getBackendUrl = () => {
+  if (process.env.NEXT_PUBLIC_BACKEND_URL) {
+    return process.env.NEXT_PUBLIC_BACKEND_URL;
+  }
+  if (typeof window !== 'undefined' && window.location.hostname.endsWith('.vercel.app')) {
+    return '/api/backend';
+  }
+  return 'http://localhost:5000';
+};
 
 const getHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -9,8 +17,9 @@ const getHeaders = () => {
 };
 
 const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
+  const backendUrl = getBackendUrl();
   const headers = getHeaders();
-  const res = await fetch(`${BACKEND_URL}${endpoint}`, {
+  const res = await fetch(`${backendUrl}${endpoint}`, {
     ...options,
     headers: {
       ...headers,
