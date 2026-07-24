@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { adminSignupApi, adminLoginApi } from '../services/api';
+import { adminSignupApi, adminLoginApi, getApiUrl } from '../services/api';
 
 export interface User {
   id: string;
@@ -35,23 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
 
-  const getBackendUrl = () => {
-    if (typeof window !== 'undefined') {
-      const host = window.location.hostname;
-      if (host.endsWith('.vercel.app') || (process.env.NODE_ENV === 'production' && host !== 'localhost' && host !== '127.0.0.1')) {
-        if (process.env.NEXT_PUBLIC_BACKEND_URL && !process.env.NEXT_PUBLIC_BACKEND_URL.includes('localhost')) {
-          return process.env.NEXT_PUBLIC_BACKEND_URL;
-        }
-        return '/api/backend';
-      }
-      if (host !== 'localhost' && host !== '127.0.0.1') {
-        return `http://${host}:5000`;
-      }
-    }
-    return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-  };
-
-  const BACKEND_URL = getBackendUrl();
+  const API_URL = getApiUrl();
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
@@ -67,15 +51,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithGoogle = async (credential: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/auth/google`, {
+      console.log('Sending Google credential to:', `${API_URL}/api/auth/google`);
+      const res = await fetch(`${API_URL}/api/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential }),
         credentials: 'include',
       });
 
+      if (!res.ok) {
+        let errorMsg = 'Google Auth failed';
+        try {
+          const errData = await res.json();
+          errorMsg = errData.message || errorMsg;
+        } catch (_) {
+          const errText = await res.text();
+          errorMsg = errText || 'Server returned invalid response';
+        }
+        throw new Error(errorMsg);
+      }
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Google Auth failed');
 
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
@@ -90,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       console.error('Google login error:', error);
       if (error instanceof TypeError || (error.message && error.message.includes('Failed to fetch'))) {
-        throw new Error('Unable to connect to authentication server. Please verify that your backend API is running on port 5000.');
+        throw new Error('Unable to connect to authentication server. Please verify backend is running on port 5000.');
       }
       throw error;
     } finally {
@@ -144,7 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'
       };
 
-      const res = await fetch(`${BACKEND_URL}/api/auth/google`, {
+      const res = await fetch(`${API_URL}/api/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential: `mock_${role}`, bypass: true, mockUser }),
@@ -174,7 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      await fetch(`${BACKEND_URL}/api/auth/logout`, {
+      await fetch(`${API_URL}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include'
       });
@@ -191,7 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshUser = async () => {
     if (!token) return;
     try {
-      const res = await fetch(`${BACKEND_URL}/api/auth/me`, {
+      const res = await fetch(`${API_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
         credentials: 'include',
       });

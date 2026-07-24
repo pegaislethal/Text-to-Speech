@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/authContext';
-import { generateSpeech, previewSpeechApi, getPresets, createPreset, deletePreset } from '../../services/api';
+import { generateSpeech, previewSpeechApi, getPresets, createPreset, deletePreset, getApiUrl } from '../../services/api';
 import { 
   Play, Pause, Download, Volume2, Sparkles, AlertCircle, RefreshCw, AudioLines, 
   CheckCircle, Sliders, Save, Trash2, Bookmark, Mic, Gauge, FileText, Check
@@ -90,23 +90,7 @@ export default function SpeechStudio() {
   const [savingPreset, setSavingPreset] = useState<boolean>(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const getBackendUrl = () => {
-    if (typeof window !== 'undefined') {
-      const host = window.location.hostname;
-      if (host.endsWith('.vercel.app') || (process.env.NODE_ENV === 'production' && host !== 'localhost' && host !== '127.0.0.1')) {
-        if (process.env.NEXT_PUBLIC_BACKEND_URL && !process.env.NEXT_PUBLIC_BACKEND_URL.includes('localhost')) {
-          return process.env.NEXT_PUBLIC_BACKEND_URL;
-        }
-        return '/api/backend';
-      }
-      if (host !== 'localhost' && host !== '127.0.0.1') {
-        return `http://${host}:5000`;
-      }
-    }
-    return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-  };
-
-  const BACKEND_URL = getBackendUrl();
+  const BACKEND_URL = getApiUrl();
 
   const characterCount = text.length;
   const creditsRequired = Math.max(1, Math.ceil(characterCount / 50));

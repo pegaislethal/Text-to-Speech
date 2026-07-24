@@ -1,18 +1,5 @@
-export const getBackendUrl = () => {
-  const envApiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname;
-    if (host.endsWith('.vercel.app') || (process.env.NODE_ENV === 'production' && host !== 'localhost' && host !== '127.0.0.1')) {
-      if (envApiUrl && !envApiUrl.includes('localhost')) {
-        return envApiUrl;
-      }
-      return '/api/backend';
-    }
-    if (host !== 'localhost' && host !== '127.0.0.1') {
-      return `http://${host}:5000`;
-    }
-  }
-  return envApiUrl || 'http://localhost:5000';
+export const getApiUrl = () => {
+  return process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 };
 
 const getHeaders = () => {
@@ -24,10 +11,10 @@ const getHeaders = () => {
 };
 
 const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
-  const backendUrl = getBackendUrl();
-  console.log('API_URL:', backendUrl);
+  const apiUrl = getApiUrl();
+  console.log('API_URL:', apiUrl);
   const headers = getHeaders();
-  const res = await fetch(`${backendUrl}${endpoint}`, {
+  const res = await fetch(`${apiUrl}${endpoint}`, {
     ...options,
     headers: {
       ...headers,
@@ -35,12 +22,24 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     },
     credentials: 'include',
   });
+
+  if (!res.ok) {
+    let errorMsg = 'API request failed';
+    try {
+      const errorData = await res.json();
+      errorMsg = errorData.message || errorMsg;
+    } catch (_) {
+      const errorText = await res.text();
+      errorMsg = errorText || 'Server returned HTML or invalid response';
+    }
+    throw new Error(errorMsg);
+  }
+
   return res;
 };
 
 export const checkHealth = async () => {
   const res = await apiFetch('/api/health');
-  if (!res.ok) throw new Error('Health check failed');
   return res.json();
 };
 
@@ -49,9 +48,7 @@ export const generateSpeech = async (text: string, voice: string, speed: number 
     method: 'POST',
     body: JSON.stringify({ text, voice, speed }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Speech generation failed');
-  return data;
+  return res.json();
 };
 
 export const previewSpeechApi = async (voiceId: string, text?: string) => {
@@ -60,42 +57,32 @@ export const previewSpeechApi = async (voiceId: string, text?: string) => {
     method: 'POST',
     body: JSON.stringify({ voiceId, text }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Preview generation failed');
-  return data;
+  return res.json();
 };
 
 export const getHistory = async () => {
   const res = await apiFetch('/api/history');
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to fetch history');
-  return data;
+  return res.json();
 };
 
 export const deleteHistoryItemApi = async (id: string) => {
   const res = await apiFetch(`/api/history/${id}`, {
     method: 'DELETE',
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to delete history item');
-  return data;
+  return res.json();
 };
 
 export const clearHistoryApi = async () => {
   const res = await apiFetch('/api/history', {
     method: 'DELETE',
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to clear history');
-  return data;
+  return res.json();
 };
 
 // Preset Endpoints
 export const getPresets = async () => {
   const res = await apiFetch('/api/presets');
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to fetch presets');
-  return data;
+  return res.json();
 };
 
 export const createPreset = async (presetName: string, voiceId: string, speed: number = 1.0, settings: any = {}) => {
@@ -103,18 +90,14 @@ export const createPreset = async (presetName: string, voiceId: string, speed: n
     method: 'POST',
     body: JSON.stringify({ presetName, voiceId, speed, settings }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to create preset');
-  return data;
+  return res.json();
 };
 
 export const deletePreset = async (id: string) => {
   const res = await apiFetch(`/api/presets/${id}`, {
     method: 'DELETE',
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to delete preset');
-  return data;
+  return res.json();
 };
 
 // Admin Authentication Endpoints
@@ -123,9 +106,7 @@ export const adminSignupApi = async (name: string, email: string, password: stri
     method: 'POST',
     body: JSON.stringify({ name, email, password }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Admin registration failed');
-  return data;
+  return res.json();
 };
 
 export const adminLoginApi = async (email: string, password: string) => {
@@ -133,18 +114,14 @@ export const adminLoginApi = async (email: string, password: string) => {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Admin login failed');
-  return data;
+  return res.json();
 };
 
 // Admin Operations
 export const getAdminUsers = async (search?: string) => {
   const query = search ? `?search=${encodeURIComponent(search)}` : '';
   const res = await apiFetch(`/api/admin/users${query}`);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to fetch users');
-  return data;
+  return res.json();
 };
 
 export const updateAdminUser = async (id: string, body: any) => {
@@ -152,9 +129,7 @@ export const updateAdminUser = async (id: string, body: any) => {
     method: 'PATCH',
     body: JSON.stringify(body),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to update user');
-  return data;
+  return res.json();
 };
 
 export const toggleAdminUserPremium = async (id: string, premiumAccess: boolean) => {
@@ -162,32 +137,24 @@ export const toggleAdminUserPremium = async (id: string, premiumAccess: boolean)
     method: 'PATCH',
     body: JSON.stringify({ premiumAccess }),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to update premium access');
-  return data;
+  return res.json();
 };
 
 export const deleteAdminUser = async (id: string) => {
   const res = await apiFetch(`/api/admin/users/${id}`, {
     method: 'DELETE',
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to delete user');
-  return data;
+  return res.json();
 };
 
 export const getAdminStats = async () => {
   const res = await apiFetch('/api/admin/stats');
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to fetch statistics');
-  return data;
+  return res.json();
 };
 
 export const getAdminSettings = async () => {
   const res = await apiFetch('/api/admin/settings');
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to fetch settings');
-  return data;
+  return res.json();
 };
 
 export const updateAdminSettings = async (body: any) => {
@@ -195,16 +162,12 @@ export const updateAdminSettings = async (body: any) => {
     method: 'PATCH',
     body: JSON.stringify(body),
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Failed to update settings');
-  return data;
+  return res.json();
 };
 
 export const logoutApi = async () => {
   const res = await apiFetch('/api/auth/logout', {
     method: 'POST',
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.message || 'Logout failed');
-  return data;
+  return res.json();
 };

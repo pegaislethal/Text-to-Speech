@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { getHistory, deleteHistoryItemApi, clearHistoryApi } from '../../services/api';
+import { getHistory, deleteHistoryItemApi, clearHistoryApi, getApiUrl } from '../../services/api';
 import { Play, Pause, Download, Music, Calendar, Volume2, Clock, FileText, Search, Trash2 } from 'lucide-react';
 
 interface HistoryItem {
@@ -24,23 +24,7 @@ export default function AudioHistory() {
   const [clearing, setClearing] = useState<boolean>(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const getBackendUrl = () => {
-    if (typeof window !== 'undefined') {
-      const host = window.location.hostname;
-      if (host.endsWith('.vercel.app') || (process.env.NODE_ENV === 'production' && host !== 'localhost' && host !== '127.0.0.1')) {
-        if (process.env.NEXT_PUBLIC_BACKEND_URL && !process.env.NEXT_PUBLIC_BACKEND_URL.includes('localhost')) {
-          return process.env.NEXT_PUBLIC_BACKEND_URL;
-        }
-        return '/api/backend';
-      }
-      if (host !== 'localhost' && host !== '127.0.0.1') {
-        return `http://${host}:5000`;
-      }
-    }
-    return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-  };
-
-  const BACKEND_URL = getBackendUrl();
+  const BACKEND_URL = getApiUrl();
 
   useEffect(() => {
     fetchHistoryList();
