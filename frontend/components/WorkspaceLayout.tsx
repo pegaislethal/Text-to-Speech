@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../context/authContext';
 import { 
-  AudioLines, LogOut, Keyboard, History, User, Shield, Users, Settings, ArrowLeft, Menu, X, Star
+  AudioLines, LogOut, Keyboard, History, User, Shield, Users, Settings, ArrowLeft, Menu, X, Star, Sparkles
 } from 'lucide-react';
 
 interface WorkspaceLayoutProps {
@@ -23,6 +23,7 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
   // Navigation definition for normal workspace
   const userNavItems = [
     { name: 'Speech Studio', href: '/dashboard', icon: Keyboard },
+    ...(user.premiumAccess ? [{ name: 'AI Scene Generator', href: '/dashboard/ai-scene-generator', icon: Sparkles }] : []),
     { name: 'Audio History', href: '/history', icon: History },
     { name: 'Profile Settings', href: '/profile', icon: User },
   ];

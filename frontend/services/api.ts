@@ -51,6 +51,14 @@ export const generateSpeech = async (text: string, voice: string, speed: number 
   return res.json();
 };
 
+export const generateSceneVoicesApi = async (script: string, voiceId: string, speed: number = 1.0) => {
+  const res = await apiFetch('/api/premium/scene-generator', {
+    method: 'POST',
+    body: JSON.stringify({ script, voiceId, speed }),
+  });
+  return res.json();
+};
+
 export const previewSpeechApi = async (voiceId: string, text?: string) => {
   console.log('Selected voice for preview:', voiceId);
   const res = await apiFetch('/api/tts/preview', {

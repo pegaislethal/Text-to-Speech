@@ -4,8 +4,10 @@ const authController = require('../controllers/authController');
 const ttsController = require('../controllers/ttsController');
 const adminController = require('../controllers/adminController');
 const presetController = require('../controllers/presetController');
+const premiumController = require('../controllers/premiumController');
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
+const premiumMiddleware = require('../middleware/premiumMiddleware');
 
 
 router.get('/', (req, res) => {
@@ -31,6 +33,9 @@ router.post('/auth/logout', authController.logout);
 router.get('/auth/me', authMiddleware, (req, res) => {
   res.status(200).json({ success: true, user: req.user });
 });
+
+// Premium Operations
+router.post('/premium/scene-generator', authMiddleware, premiumMiddleware, premiumController.generateSceneVoices);
 
 // TTS Operations
 router.post('/tts/generate', authMiddleware, ttsController.generateSpeech);
