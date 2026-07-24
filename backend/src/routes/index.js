@@ -8,7 +8,10 @@ const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
 
 
-router.get('/',)
+router.get('/', (req, res) => {
+  console.log("Deployed");
+  res.status(200).json({ message: "Deployed" });
+});
 // Health check endpoint
 router.get('/health', (req, res) => {
   res.status(200).json({
