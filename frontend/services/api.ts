@@ -1,6 +1,6 @@
-export const getApiUrl = () => {
-  return process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-};
+import { API_URL, getApiUrl } from '../config/api';
+
+export { API_URL, getApiUrl };
 
 const getHeaders = () => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;

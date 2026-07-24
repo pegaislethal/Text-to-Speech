@@ -7,9 +7,14 @@ const presetController = require('../controllers/presetController');
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
 
+
+router.get('/',)
 // Health check endpoint
 router.get('/health', (req, res) => {
-  res.status(200).json({ status: 'Backend running' });
+  res.status(200).json({
+    status: 'Backend running',
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
 // Authentication Routes

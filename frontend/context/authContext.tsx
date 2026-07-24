@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { adminSignupApi, adminLoginApi, getApiUrl } from '../services/api';
+import { adminSignupApi, adminLoginApi } from '../services/api';
+import { getApiUrl } from '../config/api';
 
 export interface User {
   id: string;
@@ -86,7 +87,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       console.error('Google login error:', error);
       if (error instanceof TypeError || (error.message && error.message.includes('Failed to fetch'))) {
-        throw new Error('Unable to connect to authentication server. Please verify backend is running on port 5000.');
+        const isProd = process.env.NODE_ENV === 'production' || (typeof window !== 'undefined' && window.location.hostname.endsWith('.vercel.app'));
+        const friendlyMsg = isProd 
+          ? 'Authentication service temporarily unavailable. Please try again.' 
+          : 'Authentication server unavailable. Check local backend.';
+        throw new Error(friendlyMsg);
       }
       throw error;
     } finally {
