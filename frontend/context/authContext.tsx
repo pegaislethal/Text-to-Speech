@@ -36,19 +36,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const router = useRouter();
 
   const getBackendUrl = () => {
-    if (process.env.NEXT_PUBLIC_BACKEND_URL) {
-      return process.env.NEXT_PUBLIC_BACKEND_URL;
-    }
     if (typeof window !== 'undefined') {
       const host = window.location.hostname;
-      if (host.endsWith('.vercel.app') || process.env.NODE_ENV === 'production') {
+      if (host.endsWith('.vercel.app') || (process.env.NODE_ENV === 'production' && host !== 'localhost' && host !== '127.0.0.1')) {
+        if (process.env.NEXT_PUBLIC_BACKEND_URL && !process.env.NEXT_PUBLIC_BACKEND_URL.includes('localhost')) {
+          return process.env.NEXT_PUBLIC_BACKEND_URL;
+        }
         return '/api/backend';
       }
       if (host !== 'localhost' && host !== '127.0.0.1') {
         return `http://${host}:5000`;
       }
     }
-    return 'http://localhost:5000';
+    return process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
   };
 
   const BACKEND_URL = getBackendUrl();
