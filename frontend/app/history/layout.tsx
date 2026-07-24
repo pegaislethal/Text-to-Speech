@@ -4,7 +4,7 @@ import React from 'react';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import WorkspaceLayout from '../../components/WorkspaceLayout';
 
-export default function DashboardLayout({
+export default function HistoryLayout({
   children,
 }: {
   children: React.ReactNode;

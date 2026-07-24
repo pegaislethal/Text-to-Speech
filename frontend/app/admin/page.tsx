@@ -4,10 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { 
   getAdminUsers, updateAdminUser, toggleAdminUserPremium, 
   deleteAdminUser, getAdminStats 
-} from '../../../services/api';
+} from '../../services/api';
 import { 
   Search, ShieldAlert, Check, ToggleLeft, ToggleRight, Trash2, 
-  Save, RefreshCw, Users, Music, Activity, Star, Mail, ShieldCheck
+  Save, RefreshCw, Users, Music, Activity, Star, Mail, Edit3, ShieldCheck
 } from 'lucide-react';
 
 interface UserItem {
@@ -31,7 +31,7 @@ interface StatsData {
   totalCharacters: number;
 }
 
-export default function UserManagement() {
+export default function AdminDashboard() {
   const [users, setUsers] = useState<UserItem[]>([]);
   const [stats, setStats] = useState<StatsData | null>(null);
   const [search, setSearch] = useState<string>('');
@@ -53,7 +53,7 @@ export default function UserManagement() {
       if (usersData.success) setUsers(usersData.users);
       if (statsData.success) setStats(statsData.stats);
     } catch (error) {
-      console.error('Error fetching users directory:', error);
+      console.error('Error fetching admin data:', error);
     } finally {
       setLoading(false);
     }
@@ -137,10 +137,55 @@ export default function UserManagement() {
       {/* Page Header */}
       <div className="border-b border-neutral-900 pb-5">
         <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-neutral-50 to-neutral-400 bg-clip-text text-transparent">
-          User Directory
+          System Control Panel
         </h1>
         <p className="text-neutral-400 text-sm mt-1">Audit active accounts, adjust quotas, assign roles, and view usage metrics.</p>
       </div>
+
+      {/* Analytics statistics cards */}
+      {stats && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="p-6 rounded-2xl border border-neutral-900 bg-neutral-950/40 backdrop-blur-xl flex items-center gap-4 shadow-md">
+            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-indigo-400 shrink-0">
+              <Users className="w-5.5 h-5.5" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Total Users</span>
+              <span className="text-2xl font-black text-neutral-100 mt-1">{stats.totalUsers}</span>
+            </div>
+          </div>
+
+          <div className="p-6 rounded-2xl border border-neutral-900 bg-neutral-950/40 backdrop-blur-xl flex items-center gap-4 shadow-md">
+            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-indigo-400 shrink-0">
+              <Activity className="w-5.5 h-5.5 animate-pulse" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Active Sessions</span>
+              <span className="text-2xl font-black text-neutral-100 mt-1">{stats.activeUsers}</span>
+            </div>
+          </div>
+
+          <div className="p-6 rounded-2xl border border-neutral-900 bg-neutral-950/40 backdrop-blur-xl flex items-center gap-4 shadow-md">
+            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-indigo-400 shrink-0">
+              <Star className="w-5.5 h-5.5" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Premium Access</span>
+              <span className="text-2xl font-black text-neutral-100 mt-1">{stats.premiumUsers}</span>
+            </div>
+          </div>
+
+          <div className="p-6 rounded-2xl border border-neutral-900 bg-neutral-950/40 backdrop-blur-xl flex items-center gap-4 shadow-md">
+            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-indigo-400 shrink-0">
+              <Music className="w-5.5 h-5.5" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">Generated Clips</span>
+              <span className="text-2xl font-black text-neutral-100 mt-1">{stats.totalAudioCount}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Directory Table Area */}
       <div className="rounded-2xl border border-neutral-900 bg-neutral-950/40 backdrop-blur-xl shadow-xl overflow-hidden flex flex-col">

@@ -3,14 +3,17 @@ const mongoose = require('mongoose');
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
+  passwordHash: { type: String }, // For admin email/password authentication
   profileImage: { type: String },
   googleId: { type: String, unique: true, sparse: true },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
+  permissions: [{ type: String }],
   isActive: { type: Boolean, default: true },
   premiumAccess: { type: Boolean, default: false },
-  freeCredits: { type: Number, default: 100 }, // E.g., starts with 100 credits
-  usedCredits: { type: Number, default: 0 },
-  createdAt: { type: Date, default: Date.now }
+  freeCredits: { type: Number, default: 100 },
+  usedCredits: { type: Number, default: 0 }
+}, {
+  timestamps: true
 });
 
 module.exports = mongoose.model('User', userSchema);

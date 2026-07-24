@@ -3,7 +3,9 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const ttsController = require('../controllers/ttsController');
 const adminController = require('../controllers/adminController');
-const { requireAuth, requireAdmin } = require('../middleware/auth');
+const presetController = require('../controllers/presetController');
+const authMiddleware = require('../middleware/authMiddleware');
+const adminMiddleware = require('../middleware/adminMiddleware');
 
 // Health check
 router.get('/health', (req, res) => {
@@ -12,21 +14,30 @@ router.get('/health', (req, res) => {
 
 // Authentication
 router.post('/auth/google', authController.googleLogin);
-router.get('/auth/me', requireAuth, (req, res) => {
+router.post('/auth/admin/signup', authController.adminSignup);
+router.post('/auth/admin/login', authController.adminLogin);
+router.post('/auth/logout', authController.logout);
+router.get('/auth/me', authMiddleware, (req, res) => {
   res.status(200).json({ success: true, user: req.user });
 });
 
 // TTS Operations
-router.post('/tts/generate', requireAuth, ttsController.generateSpeech);
-router.get('/history', requireAuth, ttsController.getHistory);
+router.post('/tts/generate', authMiddleware, ttsController.generateSpeech);
+router.post('/tts/preview', ttsController.previewSpeech);
+router.get('/history', authMiddleware, ttsController.getHistory);
+
+// Preset Operations
+router.get('/presets', authMiddleware, presetController.getPresets);
+router.post('/presets', authMiddleware, presetController.createPreset);
+router.delete('/presets/:id', authMiddleware, presetController.deletePreset);
 
 // Admin Operations
-router.get('/admin/users', requireAuth, requireAdmin, adminController.getUsers);
-router.patch('/admin/users/:id', requireAuth, requireAdmin, adminController.updateUser);
-router.delete('/admin/users/:id', requireAuth, requireAdmin, adminController.deleteUser);
-router.patch('/admin/users/:id/premium', requireAuth, requireAdmin, adminController.togglePremium);
-router.get('/admin/stats', requireAuth, requireAdmin, adminController.getStats);
-router.get('/admin/settings', requireAuth, requireAdmin, adminController.getSettings);
-router.patch('/admin/settings', requireAuth, requireAdmin, adminController.updateSettings);
+router.get('/admin/users', authMiddleware, adminMiddleware, adminController.getUsers);
+router.patch('/admin/users/:id', authMiddleware, adminMiddleware, adminController.updateUser);
+router.delete('/admin/users/:id', authMiddleware, adminMiddleware, adminController.deleteUser);
+router.patch('/admin/users/:id/premium', authMiddleware, adminMiddleware, adminController.togglePremium);
+router.get('/admin/stats', authMiddleware, adminMiddleware, adminController.getStats);
+router.get('/admin/settings', authMiddleware, adminMiddleware, adminController.getSettings);
+router.patch('/admin/settings', authMiddleware, adminMiddleware, adminController.updateSettings);
 
 module.exports = router;

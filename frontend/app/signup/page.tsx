@@ -3,13 +3,12 @@
 import React from 'react';
 import { useAuth } from '../../context/authContext';
 import { GoogleLogin } from '@react-oauth/google';
-import { AudioLines, Sparkles, AlertCircle, RefreshCw, ArrowRight, ShieldCheck, User } from 'lucide-react';
+import { AudioLines, Sparkles, AlertCircle, RefreshCw, ArrowRight, User } from 'lucide-react';
 import Link from 'next/link';
 
-export default function UserLogin() {
+export default function UserSignup() {
   const { loginWithGoogle, loginBypass, loading } = useAuth();
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
-  const [showDevBypass, setShowDevBypass] = React.useState<boolean>(false);
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
     setErrorMsg(null);
@@ -17,23 +16,21 @@ export default function UserLogin() {
       try {
         await loginWithGoogle(credentialResponse.credential);
       } catch (err: any) {
-        setErrorMsg(err.message || 'Google authentication failed.');
+        setErrorMsg(err.message || 'Google registration failed.');
       }
     }
   };
 
   const handleGoogleError = () => {
-    setErrorMsg('Google Sign-In was unsuccessful. Please try again.');
+    setErrorMsg('Google Sign-Up failed. Please try again.');
   };
 
   return (
     <div className="min-h-screen bg-[#070708] flex flex-col md:flex-row text-neutral-200 selection:bg-indigo-500 selection:text-white">
       {/* Left Column: Branding */}
       <div className="md:w-1/2 p-8 md:p-16 bg-gradient-to-br from-neutral-950 via-[#0a0a0e] to-indigo-950/30 border-b md:border-b-0 md:border-r border-neutral-900 flex flex-col justify-between relative overflow-hidden">
-        {/* Glow Effects */}
         <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] rounded-full bg-indigo-600/10 blur-[130px] pointer-events-none" />
 
-        {/* Top Logo */}
         <Link href="/" className="flex items-center gap-3 group w-fit z-10">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform duration-300">
             <AudioLines className="w-6 h-6 text-white" />
@@ -41,34 +38,27 @@ export default function UserLogin() {
           <span className="text-xl font-bold tracking-tight text-white">21st Tech Company</span>
         </Link>
 
-        {/* Hero Copy */}
         <div className="my-12 md:my-0 flex flex-col gap-6 max-w-lg z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/25 bg-indigo-500/5 text-[11px] text-indigo-400 font-bold uppercase tracking-wider w-fit">
-            <Sparkles className="w-3.5 h-3.5" /> User Speech Workspace
+            <Sparkles className="w-3.5 h-3.5" /> Instant Onboarding
           </div>
 
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight text-white">
-            Natural Voices. <br />
+            Create Your <br />
             <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
-              Synthesized Instantly.
+              Speech Studio Profile.
             </span>
           </h1>
 
           <p className="text-neutral-400 text-sm leading-relaxed font-medium">
-            Access Edge AI neural models, continuous voice speed manipulation, and instant audio stem downloads.
+            Sign up with your Google account to receive 100 free neural TTS credits immediately.
           </p>
-
-          <div className="pt-4 flex items-center gap-6 text-xs text-neutral-500 font-medium border-t border-neutral-900">
-            <span>&bull; Google Single Sign-On</span>
-            <span>&bull; Free Credit Allocations</span>
-          </div>
         </div>
 
-        {/* Bottom Switch Link */}
         <div className="z-10 flex items-center justify-between text-xs text-neutral-500">
-          <span>Are you a System Administrator?</span>
-          <Link href="/admin/login" className="text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1">
-            Admin Login <ArrowRight className="w-3.5 h-3.5" />
+          <span>Are you an Administrator?</span>
+          <Link href="/admin/signup" className="text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1">
+            Admin Signup <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
       </div>
@@ -77,8 +67,8 @@ export default function UserLogin() {
       <div className="md:w-1/2 p-8 md:p-16 flex flex-col items-center justify-center relative bg-[#070708]">
         <div className="w-full max-w-md flex flex-col gap-8">
           <div className="flex flex-col gap-2">
-            <h2 className="text-2xl font-bold tracking-tight text-white">Welcome Back</h2>
-            <p className="text-xs text-neutral-400 font-medium">Sign in to your member account using Google Gmail.</p>
+            <h2 className="text-2xl font-bold tracking-tight text-white">Create Member Account</h2>
+            <p className="text-xs text-neutral-400 font-medium">Sign up using your Google Gmail credentials.</p>
           </div>
 
           {errorMsg && (
@@ -88,12 +78,11 @@ export default function UserLogin() {
             </div>
           )}
 
-          {/* Google Auth Container */}
           <div className="p-8 rounded-2xl border border-neutral-900 bg-neutral-950/60 backdrop-blur-xl shadow-2xl flex flex-col items-center gap-6">
             {loading ? (
               <div className="py-8 flex flex-col items-center justify-center gap-3">
                 <RefreshCw className="w-7 h-7 text-indigo-500 animate-spin" />
-                <span className="text-xs text-neutral-500 font-semibold uppercase tracking-wider">Authenticating...</span>
+                <span className="text-xs text-neutral-500 font-semibold uppercase tracking-wider">Creating Profile...</span>
               </div>
             ) : (
               <div className="w-full flex justify-center py-2 bg-neutral-900/60 border border-neutral-800 rounded-xl hover:border-neutral-750 transition duration-200">
@@ -102,38 +91,18 @@ export default function UserLogin() {
                   onError={handleGoogleError}
                   theme="filled_black"
                   shape="pill"
-                  text="continue_with"
+                  text="signup_with"
                   width="280px"
                 />
               </div>
             )}
 
             <div className="text-center text-neutral-500 text-[11px] font-medium leading-relaxed">
-              Don't have an account yet?{' '}
-              <Link href="/signup" className="text-indigo-400 hover:text-indigo-300 font-bold underline">
-                Sign Up
+              Already registered?{' '}
+              <Link href="/login" className="text-indigo-400 hover:text-indigo-300 font-bold underline">
+                Sign In
               </Link>
             </div>
-          </div>
-
-          {/* Hidden Dev Bypass Trigger */}
-          <div className="mt-4 text-center">
-            <button
-              onClick={() => setShowDevBypass(!showDevBypass)}
-              className="text-[10px] text-neutral-600 hover:text-neutral-500 font-semibold"
-            >
-              [Developer Sandbox Override]
-            </button>
-            {showDevBypass && (
-              <div className="mt-3 p-4 rounded-xl border border-neutral-900 bg-neutral-950 flex flex-col gap-2.5">
-                <button
-                  onClick={() => loginBypass('user')}
-                  className="py-2.5 px-4 rounded-lg bg-neutral-900 border border-neutral-800 text-neutral-200 text-xs font-bold flex items-center justify-center gap-2 hover:bg-neutral-800 transition"
-                >
-                  <User className="w-4 h-4 text-indigo-400" /> Bypass as User
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>

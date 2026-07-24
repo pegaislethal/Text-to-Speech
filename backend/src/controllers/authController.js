@@ -1,5 +1,6 @@
 const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const User = require('../models/user');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -10,7 +11,6 @@ exports.googleLogin = async (req, res) => {
   try {
     let email, name, picture, googleId;
 
-    // Use bypass/mock if Google Client ID is not configured or bypass/mock is explicitly requested
     if (bypass || !process.env.GOOGLE_CLIENT_ID || (credential && credential.startsWith('mock_'))) {
       if (mockUser) {
         email = mockUser.email;
@@ -18,13 +18,12 @@ exports.googleLogin = async (req, res) => {
         picture = mockUser.picture || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120';
         googleId = mockUser.googleId || `mock_${email}`;
       } else {
-        email = 'testuser@example.com';
-        name = 'Test User';
+        email = 'user@21sttech.com';
+        name = 'Team Member';
         picture = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120';
-        googleId = 'mock_testuser';
+        googleId = 'mock_user_id';
       }
     } else {
-      // Real Google OAuth Verification
       const ticket = await client.verifyIdToken({
         idToken: credential,
         audience: process.env.GOOGLE_CLIENT_ID
@@ -36,37 +35,39 @@ exports.googleLogin = async (req, res) => {
       googleId = payload.sub;
     }
 
-    // Check if user exists
     let user = await User.findOne({ email });
 
     if (!user) {
-      // If this is the very first user in the DB, make them Admin. Otherwise User.
-      const userCount = await User.countDocuments();
-      const role = userCount === 0 ? 'admin' : 'user';
-
       user = new User({
         name,
         email,
         profileImage: picture,
         googleId,
-        role,
+        role: 'user',
         isActive: true,
-        freeCredits: 100, // 100 default characters/credits
+        premiumAccess: false,
+        freeCredits: 100,
         usedCredits: 0
       });
       await user.save();
     }
 
     if (!user.isActive) {
-      return res.status(403).json({ success: false, message: 'User account is deactivated. Contact admin.' });
+      return res.status(403).json({ success: false, message: 'User account is deactivated. Contact administrator.' });
     }
 
-    // Sign JWT token
     const token = jwt.sign(
       { id: user._id, email: user.email, role: user.role },
       process.env.JWT_SECRET || 'fallback_secret_key_123',
       { expiresIn: '7d' }
     );
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
 
     res.status(200).json({
       success: true,
@@ -86,5 +87,140 @@ exports.googleLogin = async (req, res) => {
   } catch (error) {
     console.error('Google login error:', error);
     res.status(400).json({ success: false, message: 'Authentication failed: ' + error.message });
+  }
+};
+
+// Admin Signup Handler (Email + Password)
+exports.adminSignup = async (req, res) => {
+  const { name, email, password } = req.body;
+
+  if (!name || !email || !password) {
+    return res.status(400).json({ success: false, message: 'Name, email, and password are required' });
+  }
+
+  try {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'An account with this email already exists' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    const newAdmin = new User({
+      name,
+      email,
+      passwordHash,
+      role: 'admin',
+      premiumAccess: true,
+      isActive: true,
+      permissions: ['all']
+    });
+
+    await newAdmin.save();
+
+    const token = jwt.sign(
+      { id: newAdmin._id, email: newAdmin.email, role: newAdmin.role },
+      process.env.JWT_SECRET || 'fallback_secret_key_123',
+      { expiresIn: '7d' }
+    );
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    res.status(201).json({
+      success: true,
+      token,
+      user: {
+        id: newAdmin._id,
+        name: newAdmin.name,
+        email: newAdmin.email,
+        role: newAdmin.role,
+        premiumAccess: newAdmin.premiumAccess
+      }
+    });
+  } catch (error) {
+    console.error('Admin signup error:', error);
+    res.status(500).json({ success: false, message: 'Admin registration failed: ' + error.message });
+  }
+};
+
+// Admin Login Handler (Email + Password)
+exports.adminLogin = async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ success: false, message: 'Email and password are required' });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid admin credentials' });
+    }
+
+    if (user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Access denied. Account is not an administrator.' });
+    }
+
+    if (!user.passwordHash) {
+      return res.status(400).json({ success: false, message: 'This admin profile was created via OAuth. Please contact system owner.' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid admin credentials' });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({ success: false, message: 'Admin account is deactivated' });
+    }
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET || 'fallback_secret_key_123',
+      { expiresIn: '7d' }
+    );
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    res.status(200).json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        premiumAccess: user.premiumAccess
+      }
+    });
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({ success: false, message: 'Admin login failed: ' + error.message });
+  }
+};
+
+exports.logout = async (req, res) => {
+  try {
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
+    });
+    res.status(200).json({ success: true, message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ success: false, message: 'Logout failed: ' + error.message });
   }
 };

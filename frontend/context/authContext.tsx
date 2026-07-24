@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { adminSignupApi, adminLoginApi } from '../services/api';
 
 export interface User {
   id: string;
@@ -19,6 +20,8 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   loginWithGoogle: (credential: string) => Promise<void>;
+  adminSignup: (name: string, email: string, password: string) => Promise<void>;
+  adminLogin: (email: string, password: string) => Promise<void>;
   loginBypass: (role: 'user' | 'admin') => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
@@ -52,6 +55,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential }),
+        credentials: 'include',
       });
 
       const data = await res.json();
@@ -63,17 +67,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(data.user);
 
       if (data.user.role === 'admin') {
-        router.push('/admin/users');
+        router.push('/admin/dashboard');
       } else {
         router.push('/dashboard');
       }
     } catch (error: any) {
       console.error('Google login error:', error);
-      if (error instanceof TypeError || (error.message && error.message.includes('Failed to fetch'))) {
-        alert('Network Connection Error:\n\nUnable to connect to the backend server. Please verify that your backend API is running on http://localhost:5000 and that MongoDB is active.');
-      } else {
-        alert(error instanceof Error ? error.message : 'Login failed');
-      }
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const adminSignup = async (name: string, email: string, password: string) => {
+    setLoading(true);
+    try {
+      const data = await adminSignupApi(name, email, password);
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setToken(data.token);
+      setUser(data.user);
+      router.push('/admin/dashboard');
+    } catch (error: any) {
+      console.error('Admin signup error:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const adminLogin = async (email: string, password: string) => {
+    setLoading(true);
+    try {
+      const data = await adminLoginApi(email, password);
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setToken(data.token);
+      setUser(data.user);
+      router.push('/admin/dashboard');
+    } catch (error: any) {
+      console.error('Admin login error:', error);
       throw error;
     } finally {
       setLoading(false);
@@ -96,6 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential: `mock_${role}`, bypass: true, mockUser }),
+        credentials: 'include',
       });
 
       const data = await res.json();
@@ -107,23 +141,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(data.user);
 
       if (data.user.role === 'admin') {
-        router.push('/admin/users');
+        router.push('/admin/dashboard');
       } else {
         router.push('/dashboard');
       }
     } catch (error: any) {
       console.error('Bypass login error:', error);
-      if (error instanceof TypeError || (error.message && error.message.includes('Failed to fetch'))) {
-        alert('Network Connection Error:\n\nUnable to connect to the backend server. Please verify that your backend API is running on http://localhost:5000.');
-      } else {
-        alert('Mock Login failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
-      }
+      alert('Mock Login failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await fetch(`${BACKEND_URL}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (err) {
+      console.error('Backend logout call failed:', err);
+    }
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setToken(null);
@@ -136,6 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const res = await fetch(`${BACKEND_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -158,7 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, loginWithGoogle, loginBypass, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, loading, loginWithGoogle, adminSignup, adminLogin, loginBypass, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
