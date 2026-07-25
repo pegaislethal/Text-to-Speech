@@ -22,7 +22,7 @@ export const getApiUrl = (): string => {
 
     // Deployed production environment on Vercel or custom domain
     if (host.endsWith('.vercel.app') || (host !== 'localhost' && host !== '127.0.0.1' && !host.startsWith('192.168.'))) {
-      return 'https://text-to-speech-cudm.vercel.app';
+      return 'https://text-to-speech-cudm-82zozn7fm-pegas-projects-be8fc807.vercel.app';
     }
 
     // LAN / Wi-Fi Multi-device testing (e.g. mobile phone visiting http://192.168.1.50:3000)
@@ -33,7 +33,7 @@ export const getApiUrl = (): string => {
 
   // Server-side/SSR resolution during Production build
   if (process.env.NODE_ENV === 'production') {
-    return 'https://text-to-speech-cudm.vercel.app';
+    return 'https://text-to-speech-cudm-82zozn7fm-pegas-projects-be8fc807.vercel.app';
   }
 
   // Development Fallback
