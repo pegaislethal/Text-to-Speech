@@ -42,6 +42,18 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 app.use('/audio', express.static(path.join(__dirname, '../public/audio')));
 
+const connectDB = require('./config/database');
+
+// Database Connection Middleware for Serverless & Express
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Routes
 app.use('/api', routes);
 
