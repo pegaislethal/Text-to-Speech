@@ -3,6 +3,7 @@ const path = require('path');
 const User = require('../models/user');
 const AudioHistory = require('../models/audioHistory');
 const Settings = require('../models/settings');
+const { isCloudinaryConfigured, uploadAudioBuffer } = require('../config/cloudinary');
 
 let UniversalCommunicate;
 
@@ -25,6 +26,41 @@ const getRateString = (speed) => {
   const numSpeed = typeof speed === 'number' ? speed : parseFloat(speed) || 1.0;
   const percent = Math.round((numSpeed - 1.0) * 100);
   return percent >= 0 ? `+${percent}%` : `${percent}%`;
+};
+
+/**
+ * Helper to store generated audio buffer either to Cloudinary (production / cloud configured)
+ * or to local filesystem (local dev testing fallback).
+ */
+const storeAudioBuffer = async (audioBuffer, folder, filename) => {
+  const isProd = process.env.NODE_ENV === 'production';
+  const hasCloudinary = isCloudinaryConfigured();
+
+  if (isProd || hasCloudinary) {
+    try {
+      return await uploadAudioBuffer(audioBuffer, folder, filename);
+    } catch (cloudErr) {
+      console.error('Cloudinary audio upload failed:', cloudErr);
+      throw new Error('STORAGE_UNAVAILABLE');
+    }
+  }
+
+  // Local development fallback
+  try {
+    const relativeDir = folder === 'tts-previews' ? '../../public/audio/previews' : '../../public/uploads';
+    const uploadsDir = path.join(__dirname, relativeDir);
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    const outputPath = path.join(uploadsDir, filename);
+    await fs.promises.writeFile(outputPath, audioBuffer);
+
+    const urlPrefix = folder === 'tts-previews' ? '/audio/previews/' : '/uploads/';
+    return `${urlPrefix}${filename}`;
+  } catch (fsErr) {
+    console.error('Local audio file storage failed:', fsErr);
+    throw new Error('STORAGE_UNAVAILABLE');
+  }
 };
 
 exports.generateSpeech = async (req, res) => {
@@ -52,16 +88,9 @@ exports.generateSpeech = async (req, res) => {
 
   try {
     const CommClass = await getCommunicateClass();
-    
-    const uploadsDir = path.join(__dirname, '../../public/uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
     const filename = `tts-${Date.now()}-${Math.random().toString(36).substring(7)}.mp3`;
-    const outputPath = path.join(uploadsDir, filename);
-
     const rateStr = getRateString(speed);
+
     console.log('Generating voice:', voice, 'with rate:', rateStr);
 
     const communicate = new CommClass(text, {
@@ -81,9 +110,8 @@ exports.generateSpeech = async (req, res) => {
       throw new Error('No audio data received from Edge TTS service');
     }
 
-    await fs.promises.writeFile(outputPath, Buffer.concat(audioChunks));
-
-    const audioUrl = `/uploads/${filename}`;
+    const audioBuffer = Buffer.concat(audioChunks);
+    const audioUrl = await storeAudioBuffer(audioBuffer, 'tts-uploads', filename);
 
     if (!user.premiumAccess) {
       user.usedCredits += creditsNeeded;
@@ -94,12 +122,14 @@ exports.generateSpeech = async (req, res) => {
       userId: user._id,
       text,
       voice,
+      voiceId: voice,
+      speed,
       audioUrl,
       characterCount
     });
     await historyEntry.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       audioUrl,
       characterCount,
@@ -114,7 +144,16 @@ exports.generateSpeech = async (req, res) => {
 
   } catch (error) {
     console.error('TTS Generation Error:', error);
-    res.status(500).json({ success: false, message: 'Speech generation failed: ' + error.message });
+    if (error.message === 'STORAGE_UNAVAILABLE' || error.code === 'ENOENT') {
+      return res.status(500).json({
+        success: false,
+        message: 'Unable to store generated audio'
+      });
+    }
+    return res.status(500).json({
+      success: false,
+      message: 'Speech generation failed: ' + error.message
+    });
   }
 };
 
@@ -131,17 +170,10 @@ exports.previewSpeech = async (req, res) => {
 
   try {
     const CommClass = await getCommunicateClass();
-
-    const previewDir = path.join(__dirname, '../../public/audio/previews');
-    if (!fs.existsSync(previewDir)) {
-      fs.mkdirSync(previewDir, { recursive: true });
-    }
-
     const safeVoiceId = targetVoiceId.replace(/[^a-zA-Z0-9_-]/g, '_');
     const filename = `preview-${safeVoiceId}.mp3`;
-    const outputPath = path.join(previewDir, filename);
 
-    console.log('Generating voice preview for:', targetVoiceId, '->', outputPath);
+    console.log('Generating voice preview for:', targetVoiceId);
 
     const communicate = new CommClass(previewText, {
       voice: targetVoiceId,
@@ -160,19 +192,28 @@ exports.previewSpeech = async (req, res) => {
       throw new Error('No audio data received from Edge TTS service');
     }
 
-    await fs.promises.writeFile(outputPath, Buffer.concat(audioChunks));
+    const audioBuffer = Buffer.concat(audioChunks);
+    const audioUrl = await storeAudioBuffer(audioBuffer, 'tts-previews', filename);
 
-    const audioUrl = `/audio/previews/${filename}`;
     console.log('Voice preview generated successfully:', audioUrl);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       audioUrl
     });
 
   } catch (error) {
     console.error('Preview Generation Error:', error);
-    res.status(500).json({ success: false, message: 'Preview generation failed: ' + error.message });
+    if (error.message === 'STORAGE_UNAVAILABLE' || error.code === 'ENOENT') {
+      return res.status(500).json({
+        success: false,
+        message: 'Unable to store generated audio'
+      });
+    }
+    return res.status(500).json({
+      success: false,
+      message: 'Preview generation failed: ' + error.message
+    });
   }
 };
 

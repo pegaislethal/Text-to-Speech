@@ -92,6 +92,14 @@ export default function SpeechStudio() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const BACKEND_URL = getApiUrl();
 
+  const getFullAudioUrl = (urlPath: string | null) => {
+    if (!urlPath) return '';
+    if (urlPath.startsWith('http://') || urlPath.startsWith('https://')) return urlPath;
+    const baseUrl = BACKEND_URL.replace(/\/+$/, '');
+    const cleanPath = urlPath.startsWith('/') ? urlPath : `/${urlPath}`;
+    return `${baseUrl}${cleanPath}`;
+  };
+
   const characterCount = text.length;
   const creditsRequired = Math.max(1, Math.ceil(characterCount / 50));
 
@@ -101,7 +109,7 @@ export default function SpeechStudio() {
 
   useEffect(() => {
     if (audioUrl && audioRef.current) {
-      audioRef.current.src = `${BACKEND_URL}${audioUrl}`;
+      audioRef.current.src = getFullAudioUrl(audioUrl);
       audioRef.current.load();
     }
   }, [audioUrl, BACKEND_URL]);
@@ -163,7 +171,7 @@ export default function SpeechStudio() {
         throw new Error('Backend failed to return preview audio URL.');
       }
 
-      const fullUrl = `${BACKEND_URL}${res.audioUrl}`;
+      const fullUrl = getFullAudioUrl(res.audioUrl);
       console.log('Preview generated:', fullUrl);
 
       setAudioUrl(res.audioUrl);
@@ -503,7 +511,7 @@ export default function SpeechStudio() {
             <audio
               ref={audioRef}
               controls
-              src={`${BACKEND_URL}${audioUrl}`}
+              src={getFullAudioUrl(audioUrl)}
               className="h-10 text-xs rounded-lg max-w-[240px] md:max-w-xs border border-neutral-800 bg-neutral-900"
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
@@ -515,7 +523,7 @@ export default function SpeechStudio() {
             />
 
             <a
-              href={`${BACKEND_URL}${audioUrl}`}
+              href={getFullAudioUrl(audioUrl)}
               download
               className="p-3 rounded-xl border border-neutral-800 bg-neutral-900 text-neutral-300 hover:bg-neutral-850 hover:text-white transition flex items-center gap-2 text-xs font-bold shrink-0"
             >

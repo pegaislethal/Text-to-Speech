@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const SceneVoiceGeneration = require('../models/sceneVoiceGeneration');
 const { parseScriptIntoScenes } = require('../utils/aiScriptParser');
+const { isCloudinaryConfigured, uploadAudioBuffer } = require('../config/cloudinary');
 
 let UniversalCommunicate;
 
@@ -24,6 +25,34 @@ const getRateString = (speed) => {
   const numSpeed = typeof speed === 'number' ? speed : parseFloat(speed) || 1.0;
   const percent = Math.round((numSpeed - 1.0) * 100);
   return percent >= 0 ? `+${percent}%` : `${percent}%`;
+};
+
+const storeSceneAudioBuffer = async (audioBuffer, filename) => {
+  const isProd = process.env.NODE_ENV === 'production';
+  const hasCloudinary = isCloudinaryConfigured();
+
+  if (isProd || hasCloudinary) {
+    try {
+      return await uploadAudioBuffer(audioBuffer, 'tts-scenes', filename);
+    } catch (cloudErr) {
+      console.error('Cloudinary scene audio upload failed:', cloudErr);
+      throw new Error('STORAGE_UNAVAILABLE');
+    }
+  }
+
+  // Local development fallback
+  try {
+    const scenesDir = path.join(__dirname, '../../public/audio/scenes');
+    if (!fs.existsSync(scenesDir)) {
+      fs.mkdirSync(scenesDir, { recursive: true });
+    }
+    const outputPath = path.join(scenesDir, filename);
+    await fs.promises.writeFile(outputPath, audioBuffer);
+    return `/audio/scenes/${filename}`;
+  } catch (fsErr) {
+    console.error('Local scene audio storage failed:', fsErr);
+    throw new Error('STORAGE_UNAVAILABLE');
+  }
 };
 
 exports.generateSceneVoices = async (req, res) => {
@@ -71,12 +100,6 @@ exports.generateSceneVoices = async (req, res) => {
   try {
     const CommClass = await getCommunicateClass();
     const rateStr = getRateString(speed);
-
-    const scenesDir = path.join(__dirname, '../../public/audio/scenes');
-    if (!fs.existsSync(scenesDir)) {
-      fs.mkdirSync(scenesDir, { recursive: true });
-    }
-
     const timestamp = Date.now();
     const generatedScenes = [];
 
@@ -85,7 +108,6 @@ exports.generateSceneVoices = async (req, res) => {
       const paddedNumber = String(scene.sceneNumber).padStart(2, '0');
       const userFilename = `scene_${paddedNumber}.mp3`;
       const diskFilename = `scene_${paddedNumber}_${timestamp}_${Math.random().toString(36).substring(7)}.mp3`;
-      const outputPath = path.join(scenesDir, diskFilename);
 
       console.log(`Generating scene ${scene.sceneNumber} voice: "${scene.text.substring(0, 30)}..."`);
 
@@ -106,9 +128,8 @@ exports.generateSceneVoices = async (req, res) => {
         throw new Error(`Unable to generate scene audio for Scene ${scene.sceneNumber}`);
       }
 
-      await fs.promises.writeFile(outputPath, Buffer.concat(audioChunks));
-
-      const audioUrl = `/audio/scenes/${diskFilename}`;
+      const audioBuffer = Buffer.concat(audioChunks);
+      const audioUrl = await storeSceneAudioBuffer(audioBuffer, diskFilename);
 
       generatedScenes.push({
         sceneNumber: scene.sceneNumber,
@@ -128,14 +149,20 @@ exports.generateSceneVoices = async (req, res) => {
     });
     await record.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       scenes: generatedScenes
     });
 
   } catch (error) {
     console.error('AI Scene Generation Error:', error);
-    res.status(500).json({
+    if (error.message === 'STORAGE_UNAVAILABLE' || error.code === 'ENOENT') {
+      return res.status(500).json({
+        success: false,
+        message: 'Unable to store generated audio'
+      });
+    }
+    return res.status(500).json({
       success: false,
       message: 'Unable to generate scene audio: ' + error.message
     });
