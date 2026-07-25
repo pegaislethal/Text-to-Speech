@@ -8,13 +8,7 @@ const sanitizeUrl = (url: string): string => {
 };
 
 export const getApiUrl = (): string => {
-  // Highest priority: Explicit environment variable (process.env.NEXT_PUBLIC_API_URL)
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return sanitizeUrl(process.env.NEXT_PUBLIC_API_URL);
-  }
-  if (process.env.NEXT_PUBLIC_BACKEND_URL) {
-    return sanitizeUrl(process.env.NEXT_PUBLIC_BACKEND_URL);
-  }
+  const envUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
 
   // Client-side resolution for production vs development
   if (typeof window !== 'undefined') {
@@ -22,6 +16,10 @@ export const getApiUrl = (): string => {
 
     // Deployed production environment on Vercel or custom domain
     if (host.endsWith('.vercel.app') || (host !== 'localhost' && host !== '127.0.0.1' && !host.startsWith('192.168.'))) {
+      // If envUrl is provided and is NOT a localhost address, use it; otherwise use deployed backend
+      if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+        return sanitizeUrl(envUrl);
+      }
       return 'https://text-to-speech-cudm-82zozn7fm-pegas-projects-be8fc807.vercel.app';
     }
 
@@ -29,6 +27,11 @@ export const getApiUrl = (): string => {
     if (host.startsWith('192.168.')) {
       return `http://${host}:5000`;
     }
+  }
+
+  // Explicit environment variable (if valid for current environment)
+  if (envUrl) {
+    return sanitizeUrl(envUrl);
   }
 
   // Server-side/SSR resolution during Production build
