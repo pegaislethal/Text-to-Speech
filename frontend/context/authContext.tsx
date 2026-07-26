@@ -23,6 +23,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
+  isAuthenticated: boolean;
   loginWithGoogle: (credential: string) => Promise<void>;
   userSignup: (name: string, email: string, password: string) => Promise<void>;
   userLogin: (email: string, password: string) => Promise<void>;
@@ -42,14 +43,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const router = useRouter();
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+    const verifySession = async () => {
+      const storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
 
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+      if (storedToken && storedUser) {
+        setToken(storedToken);
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (_) {}
+      }
+
+      try {
+        const apiUrl = getApiUrl();
+        const res = await fetch(`${apiUrl}/api/auth/me`, {
+          headers: {
+            ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
+          },
+          credentials: 'include',
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.user) {
+            const verifiedUser: User = {
+              id: data.user.id || data.user._id,
+              name: data.user.name,
+              email: data.user.email,
+              profileImage: data.user.profileImageUrl || data.user.profileImage,
+              profileImageUrl: data.user.profileImageUrl || data.user.profileImage,
+              bio: data.user.bio || '',
+              role: data.user.role,
+              premiumAccess: data.user.premiumAccess,
+              freeCredits: data.user.freeCredits,
+              usedCredits: data.user.usedCredits,
+              createdAt: data.user.createdAt,
+            };
+            setUser(verifiedUser);
+            localStorage.setItem('user', JSON.stringify(verifiedUser));
+          }
+        } else if (res.status === 401 || res.status === 403) {
+          // Token invalid or session expired -> clear session
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setToken(null);
+          setUser(null);
+        }
+      } catch (err) {
+        console.error('Session verification check error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    verifySession();
   }, []);
 
   const loginWithGoogle = async (credential: string) => {
@@ -265,7 +312,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, loginWithGoogle, userSignup, userLogin, adminSignup, adminLogin, loginBypass, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, loading, isAuthenticated: Boolean(user), loginWithGoogle, userSignup, userLogin, adminSignup, adminLogin, loginBypass, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -57,7 +57,7 @@ exports.googleLogin = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
+      { id: user._id, userId: user._id, email: user.email, role: user.role, premiumAccess: user.premiumAccess },
       process.env.JWT_SECRET || 'fallback_secret_key_123',
       { expiresIn: '7d' }
     );
@@ -125,7 +125,7 @@ exports.userSignup = async (req, res) => {
     await newUser.save();
 
     const token = jwt.sign(
-      { id: newUser._id, email: newUser.email, role: newUser.role },
+      { id: newUser._id, userId: newUser._id, email: newUser.email, role: newUser.role, premiumAccess: newUser.premiumAccess },
       process.env.JWT_SECRET || 'fallback_secret_key_123',
       { expiresIn: '7d' }
     );
@@ -186,7 +186,7 @@ exports.userLogin = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
+      { id: user._id, userId: user._id, email: user.email, role: user.role, premiumAccess: user.premiumAccess },
       process.env.JWT_SECRET || 'fallback_secret_key_123',
       { expiresIn: '7d' }
     );
@@ -248,7 +248,7 @@ exports.adminSignup = async (req, res) => {
     await newAdmin.save();
 
     const token = jwt.sign(
-      { id: newAdmin._id, email: newAdmin.email, role: newAdmin.role },
+      { id: newAdmin._id, userId: newAdmin._id, email: newAdmin.email, role: newAdmin.role, premiumAccess: newAdmin.premiumAccess },
       process.env.JWT_SECRET || 'fallback_secret_key_123',
       { expiresIn: '7d' }
     );
@@ -310,7 +310,7 @@ exports.adminLogin = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
+      { id: user._id, userId: user._id, email: user.email, role: user.role, premiumAccess: user.premiumAccess },
       process.env.JWT_SECRET || 'fallback_secret_key_123',
       { expiresIn: '7d' }
     );

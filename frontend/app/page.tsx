@@ -8,12 +8,24 @@ import {
 } from 'lucide-react';
 import React from 'react';
 
+import { useRouter } from 'next/navigation';
 import ThemeToggle from '../components/ThemeToggle';
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  const router = useRouter();
   const [demoPlaying, setDemoPlaying] = React.useState(false);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  React.useEffect(() => {
+    if (!loading && user) {
+      if (user.role === 'admin') {
+        router.replace('/admin/dashboard');
+      } else {
+        router.replace('/dashboard');
+      }
+    }
+  }, [user, loading, router]);
 
   const toggleDemoPlay = () => {
     if (!audioRef.current) return;

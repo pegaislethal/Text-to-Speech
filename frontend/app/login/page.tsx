@@ -6,16 +6,28 @@ import { GoogleLogin } from '@react-oauth/google';
 import { AudioLines, Sparkles, AlertCircle, RefreshCw, ArrowRight, User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 
+import { useRouter } from 'next/navigation';
 import ThemeToggle from '../../components/ThemeToggle';
 
 export default function UserLogin() {
-  const { loginWithGoogle, userLogin, loginBypass, loading } = useAuth();
+  const { user, loginWithGoogle, userLogin, loginBypass, loading } = useAuth();
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDevBypass, setShowDevBypass] = useState(false);
+
+  React.useEffect(() => {
+    if (!loading && user) {
+      if (user.role === 'admin') {
+        router.replace('/admin/dashboard');
+      } else {
+        router.replace('/dashboard');
+      }
+    }
+  }, [user, loading, router]);
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
     setErrorMsg(null);

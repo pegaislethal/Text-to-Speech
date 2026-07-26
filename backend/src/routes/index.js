@@ -32,7 +32,23 @@ router.post('/auth/admin/signup', authController.adminSignup);
 router.post('/auth/admin/login', authController.adminLogin);
 router.post('/auth/logout', authController.logout);
 router.get('/auth/me', authMiddleware, (req, res) => {
-  res.status(200).json({ success: true, user: req.user });
+  res.status(200).json({
+    success: true,
+    authenticated: true,
+    user: {
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      profileImage: req.user.profileImageUrl || req.user.profileImage,
+      profileImageUrl: req.user.profileImageUrl || req.user.profileImage,
+      bio: req.user.bio || '',
+      role: req.user.role,
+      premiumAccess: req.user.premiumAccess,
+      freeCredits: req.user.freeCredits,
+      usedCredits: req.user.usedCredits,
+      createdAt: req.user.createdAt
+    }
+  });
 });
 
 // User Profile Management Routes
