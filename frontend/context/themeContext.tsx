@@ -16,26 +16,25 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [theme, setThemeState] = useState<Theme>('dark');
   const [mounted, setMounted] = useState(false);
 
+  // Sync theme on initial mount
   useEffect(() => {
     const savedTheme = localStorage.getItem('21st_theme') as Theme | null;
-    if (savedTheme && (savedTheme === 'dark' || savedTheme === 'light')) {
-      setThemeState(savedTheme);
-    } else {
-      setThemeState('dark');
-    }
+    const activeTheme = (savedTheme === 'dark' || savedTheme === 'light') ? savedTheme : 'dark';
+    setThemeState(activeTheme);
+
+    const root = document.documentElement;
+    root.classList.remove('dark', 'light');
+    root.classList.add(activeTheme);
+
     setMounted(true);
   }, []);
 
+  // Update theme on state changes
   useEffect(() => {
     if (!mounted) return;
     const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-      root.classList.remove('light');
-    } else {
-      root.classList.add('light');
-      root.classList.remove('dark');
-    }
+    root.classList.remove('dark', 'light');
+    root.classList.add(theme);
     localStorage.setItem('21st_theme', theme);
   }, [theme, mounted]);
 

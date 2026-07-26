@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root, html.dark {
   --background: #070708;
   --foreground: #e5e5e5;
@@ -9,17 +11,19 @@
   --input: #1f1f2e;
   --primary: #6366f1;
   --primary-foreground: #ffffff;
+  color-scheme: dark;
 }
 
 html.light {
-  --background: #f8fafc;
+  --background: #ffffff;
   --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #1e293b;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
+  --card: #f8fafc;
+  --card-foreground: #0f172a;
+  --border: #cbd5e1;
+  --input: #cbd5e1;
   --primary: #4f46e5;
   --primary-foreground: #ffffff;
+  color-scheme: light;
 }
 
 body {
@@ -34,3 +38,51 @@ body {
 .bg-card { background-color: var(--card); }
 .text-card-foreground { color: var(--card-foreground); }
 .border-input { border-color: var(--input); }
+
+/* Global theme overrides for Light Mode */
+html.light body,
+html.light div.min-h-screen,
+html.light main {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+html.light .bg-\[\#070708\],
+html.light .bg-neutral-950,
+html.light .bg-neutral-950\/60,
+html.light .bg-neutral-950\/40,
+html.light .bg-\[\#070708\]\/75 {
+  background-color: #ffffff !important;
+}
+
+html.light .bg-neutral-900,
+html.light .bg-neutral-900\/60,
+html.light .bg-neutral-900\/40,
+html.light .bg-neutral-900\/80,
+html.light .bg-\[\#0a0a0f\] {
+  background-color: #f1f5f9 !important;
+}
+
+html.light .bg-indigo-950\/30,
+html.light .bg-indigo-950\/15,
+html.light .bg-indigo-950\/25 {
+  background-color: #e0e7ff !important;
+}
+
+html.light .text-neutral-200,
+html.light .text-neutral-100,
+html.light .text-neutral-50 {
+  color: #0f172a !important;
+}
+
+html.light .text-neutral-400,
+html.light .text-neutral-500 {
+  color: #475569 !important;
+}
+
+html.light .border-neutral-900,
+html.light .border-neutral-800,
+html.light .border-neutral-850,
+html.light .border-neutral-700 {
+  border-color: #e2e8f0 !important;
+}
