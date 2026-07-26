@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { RefreshCw } from 'lucide-react';
 import { userSignupApi, userLoginApi, adminSignupApi, adminLoginApi } from '../services/api';
 import { getApiUrl } from '../config/api';
 import { useToast } from './toastContext';
@@ -41,6 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
   const router = useRouter();
   const { showToast } = useToast();
 
@@ -288,13 +290,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    showToast('Logging out... You have been signed out successfully.', 'info');
+    setIsLoggingOut(true);
+    showToast('Logging out... Cleaning up session', 'loading');
     try {
       const apiUrl = getApiUrl();
       await fetch(`${apiUrl}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include'
       });
+      // Short delay for a smooth user experience with the loading animation
+      await new Promise((resolve) => setTimeout(resolve, 600));
     } catch (err) {
       console.error('Backend logout call failed:', err);
     }
@@ -303,6 +308,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     syncAuthCookie(null);
     setToken(null);
     setUser(null);
+    setIsLoggingOut(false);
+    showToast('Signed out successfully', 'info');
     router.push('/login');
   };
 
@@ -339,6 +346,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider value={{ user, token, loading, isAuthenticated: Boolean(user), loginWithGoogle, userSignup, userLogin, adminSignup, adminLogin, loginBypass, logout, refreshUser }}>
+      {isLoggingOut && (
+        <div className="fixed inset-0 z-[9999] bg-neutral-950/80 backdrop-blur-md flex flex-col items-center justify-center gap-4 transition-all duration-300 animate-in fade-in">
+          <div className="relative flex items-center justify-center">
+            <div className="w-14 h-14 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin" />
+            <RefreshCw className="w-6 h-6 text-indigo-400 animate-spin absolute" />
+          </div>
+          <div className="flex flex-col items-center gap-1 text-center">
+            <p className="text-sm font-bold text-white tracking-wide">Logging Out...</p>
+            <p className="text-xs text-neutral-400">Cleaning up secure session</p>
+          </div>
+        </div>
+      )}
       {children}
     </AuthContext.Provider>
   );

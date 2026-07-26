@@ -1,9 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Info, RefreshCw, X } from 'lucide-react';
 
-export type ToastType = 'info' | 'success' | 'error';
+export type ToastType = 'info' | 'success' | 'error' | 'loading';
 
 export interface ToastMessage {
   id: string;
@@ -48,6 +48,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 ? 'bg-emerald-950/90 dark:bg-emerald-950/90 border-emerald-500/40 text-emerald-100'
                 : toast.type === 'error'
                 ? 'bg-rose-950/90 dark:bg-rose-950/90 border-rose-500/40 text-rose-100'
+                : toast.type === 'loading'
+                ? 'bg-indigo-950/90 dark:bg-indigo-950/90 border-indigo-500/40 text-indigo-100'
                 : 'bg-indigo-950/90 dark:bg-indigo-950/90 border-indigo-500/40 text-indigo-100'
             }`}
           >
@@ -55,6 +57,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               {toast.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />}
               {toast.type === 'error' && <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />}
               {toast.type === 'info' && <Info className="w-5 h-5 text-indigo-400 shrink-0" />}
+              {toast.type === 'loading' && <RefreshCw className="w-5 h-5 text-indigo-400 shrink-0 animate-spin" />}
               <span className="text-xs font-semibold leading-snug">{toast.message}</span>
             </div>
             <button
