@@ -36,6 +36,7 @@ router.get('/auth/me', authMiddleware, (req, res) => {
 
 // Premium Operations
 router.post('/premium/scene-generator', authMiddleware, premiumMiddleware, premiumController.generateSceneVoices);
+router.post('/premium/download-scenes-zip', authMiddleware, premiumMiddleware, premiumController.downloadScenesZip);
 
 // TTS Operations
 router.post('/tts/generate', authMiddleware, ttsController.generateSpeech);

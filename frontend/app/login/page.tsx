@@ -6,6 +6,8 @@ import { GoogleLogin } from '@react-oauth/google';
 import { AudioLines, Sparkles, AlertCircle, RefreshCw, ArrowRight, User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 
+import ThemeToggle from '../../components/ThemeToggle';
+
 export default function UserLogin() {
   const { loginWithGoogle, userLogin, loginBypass, loading } = useAuth();
   const [email, setEmail] = useState('');
@@ -50,19 +52,22 @@ export default function UserLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070708] flex flex-col md:flex-row text-neutral-200 selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row selection:bg-indigo-500 selection:text-white transition-colors duration-200">
       {/* Left Column: Branding */}
-      <div className="md:w-1/2 p-8 md:p-16 bg-gradient-to-br from-neutral-950 via-[#0a0a0e] to-indigo-950/30 border-b md:border-b-0 md:border-r border-neutral-900 flex flex-col justify-between relative overflow-hidden">
+      <div className="md:w-1/2 p-8 md:p-16 bg-card border-b md:border-b-0 md:border-r border-input flex flex-col justify-between relative overflow-hidden">
         {/* Glow Effects */}
         <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] rounded-full bg-indigo-600/10 blur-[130px] pointer-events-none" />
 
-        {/* Top Logo */}
-        <Link href="/" className="flex items-center gap-3 group w-fit z-10">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform duration-300">
-            <AudioLines className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-xl font-bold tracking-tight text-white">21st Tech Company</span>
-        </Link>
+        {/* Top Logo & Theme Toggle */}
+        <div className="flex items-center justify-between z-10">
+          <Link href="/" className="flex items-center gap-3 group w-fit">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform duration-300">
+              <AudioLines className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-xl font-bold tracking-tight text-foreground">21st Tech Company</span>
+          </Link>
+          <ThemeToggle />
+        </div>
 
         {/* Hero Copy */}
         <div className="my-12 md:my-0 flex flex-col gap-6 max-w-lg z-10">

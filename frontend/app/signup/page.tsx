@@ -6,6 +6,8 @@ import { GoogleLogin } from '@react-oauth/google';
 import { AudioLines, Sparkles, AlertCircle, RefreshCw, ArrowRight, User, Mail, Lock, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
+import ThemeToggle from '../../components/ThemeToggle';
+
 export default function UserSignup() {
   const { loginWithGoogle, userSignup, loading } = useAuth();
   const [name, setName] = useState('');
@@ -21,13 +23,13 @@ export default function UserSignup() {
       try {
         await loginWithGoogle(credentialResponse.credential);
       } catch (err: any) {
-        setErrorMsg(err.message || 'Google registration failed.');
+        setErrorMsg(err.message || 'Google signup failed.');
       }
     }
   };
 
   const handleGoogleError = () => {
-    setErrorMsg('Google Sign-Up failed. Please try again.');
+    setErrorMsg('Google Sign-Up was unsuccessful. Please try again.');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,7 +37,7 @@ export default function UserSignup() {
     setErrorMsg(null);
 
     if (!name || !email || !password) {
-      setErrorMsg('Please fill in all required fields.');
+      setErrorMsg('Please complete all required fields.');
       return;
     }
 
@@ -55,17 +57,20 @@ export default function UserSignup() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070708] flex flex-col md:flex-row text-neutral-200 selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen bg-background text-foreground flex flex-col md:flex-row selection:bg-indigo-500 selection:text-white transition-colors duration-200">
       {/* Left Column: Branding */}
-      <div className="md:w-1/2 p-8 md:p-16 bg-gradient-to-br from-neutral-950 via-[#0a0a0e] to-indigo-950/30 border-b md:border-b-0 md:border-r border-neutral-900 flex flex-col justify-between relative overflow-hidden">
+      <div className="md:w-1/2 p-8 md:p-16 bg-card border-b md:border-b-0 md:border-r border-input flex flex-col justify-between relative overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] rounded-full bg-indigo-600/10 blur-[130px] pointer-events-none" />
 
-        <Link href="/" className="flex items-center gap-3 group w-fit z-10">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform duration-300">
-            <AudioLines className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-xl font-bold tracking-tight text-white">21st Tech Company</span>
-        </Link>
+        <div className="flex items-center justify-between z-10">
+          <Link href="/" className="flex items-center gap-3 group w-fit">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform duration-300">
+              <AudioLines className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-xl font-bold tracking-tight text-foreground">21st Tech Company</span>
+          </Link>
+          <ThemeToggle />
+        </div>
 
         <div className="my-12 md:my-0 flex flex-col gap-6 max-w-lg z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/25 bg-indigo-500/5 text-[11px] text-indigo-400 font-bold uppercase tracking-wider w-fit">

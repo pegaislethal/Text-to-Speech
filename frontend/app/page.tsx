@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import React from 'react';
 
+import ThemeToggle from '../components/ThemeToggle';
+
 export default function Home() {
   const { user } = useAuth();
   const [demoPlaying, setDemoPlaying] = React.useState(false);
@@ -25,31 +27,29 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#070708] text-neutral-200 selection:bg-indigo-500 selection:text-white overflow-x-hidden relative">
+    <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-indigo-500 selection:text-white overflow-x-hidden relative transition-colors duration-200">
       {/* Background ambient light */}
       <div className="absolute top-[-10%] left-[20%] w-[600px] h-[600px] rounded-full bg-indigo-600/10 blur-[130px] pointer-events-none -z-10" />
       <div className="absolute top-[20%] right-[10%] w-[500px] h-[500px] rounded-full bg-purple-600/5 blur-[120px] pointer-events-none -z-10" />
       <div className="absolute bottom-[10%] left-[10%] w-[600px] h-[600px] rounded-full bg-indigo-900/5 blur-[140px] pointer-events-none -z-10" />
 
-      {/* Grid overlay */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none -z-10" />
-
       {/* Navigation Header */}
-      <header className="sticky top-0 z-50 backdrop-blur-md border-b border-neutral-900/60 bg-[#070708]/75 px-6 md:px-12 py-4 flex items-center justify-between transition-all duration-300">
+      <header className="sticky top-0 z-50 backdrop-blur-md border-b border-input bg-background/80 px-6 md:px-12 py-4 flex items-center justify-between transition-all duration-300">
         <div className="flex items-center gap-2.5 group cursor-pointer">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-all duration-300">
             <AudioLines className="w-5 h-5 text-white" />
           </div>
-          <span className="text-lg font-bold tracking-tight bg-gradient-to-r from-neutral-50 via-neutral-200 to-neutral-400 bg-clip-text text-transparent group-hover:text-white transition duration-200">
+          <span className="text-lg font-bold tracking-tight bg-gradient-to-r from-neutral-900 to-neutral-600 dark:from-neutral-50 dark:to-neutral-400 bg-clip-text text-transparent group-hover:text-foreground transition duration-200">
             21st Tech Company
           </span>
         </div>
         
-        <nav className="flex items-center gap-6">
-          <a href="#features" className="hidden sm:inline-block text-xs font-semibold text-neutral-400 hover:text-neutral-200 transition">
+        <nav className="flex items-center gap-4 sm:gap-6">
+          <ThemeToggle />
+          <a href="#features" className="hidden sm:inline-block text-xs font-semibold text-neutral-500 dark:text-neutral-400 hover:text-foreground transition">
             Features
           </a>
-          <a href="#how-it-works" className="hidden sm:inline-block text-xs font-semibold text-neutral-400 hover:text-neutral-200 transition">
+          <a href="#how-it-works" className="hidden sm:inline-block text-xs font-semibold text-neutral-500 dark:text-neutral-400 hover:text-foreground transition">
             How It Works
           </a>
           

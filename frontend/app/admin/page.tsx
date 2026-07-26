@@ -9,6 +9,7 @@ import {
   Search, ShieldAlert, Check, ToggleLeft, ToggleRight, Trash2, 
   Save, RefreshCw, Users, Music, Activity, Star, Mail, Edit3, ShieldCheck
 } from 'lucide-react';
+import ThemeToggle from '../../components/ThemeToggle';
 
 interface UserItem {
   _id: string;
@@ -63,7 +64,7 @@ export default function AdminDashboard() {
     try {
       const res = await updateAdminUser(user._id, { isActive: !user.isActive });
       if (res.success) {
-        setUsers(users.map(u => u._id === user._id ? { ...u, isActive: !u.isActive } : u));
+        setUsers(users.map(u => u._id === user._id ? { ...u, isActive: !user.isActive } : u));
         loadDashboardData();
       }
     } catch (error) {
@@ -88,32 +89,20 @@ export default function AdminDashboard() {
     const role = editedRoles[userId];
     
     if (credits === undefined && role === undefined) return;
-
     setSavingId(userId);
+
     try {
-      const updatePayload: any = {};
-      if (credits !== undefined) updatePayload.freeCredits = credits;
-      if (role !== undefined) updatePayload.role = role;
+      const body: any = {};
+      if (credits !== undefined) body.freeCredits = credits;
+      if (role !== undefined) body.role = role;
 
-      const res = await updateAdminUser(userId, updatePayload);
+      const res = await updateAdminUser(userId, body);
       if (res.success) {
-        setUsers(users.map(u => u._id === userId ? { 
-          ...u, 
-          freeCredits: credits !== undefined ? credits : u.freeCredits,
-          role: role !== undefined ? role : u.role
-        } : u));
-        
-        // Clear temp edit states
-        const newCreditsState = { ...editedCredits };
-        delete newCreditsState[userId];
-        setEditedCredits(newCreditsState);
-
-        const newRolesState = { ...editedRoles };
-        delete newRolesState[userId];
-        setEditedRoles(newRolesState);
+        setUsers(users.map(u => u._id === userId ? { ...u, ...body } : u));
+        loadDashboardData();
       }
     } catch (error) {
-      alert('Failed to save configurations');
+      alert('Failed to save user changes');
     } finally {
       setSavingId(null);
     }
@@ -135,11 +124,14 @@ export default function AdminDashboard() {
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-8 animate-in fade-in duration-300">
       {/* Page Header */}
-      <div className="border-b border-neutral-900 pb-5">
-        <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-neutral-50 to-neutral-400 bg-clip-text text-transparent">
-          System Control Panel
-        </h1>
-        <p className="text-neutral-400 text-sm mt-1">Audit active accounts, adjust quotas, assign roles, and view usage metrics.</p>
+      <div className="border-b border-input pb-5 flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-neutral-900 via-neutral-700 to-indigo-600 dark:from-neutral-50 dark:to-neutral-400 bg-clip-text text-transparent">
+            System Control Panel
+          </h1>
+          <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1">Audit active accounts, adjust quotas, assign roles, and view usage metrics.</p>
+        </div>
+        <ThemeToggle />
       </div>
 
       {/* Analytics statistics cards */}

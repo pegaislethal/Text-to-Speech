@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const archiver = require('archiver');
 const SceneVoiceGeneration = require('../models/sceneVoiceGeneration');
 const { parseScriptIntoScenes } = require('../utils/aiScriptParser');
 const { isCloudinaryConfigured, uploadAudioBuffer } = require('../config/cloudinary');
@@ -183,5 +184,65 @@ exports.generateSceneVoices = async (req, res) => {
       success: false,
       message: error.message || 'Audio upload failed'
     });
+  }
+};
+
+exports.downloadScenesZip = async (req, res) => {
+  const { scenes } = req.body;
+
+  if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'No generated scenes available.'
+    });
+  }
+
+  try {
+    const dateStr = new Date().toISOString().split('T')[0];
+    const zipFilename = `scene_audio_generation_${dateStr}.zip`;
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${zipFilename}"`);
+
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    archive.on('error', (err) => {
+      console.error('ZIP archive error:', err);
+      if (!res.headersSent) {
+        res.status(500).json({ success: false, message: 'Unable to create ZIP file.' });
+      }
+    });
+
+    archive.pipe(res);
+
+    for (const scene of scenes) {
+      const paddedNumber = String(scene.sceneNumber || 1).padStart(2, '0');
+      const filenameInsideZip = `scene_${paddedNumber}.mp3`;
+
+      if (scene.audioUrl && (scene.audioUrl.startsWith('http://') || scene.audioUrl.startsWith('https://'))) {
+        const fetchRes = await fetch(scene.audioUrl);
+        if (fetchRes.ok) {
+          const arrayBuffer = await fetchRes.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          archive.append(buffer, { name: filenameInsideZip });
+        }
+      } else if (scene.audioUrl) {
+        const cleanPath = scene.audioUrl.startsWith('/') ? scene.audioUrl : `/${scene.audioUrl}`;
+        const localPath = path.join(__dirname, '../../public', cleanPath);
+        if (fs.existsSync(localPath)) {
+          archive.file(localPath, { name: filenameInsideZip });
+        }
+      }
+    }
+
+    await archive.finalize();
+  } catch (error) {
+    console.error('Download scenes ZIP error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        message: 'Unable to create ZIP file.'
+      });
+    }
   }
 };

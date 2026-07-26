@@ -196,3 +196,67 @@ export const logoutApi = async () => {
   });
   return res.json();
 };
+
+/**
+ * Helper to download an audio file directly without opening a new tab or redirecting.
+ */
+export const downloadAudioFile = async (url: string, filename: string): Promise<boolean> => {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to fetch audio stream');
+    const blob = await res.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
+    return true;
+  } catch (err) {
+    console.error('downloadAudioFile error:', err);
+    return false;
+  }
+};
+
+/**
+ * Helper to request backend ZIP archive generation for all scenes and trigger download.
+ */
+export const downloadScenesZipApi = async (scenes: Array<{ sceneNumber: number; audioUrl: string }>) => {
+  const apiUrl = getApiUrl();
+  const headers = getHeaders();
+  const dateStr = new Date().toISOString().split('T')[0];
+  const zipFilename = `scene_audio_generation_${dateStr}.zip`;
+
+  const res = await fetch(`${apiUrl}/api/premium/download-scenes-zip`, {
+    method: 'POST',
+    headers: {
+      ...headers,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ scenes }),
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    let errorMsg = 'Unable to create ZIP file.';
+    try {
+      const errJson = await res.json();
+      errorMsg = errJson.message || errorMsg;
+    } catch (_) {}
+    throw new Error(errorMsg);
+  }
+
+  const blob = await res.blob();
+  const blobUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = blobUrl;
+  link.download = zipFilename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(blobUrl);
+  return true;
+};
+
