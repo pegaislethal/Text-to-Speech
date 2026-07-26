@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const archiver = require('archiver');
 const SceneVoiceGeneration = require('../models/sceneVoiceGeneration');
 const { parseScriptIntoScenes } = require('../utils/aiScriptParser');
 const { isCloudinaryConfigured, uploadAudioBuffer } = require('../config/cloudinary');
@@ -207,6 +206,9 @@ exports.downloadScenesZip = async (req, res) => {
   }
 
   try {
+    const archiverModule = await import('archiver');
+    const archiver = archiverModule.default || archiverModule;
+
     const dateStr = new Date().toISOString().split('T')[0];
     const zipFilename = `scene_audio_generation_${dateStr}.zip`;
 
