@@ -20,7 +20,7 @@ export const getApiUrl = (): string => {
       if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
         return sanitizeUrl(envUrl);
       }
-      return 'https://text-to-speech-cudm.vercel.app';
+      return 'https://text-to-speech-iota-dun.vercel.app';
     }
 
     // LAN / Wi-Fi Multi-device testing (e.g. mobile phone visiting http://192.168.1.50:3000)
@@ -36,7 +36,7 @@ export const getApiUrl = (): string => {
 
   // Server-side/SSR resolution during Production build
   if (process.env.NODE_ENV === 'production') {
-    return 'https://text-to-speech-cudm.vercel.app';
+    return 'https://text-to-speech-iota-dun.vercel.app';
   }
 
   // Development Fallback

@@ -5,6 +5,7 @@ const ttsController = require('../controllers/ttsController');
 const adminController = require('../controllers/adminController');
 const presetController = require('../controllers/presetController');
 const premiumController = require('../controllers/premiumController');
+const userController = require('../controllers/userController');
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
 const premiumMiddleware = require('../middleware/premiumMiddleware');
@@ -33,6 +34,12 @@ router.post('/auth/logout', authController.logout);
 router.get('/auth/me', authMiddleware, (req, res) => {
   res.status(200).json({ success: true, user: req.user });
 });
+
+// User Profile Management Routes
+router.get('/user/profile', authMiddleware, userController.getProfile);
+router.put('/user/profile', authMiddleware, userController.updateProfile);
+router.post('/user/profile/image', authMiddleware, userController.uploadProfileImage);
+router.delete('/user/profile/image', authMiddleware, userController.removeProfileImage);
 
 // Premium Operations
 router.post('/premium/scene-generator', authMiddleware, premiumMiddleware, premiumController.generateSceneVoices);

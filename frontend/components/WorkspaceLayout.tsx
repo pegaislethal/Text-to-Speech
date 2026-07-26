@@ -25,7 +25,8 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
     { name: 'Speech Studio', href: '/dashboard', icon: Keyboard },
     ...(user.premiumAccess ? [{ name: 'AI Scene Generator', href: '/dashboard/ai-scene-generator', icon: Sparkles }] : []),
     { name: 'Audio History', href: '/history', icon: History },
-    { name: 'Profile Settings', href: '/profile', icon: User },
+    { name: 'User Profile', href: '/dashboard/profile', icon: User },
+    { name: 'Account Settings', href: '/dashboard/settings', icon: Settings },
   ];
 
   // Navigation definition for admin portal
@@ -159,7 +160,7 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
           <div className="flex items-center justify-between p-2.5 rounded-xl border border-neutral-900/40 bg-neutral-950/20 hover:bg-neutral-900/20 transition-all duration-300 group">
             <div className="flex items-center gap-3 min-w-0">
               <img
-                src={user.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'}
+                src={user.profileImageUrl || user.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'}
                 alt={user.name}
                 className="w-9 h-9 rounded-full border border-neutral-800 shrink-0 object-cover"
               />
@@ -251,7 +252,7 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
             <div className="flex items-center justify-between p-3.5 rounded-xl bg-neutral-950 border border-neutral-900">
               <div className="flex items-center gap-3 min-w-0">
                 <img
-                  src={user.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'}
+                  src={user.profileImageUrl || user.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'}
                   alt={user.name}
                   className="w-9 h-9 rounded-full border border-neutral-800 object-cover"
                 />

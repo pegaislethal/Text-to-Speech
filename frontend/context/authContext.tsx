@@ -10,10 +10,13 @@ export interface User {
   name: string;
   email: string;
   profileImage?: string;
+  profileImageUrl?: string;
+  bio?: string;
   role: 'user' | 'admin';
   premiumAccess: boolean;
   freeCredits: number;
   usedCredits: number;
+  createdAt?: string;
 }
 
 interface AuthContextType {
@@ -234,21 +237,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!token) return;
     try {
       const apiUrl = getApiUrl();
-      const res = await fetch(`${apiUrl}/api/auth/me`, {
+      const res = await fetch(`${apiUrl}/api/user/profile`, {
         headers: { Authorization: `Bearer ${token}` },
         credentials: 'include',
       });
       const data = await res.json();
       if (res.ok && data.success) {
         const updatedUser = {
-          id: data.user._id,
+          id: data.user.id || data.user._id,
           name: data.user.name,
           email: data.user.email,
-          profileImage: data.user.profileImage,
+          profileImage: data.user.profileImageUrl || data.user.profileImage,
+          profileImageUrl: data.user.profileImageUrl || data.user.profileImage,
+          bio: data.user.bio || '',
           role: data.user.role,
           premiumAccess: data.user.premiumAccess,
           freeCredits: data.user.freeCredits,
           usedCredits: data.user.usedCredits,
+          createdAt: data.user.createdAt,
         };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         setUser(updatedUser);

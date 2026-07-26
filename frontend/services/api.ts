@@ -26,12 +26,14 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     if (!res.ok) {
       let errorMsg = 'API request failed';
       try {
-        const errorData = await res.json();
-        errorMsg = errorData.message || errorMsg;
-      } catch (_) {
-        const errorText = await res.text();
-        errorMsg = errorText || 'Server returned HTML or invalid response';
-      }
+        const text = await res.text();
+        try {
+          const errorData = JSON.parse(text);
+          errorMsg = errorData.message || errorMsg;
+        } catch (_) {
+          errorMsg = text || 'Server returned HTML or invalid response';
+        }
+      } catch (_) {}
       throw new Error(errorMsg);
     }
 
@@ -279,4 +281,39 @@ export const downloadScenesZipApi = async (scenes: Array<{ sceneNumber: number; 
   window.URL.revokeObjectURL(blobUrl);
   return true;
 };
+
+// ==========================================
+// User Profile Management APIs
+// ==========================================
+
+export const getUserProfileApi = async () => {
+  const res = await apiFetch('/api/user/profile', {
+    method: 'GET',
+  });
+  return res.json();
+};
+
+export const updateUserProfileApi = async (name: string, bio?: string) => {
+  const res = await apiFetch('/api/user/profile', {
+    method: 'PUT',
+    body: JSON.stringify({ name, bio }),
+  });
+  return res.json();
+};
+
+export const uploadProfileImageApi = async (base64Image: string) => {
+  const res = await apiFetch('/api/user/profile/image', {
+    method: 'POST',
+    body: JSON.stringify({ image: base64Image }),
+  });
+  return res.json();
+};
+
+export const removeProfileImageApi = async () => {
+  const res = await apiFetch('/api/user/profile/image', {
+    method: 'DELETE',
+  });
+  return res.json();
+};
+
 

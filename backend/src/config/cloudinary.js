@@ -62,8 +62,70 @@ const uploadAudioBuffer = (buffer, folder = 'tts-audio', filename = null) => {
   });
 };
 
+/**
+ * Upload an image Buffer or Base64 string to Cloudinary
+ * @param {Buffer|string} input - Image file binary buffer or Base64 string
+ * @param {string} folder - Folder name in Cloudinary
+ * @param {string} filename - Base filename without extension (optional)
+ * @returns {Promise<string>} Secure Cloudinary URL
+ */
+const uploadImageBuffer = (input, folder = 'user-profiles', filename = null) => {
+  return new Promise((resolve, reject) => {
+    if (!isCloudinaryConfigured()) {
+      return reject(new Error('Cloudinary environment variables are not configured.'));
+    }
+
+    cloudinary.config({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET,
+    });
+
+    const uploadOptions = {
+      resource_type: 'image',
+      folder: folder,
+    };
+
+    if (filename) {
+      uploadOptions.public_id = filename.replace(/\.[^/.]+$/, '');
+    }
+
+    if (typeof input === 'string') {
+      // Base64 string upload
+      cloudinary.uploader.upload(input, uploadOptions, (error, result) => {
+        if (error) {
+          console.error('Cloudinary Image Upload Error:', error);
+          return reject(error);
+        }
+        if (!result || !result.secure_url) {
+          return reject(new Error('Cloudinary response missing secure_url'));
+        }
+        resolve(result.secure_url);
+      });
+    } else {
+      // Binary Buffer upload
+      const uploadStream = cloudinary.uploader.upload_stream(
+        uploadOptions,
+        (error, result) => {
+          if (error) {
+            console.error('Cloudinary Image Stream Upload Error:', error);
+            return reject(error);
+          }
+          if (!result || !result.secure_url) {
+            return reject(new Error('Cloudinary response missing secure_url'));
+          }
+          resolve(result.secure_url);
+        }
+      );
+      uploadStream.end(input);
+    }
+  });
+};
+
 module.exports = {
   cloudinary,
   isCloudinaryConfigured,
   uploadAudioBuffer,
+  uploadImageBuffer,
 };
+
