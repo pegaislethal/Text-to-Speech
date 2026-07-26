@@ -1,20 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import WorkspaceLayout from '../../../components/WorkspaceLayout';
-import SettingsCard from '../../../components/SettingsCard';
-import ThemeToggle from '../../../components/ThemeToggle';
-import { useAuth } from '../../../context/authContext';
-import { useToast } from '../../../context/toastContext';
+import WorkspaceLayout from '../../components/WorkspaceLayout';
+import SettingsCard from '../../components/SettingsCard';
+import ThemeToggle from '../../components/ThemeToggle';
+import { useAuth } from '../../context/authContext';
+import { useToast } from '../../context/toastContext';
 import {
   Moon,
-  Sun,
   Bell,
   Shield,
   LogOut,
   Mail,
   User,
-  CheckCircle,
   Sparkles,
   Info,
   Calendar,
@@ -56,10 +54,10 @@ export default function SettingsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-900/80 pb-6">
           <div>
             <h1 className="text-2xl font-black text-neutral-100 tracking-tight flex items-center gap-3">
-              Account Settings
+              Application Settings
             </h1>
             <p className="text-xs text-neutral-500 mt-1">
-              Configure your workspace preferences, appearance, notifications, and security.
+              Configure your workspace preferences, theme, notifications, and security.
             </p>
           </div>
           <ThemeToggle />
@@ -116,7 +114,7 @@ export default function SettingsPage() {
             </div>
           </SettingsCard>
 
-          {/* Account Information */}
+          {/* Account Overview */}
           <SettingsCard
             title="Account Overview"
             description="Key information registered with your 21st Tech profile."

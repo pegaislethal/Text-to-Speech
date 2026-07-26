@@ -1,11 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../context/authContext';
 import { 
-  AudioLines, LogOut, Keyboard, History, User, Shield, Users, Settings, ArrowLeft, Menu, X, Star, Sparkles
+  AudioLines, LogOut, Keyboard, History, User, Shield, Users, Settings, ArrowLeft, Menu, X, Star, Sparkles, ChevronUp
 } from 'lucide-react';
 
 interface WorkspaceLayoutProps {
@@ -16,17 +16,29 @@ interface WorkspaceLayoutProps {
 export default function WorkspaceLayout({ children, isAdminArea = false }: WorkspaceLayoutProps) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   if (!user) return null;
 
-  // Navigation definition for normal workspace
+  // Single canonical navigation definition for normal workspace
   const userNavItems = [
     { name: 'Speech Studio', href: '/dashboard', icon: Keyboard },
     ...(user.premiumAccess ? [{ name: 'AI Scene Generator', href: '/dashboard/ai-scene-generator', icon: Sparkles }] : []),
     { name: 'Audio History', href: '/history', icon: History },
-    { name: 'User Profile', href: '/dashboard/profile', icon: User },
-    { name: 'Account Settings', href: '/dashboard/settings', icon: Settings },
+    { name: 'Profile', href: '/profile', icon: User },
+    { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
   // Navigation definition for admin portal
@@ -41,7 +53,7 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
 
   const isActive = (href: string) => {
     if (href === '/admin' && pathname !== '/admin') return false;
-    return pathname.startsWith(href);
+    return pathname === href || (href !== '/' && pathname.startsWith(`${href}/`));
   };
 
   return (
@@ -112,7 +124,7 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
                   </Link>
                 ) : (
                   <Link
-                    href="/admin"
+                    href="/admin/dashboard"
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-violet-400 hover:bg-violet-950/15 border border-violet-950/20 hover:border-violet-900/35 transition-all duration-200"
                   >
                     <Shield className="w-4.5 h-4.5" />
@@ -124,8 +136,8 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
           </nav>
         </div>
 
-        {/* User Card */}
-        <div className="flex flex-col gap-4">
+        {/* User Card with Interactive Avatar Dropdown Menu */}
+        <div className="flex flex-col gap-4 relative" ref={dropdownRef}>
           {/* Plan Status / Credits Box (User Area Only) */}
           {!isAdminArea && !user.premiumAccess && (
             <div className="p-4 rounded-2xl bg-neutral-950/80 border border-neutral-900/80 flex flex-col gap-2.5">
@@ -156,8 +168,11 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
             </div>
           )}
 
-          {/* Profile Card */}
-          <div className="flex items-center justify-between p-2.5 rounded-xl border border-neutral-900/40 bg-neutral-950/20 hover:bg-neutral-900/20 transition-all duration-300 group">
+          {/* User Profile Card Button */}
+          <button
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className="w-full flex items-center justify-between p-2.5 rounded-xl border border-neutral-900/40 bg-neutral-950/20 hover:bg-neutral-900/40 transition-all duration-300 group text-left"
+          >
             <div className="flex items-center gap-3 min-w-0">
               <img
                 src={user.profileImageUrl || user.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'}
@@ -173,14 +188,38 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
                 </span>
               </div>
             </div>
-            <button
-              onClick={logout}
-              className="p-1.5 rounded-lg text-neutral-500 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 shrink-0"
-              title="Logout"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
+            <ChevronUp className={`w-4 h-4 text-neutral-500 group-hover:text-neutral-300 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* Avatar Popover Dropdown */}
+          {dropdownOpen && (
+            <div className="absolute bottom-16 inset-x-0 bg-neutral-950 border border-neutral-800 rounded-2xl p-2 shadow-2xl z-50 flex flex-col gap-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
+              <Link
+                href="/profile"
+                onClick={() => setDropdownOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-neutral-300 hover:text-white hover:bg-neutral-900 transition"
+              >
+                <User className="w-4 h-4 text-indigo-400" /> View Profile
+              </Link>
+              <Link
+                href="/settings"
+                onClick={() => setDropdownOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-neutral-300 hover:text-white hover:bg-neutral-900 transition"
+              >
+                <Settings className="w-4 h-4 text-indigo-400" /> Account Settings
+              </Link>
+              <div className="border-t border-neutral-900 my-1" />
+              <button
+                onClick={() => {
+                  setDropdownOpen(false);
+                  logout();
+                }}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-red-400 hover:bg-red-950/20 transition text-left w-full"
+              >
+                <LogOut className="w-4 h-4 text-red-400" /> Logout
+              </button>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -192,6 +231,7 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
           </div>
           <span className="font-bold tracking-tight text-neutral-200 text-sm">21st Tech</span>
         </Link>
+
         <button 
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
           className="p-1.5 rounded-lg border border-neutral-800 text-neutral-400 hover:text-neutral-200 transition"
@@ -236,7 +276,7 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
                     </Link>
                   ) : (
                     <Link
-                      href="/admin"
+                      href="/admin/dashboard"
                       onClick={() => setMobileMenuOpen(false)}
                       className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-violet-400 bg-violet-950/10 border border-violet-950/20 transition"
                     >
@@ -249,8 +289,8 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
             </nav>
 
             {/* Profile / Logout section mobile */}
-            <div className="flex items-center justify-between p-3.5 rounded-xl bg-neutral-950 border border-neutral-900">
-              <div className="flex items-center gap-3 min-w-0">
+            <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-neutral-950 border border-neutral-900">
+              <div className="flex items-center gap-3 min-w-0 mb-2">
                 <img
                   src={user.profileImageUrl || user.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'}
                   alt={user.name}
@@ -261,12 +301,28 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
                   <span className="text-[10px] text-neutral-500 truncate">{user.email}</span>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href="/profile"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-2 px-3 rounded-lg bg-neutral-900 text-neutral-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                >
+                  <User className="w-3.5 h-3.5 text-indigo-400" /> Profile
+                </Link>
+                <Link
+                  href="/settings"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="py-2 px-3 rounded-lg bg-neutral-900 text-neutral-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                >
+                  <Settings className="w-3.5 h-3.5 text-indigo-400" /> Settings
+                </Link>
+              </div>
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
                   logout();
                 }}
-                className="py-2 px-4 rounded-lg bg-red-950/20 border border-red-900/35 hover:bg-red-900/20 text-red-400 text-xs font-semibold flex items-center gap-1.5 transition"
+                className="mt-1 py-2 px-4 rounded-lg bg-red-950/20 border border-red-900/35 hover:bg-red-900/20 text-red-400 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
               >
                 <LogOut className="w-3.5 h-3.5" /> Logout
               </button>
