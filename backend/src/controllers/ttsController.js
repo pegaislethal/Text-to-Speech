@@ -33,19 +33,17 @@ const getRateString = (speed) => {
  * or to local filesystem (local dev testing fallback).
  */
 const storeAudioBuffer = async (audioBuffer, folder, filename) => {
-  const isProd = process.env.NODE_ENV === 'production';
   const hasCloudinary = isCloudinaryConfigured();
 
-  if (isProd || hasCloudinary) {
+  if (hasCloudinary) {
     try {
       return await uploadAudioBuffer(audioBuffer, folder, filename);
     } catch (cloudErr) {
-      console.error('Cloudinary audio upload failed:', cloudErr);
-      throw new Error('STORAGE_UNAVAILABLE');
+      console.error('Cloudinary audio upload failed, falling back to local storage:', cloudErr);
     }
   }
 
-  // Local development fallback
+  // Local filesystem fallback (used if Cloudinary is unconfigured or upload fails)
   try {
     const relativeDir = folder === 'tts-previews' ? '../../public/audio/previews' : '../../public/uploads';
     const uploadsDir = path.join(__dirname, relativeDir);

@@ -28,19 +28,17 @@ const getRateString = (speed) => {
 };
 
 const storeSceneAudioBuffer = async (audioBuffer, filename) => {
-  const isProd = process.env.NODE_ENV === 'production';
   const hasCloudinary = isCloudinaryConfigured();
 
-  if (isProd || hasCloudinary) {
+  if (hasCloudinary) {
     try {
       return await uploadAudioBuffer(audioBuffer, 'tts-scenes', filename);
     } catch (cloudErr) {
-      console.error('Cloudinary scene audio upload failed:', cloudErr);
-      throw new Error('STORAGE_UNAVAILABLE');
+      console.error('Cloudinary scene audio upload failed, falling back to local storage:', cloudErr);
     }
   }
 
-  // Local development fallback
+  // Local filesystem fallback (used if Cloudinary is unconfigured or upload fails)
   try {
     const scenesDir = path.join(__dirname, '../../public/audio/scenes');
     if (!fs.existsSync(scenesDir)) {
