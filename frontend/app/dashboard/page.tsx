@@ -299,11 +299,11 @@ export default function SpeechStudio() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 items-start">
         {/* Left Column: Text Area & Speed Panel */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           {/* Text Area Card */}
-          <div className="relative rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-5 shadow-xl flex flex-col gap-4">
+          <div className="relative rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-4 sm:p-5 shadow-xl flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider flex items-center gap-2">
                 <FileText className="w-4 h-4 text-indigo-500" /> Script Editor
@@ -321,10 +321,10 @@ export default function SpeechStudio() {
               }}
               placeholder="Enter your script here to generate narrative audio..."
               maxLength={2000}
-              className="w-full min-h-[260px] bg-transparent text-foreground placeholder-neutral-400 dark:placeholder-neutral-600 focus:outline-none resize-none text-base leading-relaxed"
+              className="w-full min-h-[180px] sm:min-h-[260px] bg-transparent text-foreground placeholder-neutral-400 dark:placeholder-neutral-600 focus:outline-none resize-none text-sm sm:text-base leading-relaxed"
             />
 
-            <div className="flex items-center justify-between border-t border-input pt-3 text-xs text-neutral-500 dark:text-neutral-400">
+            <div className="flex flex-wrap items-center justify-between border-t border-input pt-3 text-xs text-neutral-500 dark:text-neutral-400 gap-2">
               <span>Required Cost: <strong className="text-indigo-500">{creditsRequired} credits</strong></span>
               <span>Rate: 1 credit / 50 chars</span>
             </div>
@@ -354,7 +354,7 @@ export default function SpeechStudio() {
         {/* Right Column: Deep Male Voice Library & Presets */}
         <div className="flex flex-col gap-6">
           {/* Voice Library Cards */}
-          <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-6 shadow-xl flex flex-col gap-4">
+          <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-4 sm:p-6 shadow-xl flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                 <Mic className="w-4 h-4 text-indigo-500" /> Deep Male Voice Library
@@ -375,19 +375,19 @@ export default function SpeechStudio() {
                       setVoiceId(v.voiceId);
                       setError(null);
                     }}
-                    className={`p-4 rounded-xl border transition-all duration-200 cursor-pointer flex flex-col gap-2.5 ${
+                    className={`p-3.5 sm:p-4 rounded-xl border transition-all duration-200 cursor-pointer flex flex-col gap-2.5 ${
                       isSelected
                         ? 'border-indigo-500/60 bg-indigo-500/10 shadow-md'
                         : 'border-input bg-background/50 hover:bg-background/80'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-foreground">{v.name}</span>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-indigo-500" />}
+                    <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xs font-bold text-foreground truncate">{v.name}</span>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-indigo-500 shrink-0" />}
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0">
                         <button
                           type="button"
                           onClick={(e) => {
@@ -421,7 +421,7 @@ export default function SpeechStudio() {
           </div>
 
           {/* Preset Manager Card */}
-          <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-6 shadow-xl flex flex-col gap-4">
+          <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-4 sm:p-6 shadow-xl flex flex-col gap-4">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
               <Bookmark className="w-4 h-4 text-indigo-500" /> Voice Presets
             </h3>
@@ -433,7 +433,7 @@ export default function SpeechStudio() {
                 placeholder="Preset Name..."
                 value={presetNameInput}
                 onChange={(e) => setPresetNameInput(e.target.value)}
-                className="flex-1 bg-background border border-input rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500"
+                className="flex-1 min-w-0 bg-background border border-input rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500"
               />
               <button
                 onClick={handleSavePreset}
@@ -483,28 +483,28 @@ export default function SpeechStudio() {
 
       {/* Audio Waveform Player Output */}
       {audioUrl && (
-        <div className="p-6 rounded-2xl border border-indigo-500/30 bg-indigo-500/10 backdrop-blur-xl shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4 animate-fade-in">
-          <div className="flex items-center gap-4">
+        <div className="p-4 sm:p-6 rounded-2xl border border-indigo-500/30 bg-indigo-500/10 backdrop-blur-xl shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4 animate-fade-in">
+          <div className="flex items-center gap-3 sm:gap-4 w-full md:w-auto">
             <button
               onClick={togglePlay}
-              className="w-12 h-12 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white transition active:scale-95 shadow-lg shadow-indigo-500/20 shrink-0"
+              className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white transition active:scale-95 shadow-lg shadow-indigo-500/20 shrink-0"
             >
               {isPlaying ? <Pause className="w-5 h-5 fill-white" /> : <Play className="w-5 h-5 fill-white ml-0.5" />}
             </button>
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold text-foreground">Audio Stream Active</span>
-              <span className="text-xs text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5 mt-0.5">
-                <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> Synthesized audio ready for playback & export
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs sm:text-sm font-semibold text-foreground truncate">Audio Stream Active</span>
+              <span className="text-[11px] sm:text-xs text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5 mt-0.5 truncate">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> Synthesized audio ready for playback & export
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full md:w-auto justify-between md:justify-end">
             <audio
               ref={audioRef}
               controls
               src={getFullAudioUrl(audioUrl)}
-              className="h-10 text-xs rounded-lg max-w-[240px] md:max-w-xs border border-input bg-card"
+              className="h-10 text-xs rounded-lg w-full sm:w-auto max-w-full md:max-w-xs border border-input bg-card"
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
               onEnded={() => setIsPlaying(false)}

@@ -42,6 +42,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
 
+  const syncAuthCookie = (tokenVal: string | null) => {
+    if (typeof document === 'undefined') return;
+    if (tokenVal) {
+      const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+      document.cookie = `token=${tokenVal}; path=/; max-age=604800; SameSite=Lax${isHttps ? '; Secure' : ''}`;
+    } else {
+      document.cookie = 'token=; path=/; max-age=0; SameSite=Lax';
+    }
+  };
+
   useEffect(() => {
     const verifySession = async () => {
       const storedToken = localStorage.getItem('token');
@@ -49,16 +59,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (storedToken && storedUser) {
         setToken(storedToken);
+        syncAuthCookie(storedToken);
         try {
           setUser(JSON.parse(storedUser));
         } catch (_) {}
+        // Optimistically set loading to false for instant page access
+        setLoading(false);
+      } else {
+        setLoading(false);
       }
+
+      if (!storedToken) return;
 
       try {
         const apiUrl = getApiUrl();
         const res = await fetch(`${apiUrl}/api/auth/me`, {
           headers: {
-            ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
+            Authorization: `Bearer ${storedToken}`,
           },
           credentials: 'include',
         });
@@ -86,13 +103,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Token invalid or session expired -> clear session
           localStorage.removeItem('token');
           localStorage.removeItem('user');
+          syncAuthCookie(null);
           setToken(null);
           setUser(null);
         }
       } catch (err) {
         console.error('Session verification check error:', err);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -127,6 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
+      syncAuthCookie(data.token);
       setToken(data.token);
       setUser(data.user);
 
@@ -156,6 +173,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await userSignupApi(name, email, password);
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
+      syncAuthCookie(data.token);
       setToken(data.token);
       setUser(data.user);
       router.push('/dashboard');
@@ -173,6 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await userLoginApi(email, password);
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
+      syncAuthCookie(data.token);
       setToken(data.token);
       setUser(data.user);
       if (data.user.role === 'admin') {
@@ -194,6 +213,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await adminSignupApi(name, email, password);
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
+      syncAuthCookie(data.token);
       setToken(data.token);
       setUser(data.user);
       router.push('/admin/dashboard');
@@ -211,6 +231,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await adminLoginApi(email, password);
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
+      syncAuthCookie(data.token);
       setToken(data.token);
       setUser(data.user);
       router.push('/admin/dashboard');
@@ -247,6 +268,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
+      syncAuthCookie(data.token);
       setToken(data.token);
       setUser(data.user);
 
@@ -275,6 +297,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    syncAuthCookie(null);
     setToken(null);
     setUser(null);
     router.push('/login');

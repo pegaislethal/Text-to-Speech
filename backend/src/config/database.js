@@ -1,10 +1,5 @@
 const mongoose = require('mongoose');
 
-// Set fallback DNS servers to resolve MongoDB Atlas SRV records reliably
-try {
-  require('dns').setServers(['1.1.1.1', '8.8.8.8']);
-} catch (_) {}
-
 let isConnected = false;
 
 const connectDB = async () => {
@@ -21,8 +16,8 @@ const connectDB = async () => {
 
   try {
     const conn = await mongoose.connect(mongoUri, {
-      bufferCommands: false,
-      serverSelectionTimeoutMS: 5000
+      serverSelectionTimeoutMS: 5000,
+      maxPoolSize: 10,
     });
     isConnected = !!conn.connections[0].readyState;
     console.log(`MongoDB Connected: ${conn.connection.host}`);

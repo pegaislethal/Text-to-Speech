@@ -7,6 +7,7 @@ import { useAuth } from '../context/authContext';
 import { 
   AudioLines, LogOut, Keyboard, History, User, Shield, Users, Settings, ArrowLeft, Menu, X, Star, Sparkles, ChevronUp
 } from 'lucide-react';
+import ThemeToggle from './ThemeToggle';
 
 interface WorkspaceLayoutProps {
   children: React.ReactNode;
@@ -224,25 +225,29 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
       </aside>
 
       {/* Header - Mobile */}
-      <header className="flex md:hidden border-b border-neutral-900 bg-[#070708]/85 backdrop-blur-md px-6 py-4 items-center justify-between z-30 sticky top-0 w-full">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+      <header className="flex md:hidden border-b border-neutral-900 bg-[#070708]/85 backdrop-blur-md px-4 sm:px-6 py-3.5 items-center justify-between z-30 sticky top-0 w-full">
+        <Link href="/" className="flex items-center gap-2 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
             <AudioLines className="w-4.5 h-4.5 text-white" />
           </div>
-          <span className="font-bold tracking-tight text-neutral-200 text-sm">21st Tech</span>
+          <span className="font-bold tracking-tight text-neutral-200 text-sm truncate">21st Tech</span>
         </Link>
 
-        <button 
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
-          className="p-1.5 rounded-lg border border-neutral-800 text-neutral-400 hover:text-neutral-200 transition"
-        >
-          {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+        <div className="flex items-center gap-2.5">
+          <ThemeToggle />
+          <button 
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
+            className="p-2 rounded-xl border border-neutral-800 bg-neutral-900/60 text-neutral-300 hover:text-white transition"
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
 
         {/* Mobile Dropdown Panel */}
         {mobileMenuOpen && (
-          <div className="absolute top-[69px] left-0 w-full border-b border-neutral-900 bg-[#0a0a0c] p-6 flex flex-col gap-5 animate-in slide-in-from-top duration-200 shadow-2xl">
-            <nav className="flex flex-col gap-2">
+          <div className="absolute top-[61px] left-0 w-full border-b border-neutral-900 bg-[#0a0a0c] p-5 flex flex-col gap-4 animate-in slide-in-from-top duration-200 shadow-2xl max-h-[calc(100vh-70px)] overflow-y-auto">
+            <nav className="flex flex-col gap-1.5">
               {currentNavItems.map((item) => {
                 const active = isActive(item.href);
                 const Icon = item.icon;
@@ -251,10 +256,10 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
                     key={item.href}
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition ${
+                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
                       active 
                         ? 'bg-neutral-900 text-indigo-400 border border-neutral-800'
-                        : 'text-neutral-400 border border-transparent'
+                        : 'text-neutral-400 border border-transparent hover:bg-neutral-900/40 hover:text-neutral-200'
                     }`}
                   >
                     <Icon className="w-4.5 h-4.5" />
@@ -264,12 +269,12 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
               })}
 
               {user.role === 'admin' && (
-                <div className="mt-4 pt-4 border-t border-neutral-900">
+                <div className="mt-3 pt-3 border-t border-neutral-900">
                   {isAdminArea ? (
                     <Link
                       href="/dashboard"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-indigo-400 bg-indigo-950/10 border border-indigo-950/20 transition"
+                      className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-indigo-400 bg-indigo-950/10 border border-indigo-950/20 transition"
                     >
                       <ArrowLeft className="w-4.5 h-4.5" />
                       Switch to Speech Studio
@@ -278,7 +283,7 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
                     <Link
                       href="/admin/dashboard"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-violet-400 bg-violet-950/10 border border-violet-950/20 transition"
+                      className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-violet-400 bg-violet-950/10 border border-violet-950/20 transition"
                     >
                       <Shield className="w-4.5 h-4.5" />
                       Switch to Admin Control
@@ -289,12 +294,12 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
             </nav>
 
             {/* Profile / Logout section mobile */}
-            <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-neutral-950 border border-neutral-900">
+            <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-neutral-950 border border-neutral-900 mt-1">
               <div className="flex items-center gap-3 min-w-0 mb-2">
                 <img
                   src={user.profileImageUrl || user.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'}
                   alt={user.name}
-                  className="w-9 h-9 rounded-full border border-neutral-800 object-cover"
+                  className="w-9 h-9 rounded-full border border-neutral-800 object-cover shrink-0"
                 />
                 <div className="flex flex-col min-w-0">
                   <span className="text-xs font-bold text-neutral-200 truncate">{user.name}</span>
@@ -332,7 +337,7 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
       </header>
 
       {/* Main Workspace Frame */}
-      <main className="flex-1 p-6 md:p-10 overflow-y-auto relative w-full">
+      <main className="flex-1 p-4 sm:p-6 md:p-10 overflow-y-auto overflow-x-hidden relative w-full">
         {children}
       </main>
     </div>
