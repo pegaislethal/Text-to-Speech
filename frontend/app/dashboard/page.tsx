@@ -124,9 +124,11 @@ export default function SpeechStudio() {
   const loadPresets = async () => {
     try {
       const res = await getPresets();
-      if (res.success) setPresets(res.presets);
+      if (res && res.success && Array.isArray(res.presets)) {
+        setPresets(res.presets);
+      }
     } catch (err) {
-      console.error('Failed to load presets:', err);
+      console.warn('Failed to load presets:', err);
     }
   };
 

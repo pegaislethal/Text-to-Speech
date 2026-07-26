@@ -12,30 +12,36 @@ const getHeaders = () => {
 
 const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   const apiUrl = getApiUrl();
-  console.log('API_URL:', apiUrl);
   const headers = getHeaders();
-  const res = await fetch(`${apiUrl}${endpoint}`, {
-    ...options,
-    headers: {
-      ...headers,
-      ...options.headers,
-    },
-    credentials: 'include',
-  });
+  try {
+    const res = await fetch(`${apiUrl}${endpoint}`, {
+      ...options,
+      headers: {
+        ...headers,
+        ...options.headers,
+      },
+      credentials: 'include',
+    });
 
-  if (!res.ok) {
-    let errorMsg = 'API request failed';
-    try {
-      const errorData = await res.json();
-      errorMsg = errorData.message || errorMsg;
-    } catch (_) {
-      const errorText = await res.text();
-      errorMsg = errorText || 'Server returned HTML or invalid response';
+    if (!res.ok) {
+      let errorMsg = 'API request failed';
+      try {
+        const errorData = await res.json();
+        errorMsg = errorData.message || errorMsg;
+      } catch (_) {
+        const errorText = await res.text();
+        errorMsg = errorText || 'Server returned HTML or invalid response';
+      }
+      throw new Error(errorMsg);
     }
-    throw new Error(errorMsg);
-  }
 
-  return res;
+    return res;
+  } catch (err: any) {
+    if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
+      throw new Error('Unable to connect to backend server. Please check backend status or network connection.');
+    }
+    throw err;
+  }
 };
 
 export const checkHealth = async () => {
@@ -69,8 +75,15 @@ export const previewSpeechApi = async (voiceId: string, text?: string) => {
 };
 
 export const getHistory = async () => {
-  const res = await apiFetch('/api/history');
-  return res.json();
+  try {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) return { success: false, history: [] };
+    const res = await apiFetch('/api/history');
+    return await res.json();
+  } catch (err) {
+    console.warn('getHistory fallback (unreachable or unauthenticated):', err);
+    return { success: false, history: [] };
+  }
 };
 
 export const deleteHistoryItemApi = async (id: string) => {
@@ -89,8 +102,15 @@ export const clearHistoryApi = async () => {
 
 // Preset Endpoints
 export const getPresets = async () => {
-  const res = await apiFetch('/api/presets');
-  return res.json();
+  try {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) return { success: false, presets: [] };
+    const res = await apiFetch('/api/presets');
+    return await res.json();
+  } catch (err) {
+    console.warn('getPresets fallback (unreachable or unauthenticated):', err);
+    return { success: false, presets: [] };
+  }
 };
 
 export const createPreset = async (presetName: string, voiceId: string, speed: number = 1.0, settings: any = {}) => {
