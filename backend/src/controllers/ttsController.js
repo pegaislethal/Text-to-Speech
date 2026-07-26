@@ -21,10 +21,19 @@ const getCommunicateClass = async () => {
   return UniversalCommunicate;
 };
 
-// Convert numeric speed multiplier (e.g., 0.8, 1.0, 1.5) to Edge TTS rate string (e.g., "-20%", "+0%", "+50%")
+// Clamp speed between 0.5x and 1.5x
+const sanitizeSpeed = (speed) => {
+  const numSpeed = typeof speed === 'number' ? speed : parseFloat(speed);
+  if (isNaN(numSpeed)) return 1.0;
+  if (numSpeed > 1.5) return 1.5;
+  if (numSpeed < 0.5) return 0.5;
+  return numSpeed;
+};
+
+// Convert numeric speed multiplier (0.5 to 1.5) to Edge TTS rate string (e.g., "-50%", "+0%", "+50%")
 const getRateString = (speed) => {
-  const numSpeed = typeof speed === 'number' ? speed : parseFloat(speed) || 1.0;
-  const percent = Math.round((numSpeed - 1.0) * 100);
+  const validSpeed = sanitizeSpeed(speed);
+  const percent = Math.round((validSpeed - 1.0) * 100);
   return percent >= 0 ? `+${percent}%` : `${percent}%`;
 };
 
@@ -146,7 +155,7 @@ exports.generateSpeech = async (req, res) => {
       text,
       voice,
       voiceId: voice,
-      speed,
+      speed: sanitizeSpeed(speed),
       audioUrl,
       characterCount
     });

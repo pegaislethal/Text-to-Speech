@@ -17,13 +17,16 @@ exports.createPreset = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Preset name and voice ID are required' });
   }
 
+  const rawSpeed = parseFloat(speed);
+  const validSpeed = isNaN(rawSpeed) ? 1.0 : Math.min(1.5, Math.max(0.5, rawSpeed));
+
   try {
     const preset = new Preset({
       userId: req.user._id,
       presetName,
       voiceId,
-      speed: speed || 1.0,
-      settings: settings || {}
+      speed: validSpeed,
+      settings: settings || { voiceId, speed: validSpeed }
     });
     await preset.save();
 
