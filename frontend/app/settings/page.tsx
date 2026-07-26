@@ -48,9 +48,8 @@ export default function SettingsPage() {
   };
 
   return (
-    <WorkspaceLayout>
-      <div className="max-w-4xl mx-auto flex flex-col gap-8">
-        {/* Header */}
+    <div className="max-w-4xl mx-auto flex flex-col gap-8">
+      {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-900/80 pb-6">
           <div>
             <h1 className="text-2xl font-black text-neutral-100 tracking-tight flex items-center gap-3">
@@ -184,6 +183,5 @@ export default function SettingsPage() {
           </SettingsCard>
         </div>
       </div>
-    </WorkspaceLayout>
   );
 }
