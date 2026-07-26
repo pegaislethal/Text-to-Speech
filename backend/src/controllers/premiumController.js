@@ -28,17 +28,25 @@ const getRateString = (speed) => {
 };
 
 const storeSceneAudioBuffer = async (audioBuffer, filename) => {
-  const hasCloudinary = isCloudinaryConfigured();
-
-  if (hasCloudinary) {
-    try {
-      return await uploadAudioBuffer(audioBuffer, 'tts-scenes', filename);
-    } catch (cloudErr) {
-      console.error('Cloudinary scene audio upload failed, falling back to local storage:', cloudErr);
-    }
+  if (!audioBuffer || audioBuffer.length === 0) {
+    throw new Error('Audio generation returned empty data');
   }
 
-  // Local filesystem fallback (used if Cloudinary is unconfigured or upload fails)
+  const hasCloudinary = isCloudinaryConfigured();
+  const isVercel = Boolean(process.env.VERCEL || process.env.NEXT_PUBLIC_VERCEL_ENV);
+
+  if (hasCloudinary) {
+    console.log('Uploading scene audio to Cloudinary...');
+    return await uploadAudioBuffer(audioBuffer, 'tts-scenes', filename);
+  }
+
+  if (isVercel || process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'Cloudinary environment variables (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET) are missing.'
+    );
+  }
+
+  // Local filesystem fallback (used only for non-Vercel local development)
   try {
     const scenesDir = path.join(__dirname, '../../public/audio/scenes');
     if (!fs.existsSync(scenesDir)) {
@@ -49,7 +57,7 @@ const storeSceneAudioBuffer = async (audioBuffer, filename) => {
     return `/audio/scenes/${filename}`;
   } catch (fsErr) {
     console.error('Local scene audio storage failed:', fsErr);
-    throw new Error('STORAGE_UNAVAILABLE');
+    throw new Error(`Local file storage failed: ${fsErr.message}`);
   }
 };
 
@@ -107,7 +115,8 @@ exports.generateSceneVoices = async (req, res) => {
       const userFilename = `scene_${paddedNumber}.mp3`;
       const diskFilename = `scene_${paddedNumber}_${timestamp}_${Math.random().toString(36).substring(7)}.mp3`;
 
-      console.log(`Generating scene ${scene.sceneNumber} voice: "${scene.text.substring(0, 30)}..."`);
+      // Log Step 1: Before TTS
+      console.log(`Starting speech generation for Scene ${scene.sceneNumber}`);
 
       const communicate = new CommClass(scene.text, {
         voice: voiceId,
@@ -123,11 +132,25 @@ exports.generateSceneVoices = async (req, res) => {
       }
 
       if (audioChunks.length === 0) {
-        throw new Error(`Unable to generate scene audio for Scene ${scene.sceneNumber}`);
+        throw new Error(`Audio generation returned empty data for Scene ${scene.sceneNumber}`);
       }
 
       const audioBuffer = Buffer.concat(audioChunks);
+
+      // Validate buffer
+      if (!audioBuffer || audioBuffer.length === 0) {
+        throw new Error(`Audio generation returned empty data for Scene ${scene.sceneNumber}`);
+      }
+
+      // Log Step 2: After TTS
+      console.log(`Audio generated successfully for Scene ${scene.sceneNumber}`);
+
+      // Log Step 3: Before Upload
+      console.log(`Uploading audio for Scene ${scene.sceneNumber}`);
       const audioUrl = await storeSceneAudioBuffer(audioBuffer, diskFilename);
+
+      // Log Step 4: After Upload
+      console.log(`Audio uploaded successfully for Scene ${scene.sceneNumber}`);
 
       generatedScenes.push({
         sceneNumber: scene.sceneNumber,
@@ -137,7 +160,8 @@ exports.generateSceneVoices = async (req, res) => {
       });
     }
 
-    // Step 4: Save Record to MongoDB
+    // Log Step 5: Before Database Save
+    console.log('Saving audio URL');
     const record = new SceneVoiceGeneration({
       userId: user._id,
       originalScript: script,
@@ -149,20 +173,15 @@ exports.generateSceneVoices = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      scenes: generatedScenes
+      scenes: generatedScenes,
+      message: 'Scene speech generated successfully'
     });
 
   } catch (error) {
     console.error('AI Scene Generation Error:', error);
-    if (error.message === 'STORAGE_UNAVAILABLE' || error.code === 'ENOENT') {
-      return res.status(500).json({
-        success: false,
-        message: 'Unable to store generated audio'
-      });
-    }
     return res.status(500).json({
       success: false,
-      message: 'Unable to generate scene audio: ' + error.message
+      message: error.message || 'Audio upload failed'
     });
   }
 };

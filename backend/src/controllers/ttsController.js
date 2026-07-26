@@ -33,17 +33,25 @@ const getRateString = (speed) => {
  * or to local filesystem (local dev testing fallback).
  */
 const storeAudioBuffer = async (audioBuffer, folder, filename) => {
-  const hasCloudinary = isCloudinaryConfigured();
-
-  if (hasCloudinary) {
-    try {
-      return await uploadAudioBuffer(audioBuffer, folder, filename);
-    } catch (cloudErr) {
-      console.error('Cloudinary audio upload failed, falling back to local storage:', cloudErr);
-    }
+  if (!audioBuffer || audioBuffer.length === 0) {
+    throw new Error('Audio generation returned empty data');
   }
 
-  // Local filesystem fallback (used if Cloudinary is unconfigured or upload fails)
+  const hasCloudinary = isCloudinaryConfigured();
+  const isVercel = Boolean(process.env.VERCEL || process.env.NEXT_PUBLIC_VERCEL_ENV);
+
+  if (hasCloudinary) {
+    console.log('Uploading audio to Cloudinary...');
+    return await uploadAudioBuffer(audioBuffer, folder, filename);
+  }
+
+  if (isVercel || process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'Cloudinary environment variables (CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET) are missing.'
+    );
+  }
+
+  // Local filesystem fallback (used only for non-Vercel local development)
   try {
     const relativeDir = folder === 'tts-previews' ? '../../public/audio/previews' : '../../public/uploads';
     const uploadsDir = path.join(__dirname, relativeDir);
@@ -57,7 +65,7 @@ const storeAudioBuffer = async (audioBuffer, folder, filename) => {
     return `${urlPrefix}${filename}`;
   } catch (fsErr) {
     console.error('Local audio file storage failed:', fsErr);
-    throw new Error('STORAGE_UNAVAILABLE');
+    throw new Error(`Local file storage failed: ${fsErr.message}`);
   }
 };
 
@@ -89,7 +97,8 @@ exports.generateSpeech = async (req, res) => {
     const filename = `tts-${Date.now()}-${Math.random().toString(36).substring(7)}.mp3`;
     const rateStr = getRateString(speed);
 
-    console.log('Generating voice:', voice, 'with rate:', rateStr);
+    // Step 1: Log Before TTS
+    console.log('Starting speech generation');
 
     const communicate = new CommClass(text, {
       voice: voice,
@@ -105,17 +114,33 @@ exports.generateSpeech = async (req, res) => {
     }
 
     if (audioChunks.length === 0) {
-      throw new Error('No audio data received from Edge TTS service');
+      throw new Error('Audio generation returned empty data');
     }
 
     const audioBuffer = Buffer.concat(audioChunks);
-    const audioUrl = await storeAudioBuffer(audioBuffer, 'tts-uploads', filename);
+
+    // Validate Audio Buffer
+    if (!audioBuffer || audioBuffer.length === 0) {
+      throw new Error('Audio generation returned empty data');
+    }
+
+    // Step 2: Log After TTS
+    console.log('Audio generated successfully');
+
+    // Step 3: Log Before Upload
+    console.log('Uploading audio');
+    const audioUrl = await storeAudioBuffer(audioBuffer, 'tts-audio', filename);
+
+    // Step 4: Log After Upload
+    console.log('Audio uploaded successfully');
 
     if (!user.premiumAccess) {
       user.usedCredits += creditsNeeded;
       await user.save();
     }
 
+    // Step 5: Log Before Database Save
+    console.log('Saving audio URL');
     const historyEntry = new AudioHistory({
       userId: user._id,
       text,
@@ -130,6 +155,7 @@ exports.generateSpeech = async (req, res) => {
     return res.status(200).json({
       success: true,
       audioUrl,
+      message: 'Speech generated successfully',
       characterCount,
       creditsUsed: creditsNeeded,
       user: {
@@ -142,15 +168,9 @@ exports.generateSpeech = async (req, res) => {
 
   } catch (error) {
     console.error('TTS Generation Error:', error);
-    if (error.message === 'STORAGE_UNAVAILABLE' || error.code === 'ENOENT') {
-      return res.status(500).json({
-        success: false,
-        message: 'Unable to store generated audio'
-      });
-    }
     return res.status(500).json({
       success: false,
-      message: 'Speech generation failed: ' + error.message
+      message: error.message || 'Audio upload failed'
     });
   }
 };
@@ -171,7 +191,7 @@ exports.previewSpeech = async (req, res) => {
     const safeVoiceId = targetVoiceId.replace(/[^a-zA-Z0-9_-]/g, '_');
     const filename = `preview-${safeVoiceId}.mp3`;
 
-    console.log('Generating voice preview for:', targetVoiceId);
+    console.log('Starting speech generation');
 
     const communicate = new CommClass(previewText, {
       voice: targetVoiceId,
@@ -187,30 +207,33 @@ exports.previewSpeech = async (req, res) => {
     }
 
     if (audioChunks.length === 0) {
-      throw new Error('No audio data received from Edge TTS service');
+      throw new Error('Audio generation returned empty data');
     }
 
     const audioBuffer = Buffer.concat(audioChunks);
+
+    if (!audioBuffer || audioBuffer.length === 0) {
+      throw new Error('Audio generation returned empty data');
+    }
+
+    console.log('Audio generated successfully');
+    console.log('Uploading audio');
+
     const audioUrl = await storeAudioBuffer(audioBuffer, 'tts-previews', filename);
 
-    console.log('Voice preview generated successfully:', audioUrl);
+    console.log('Audio uploaded successfully');
 
     return res.status(200).json({
       success: true,
-      audioUrl
+      audioUrl,
+      message: 'Voice preview generated successfully'
     });
 
   } catch (error) {
     console.error('Preview Generation Error:', error);
-    if (error.message === 'STORAGE_UNAVAILABLE' || error.code === 'ENOENT') {
-      return res.status(500).json({
-        success: false,
-        message: 'Unable to store generated audio'
-      });
-    }
     return res.status(500).json({
       success: false,
-      message: 'Preview generation failed: ' + error.message
+      message: error.message || 'Audio upload failed'
     });
   }
 };
