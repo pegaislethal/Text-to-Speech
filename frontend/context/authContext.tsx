@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { userSignupApi, userLoginApi, adminSignupApi, adminLoginApi } from '../services/api';
 import { getApiUrl } from '../config/api';
+import { useToast } from './toastContext';
 
 export interface User {
   id: string;
@@ -41,6 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
+  const { showToast } = useToast();
 
   const syncAuthCookie = (tokenVal: string | null) => {
     if (typeof document === 'undefined') return;
@@ -286,6 +288,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    showToast('Logging out... You have been signed out successfully.', 'info');
     try {
       const apiUrl = getApiUrl();
       await fetch(`${apiUrl}/api/auth/logout`, {
