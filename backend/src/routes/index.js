@@ -67,6 +67,7 @@ router.post('/premium/download-scenes-zip', authMiddleware, premiumMiddleware, p
 
 // Voice Cloning Operations
 router.post('/voice/clone', authMiddleware, premiumMiddleware, voiceController.cloneVoice);
+router.get('/voice/status/:id', authMiddleware, voiceController.getTrainingStatus);
 router.get('/voice/library', authMiddleware, voiceController.getVoiceLibrary);
 router.delete('/voice/:id', authMiddleware, voiceController.deleteVoice);
 

@@ -123,6 +123,8 @@ exports.generateSpeech = async (req, res) => {
     let voiceDisplayName = voice;
     let voiceDoc = null;
 
+    let audioBuffer = null;
+
     if (mongoose.Types.ObjectId.isValid(voice)) {
       // Custom cloned voice profile
       voiceDoc = await Voice.findOne({ _id: voice, userId: user._id });
@@ -135,14 +137,23 @@ exports.generateSpeech = async (req, res) => {
         return res.status(403).json({ success: false, message: 'Upgrade to Premium to unlock this voice.' });
       }
 
-      baseVoiceId = 'en-US-ChristopherNeural'; // fallback base for cloned voice
       voiceDisplayName = voiceDoc.name || voiceDoc.voiceName;
-      console.log(`[TTS] Using custom cloned voice "${voiceDisplayName}" (Base: ${baseVoiceId})`);
+      console.log(`[TTS] Synthesizing speech for custom voice "${voiceDisplayName}" (${voiceDoc.voiceId || voiceDoc._id})...`);
+
+      // Attempt generation via Python AI Adaptation Engine
+      const xttsProvider = require('../services/voice-cloning/providers/xttsProvider');
+      audioBuffer = await xttsProvider.generateSpeech(text, voiceDoc.voiceId || voiceDoc._id, {
+        speed, pitch, tone, depth
+      });
+      
+      if (!audioBuffer) {
+        baseVoiceId = 'en-US-ChristopherNeural';
+        console.log(`[TTS] Python AI Service offline, falling back to base neural voice: ${baseVoiceId}`);
+      }
     } else {
       // System default voice
       voiceDoc = await Voice.findOne({ voiceId: voice, type: 'default' });
       if (voiceDoc) {
-        // Enforce premium check for premium default voices
         if (voiceDoc.isPremium && !user.premiumAccess) {
           return res.status(403).json({ success: false, message: 'Upgrade to Premium to unlock this voice.' });
         }
@@ -156,33 +167,36 @@ exports.generateSpeech = async (req, res) => {
       }
     }
 
-    const CommClass = await getCommunicateClass();
     const filename = `tts-${Date.now()}-${Math.random().toString(36).substring(7)}.mp3`;
-    const rateStr = getRateString(speed);
 
-    // Step 2: Generate Speech Stems
-    console.log('Starting speech generation via Edge TTS');
-    const communicate = new CommClass(text, {
-      voice: baseVoiceId,
-      rate: rateStr
-    });
+    if (!audioBuffer) {
+      const CommClass = await getCommunicateClass();
+      const rateStr = getRateString(speed);
 
-    const audioChunks = [];
-    for await (const chunk of communicate.stream()) {
-      if (chunk.type === 'audio' && chunk.data) {
-        audioChunks.push(chunk.data);
+      // Step 2: Generate Speech Stems via Edge TTS
+      console.log('Starting speech generation via Edge TTS');
+      const communicate = new CommClass(text, {
+        voice: baseVoiceId,
+        rate: rateStr
+      });
+
+      const audioChunks = [];
+      for await (const chunk of communicate.stream()) {
+        if (chunk.type === 'audio' && chunk.data) {
+          audioChunks.push(chunk.data);
+        }
       }
+
+      if (audioChunks.length === 0) {
+        throw new Error('Audio generation returned empty data');
+      }
+
+      audioBuffer = Buffer.concat(audioChunks);
+
+      // Step 3: Run Audio Processor (Pitch, Tone, Depth controls)
+      console.log('Applying advanced audio filters (pitch, tone, depth)...');
+      audioBuffer = await processAudio(audioBuffer, pitch, tone, depth);
     }
-
-    if (audioChunks.length === 0) {
-      throw new Error('Audio generation returned empty data');
-    }
-
-    let audioBuffer = Buffer.concat(audioChunks);
-
-    // Step 3: Run Audio Processor (Pitch, Tone, Depth controls)
-    console.log('Applying advanced audio filters (pitch, tone, depth)...');
-    audioBuffer = await processAudio(audioBuffer, pitch, tone, depth);
 
     // Validate Audio Buffer
     if (!audioBuffer || audioBuffer.length === 0) {

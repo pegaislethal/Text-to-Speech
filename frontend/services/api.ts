@@ -432,6 +432,13 @@ export const getVoiceLibraryApi = async () => {
   return res.json();
 };
 
+export const getTrainingStatusApi = async (voiceId: string) => {
+  const res = await apiFetch(`/api/voice/status/${voiceId}`, {
+    method: 'GET',
+  });
+  return res.json();
+};
+
 export const deleteCustomVoiceApi = async (id: string) => {
   const res = await apiFetch(`/api/voice/${id}`, {
     method: 'DELETE',

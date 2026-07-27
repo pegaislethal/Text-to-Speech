@@ -1,0 +1,15 @@
+fastapi>=0.104.0
+uvicorn[standard]>=0.23.2
+pydantic>=2.4.2
+torch>=2.1.0
+torchaudio>=2.1.0
+TTS>=0.22.0
+librosa>=0.10.1
+soundfile>=0.12.1
+pydub>=0.25.1
+noisereduce>=3.0.0
+scipy>=1.11.3
+numpy>=1.26.0
+requests>=2.31.0
+python-multipart>=0.0.6
+g2p-en>=2.1.0

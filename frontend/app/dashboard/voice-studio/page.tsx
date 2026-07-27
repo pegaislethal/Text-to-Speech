@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../context/authContext';
 import { useToast } from '../../../context/toastContext';
 import { 
-  cloneVoiceApi, getVoiceLibraryApi, deleteCustomVoiceApi, 
+  cloneVoiceApi, getVoiceLibraryApi, deleteCustomVoiceApi, getTrainingStatusApi,
   previewSpeechApi, getApiUrl, getUploadSignatureApi, uploadToCloudinaryDirectApi
 } from '../../../services/api';
 import { 
@@ -52,6 +52,7 @@ export default function VoiceStudio() {
   const [isCompressing, setIsCompressing] = useState<boolean>(false);
   const [uploadStep, setUploadStep] = useState<1 | 2 | 3 | 4>(1);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [trainingStatusText, setTrainingStatusText] = useState<string>('Analyzing audio & learning speaker characteristics...');
 
   // Advanced Audio Control States (For previews)
   const [pitch, setPitch] = useState<number>(0);
@@ -271,13 +272,35 @@ export default function VoiceStudio() {
         (percent) => setUploadProgress(percent)
       );
 
-      // Step 3: Send audio URL to backend for embedding creation
+      // Step 3: Send audio URL to backend for AI voice adaptation pipeline
       setUploadStep(3); // Step 3: Analyzing voice...
+      setTrainingStatusText('Analyzing audio...');
       const res = await cloneVoiceApi(voiceName.trim(), audioUrl, consent);
       
       if (res.success) {
+        const dbVoiceId = res.voice?._id;
+        if (dbVoiceId) {
+          let isDone = false;
+          let attempts = 0;
+          while (!isDone && attempts < 15) {
+            attempts++;
+            await new Promise(r => setTimeout(r, 600));
+            try {
+              const statusData = await getTrainingStatusApi(dbVoiceId);
+              if (statusData?.trainingStatus) {
+                setTrainingStatusText(statusData.trainingStatus);
+              }
+              if (statusData?.status === 'completed' || (statusData?.trainingProgress ?? 0) >= 100) {
+                isDone = true;
+              }
+            } catch (_) {
+              isDone = true;
+            }
+          }
+        }
+
         setUploadStep(4); // Step 4: Success
-        showToast('Voice created successfully!', 'success');
+        showToast('AI Voice model created successfully!', 'success');
         
         setTimeout(() => {
           setVoiceName('');
@@ -727,8 +750,8 @@ export default function VoiceStudio() {
               <div className="p-4 rounded-xl border border-purple-500/30 bg-purple-500/10 flex items-center gap-3 animate-in fade-in">
                 <Sparkles className="w-5 h-5 text-purple-400 animate-spin" />
                 <div className="flex flex-col">
-                  <span className="text-xs font-bold text-purple-300">Analyzing voice & creating speaker embedding...</span>
-                  <span className="text-[10px] text-purple-400/80">Processing sample URL through AI neural network</span>
+                  <span className="text-xs font-bold text-purple-300">{trainingStatusText}</span>
+                  <span className="text-[10px] text-purple-400/80">Processing sample through AI adaptation pipeline</span>
                 </div>
               </div>
             )}
