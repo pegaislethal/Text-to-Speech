@@ -45,7 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
   const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
   const router = useRouter();
-  const { showToast } = useToast();
+  const { showToast, clearToasts } = useToast();
 
   const syncAuthCookie = (tokenVal: string | null) => {
     if (typeof document === 'undefined') return;
@@ -299,8 +299,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     setUser(null);
     setIsLoggingOut(false);
+    clearToasts();
     showToast('Logged out successfully', 'success');
-    router.push('/login');
+    const isAdmin = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+    router.push(isAdmin ? '/admin/login?logout=success' : '/login?logout=success');
   };
 
   const refreshUser = async () => {

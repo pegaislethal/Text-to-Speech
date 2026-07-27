@@ -3,19 +3,29 @@
 import Link from 'next/link';
 import { useAuth } from '../context/authContext';
 import { 
-  Sparkles, ShieldCheck, Cpu, ArrowRight, Activity, Zap, Play, 
-  Volume2, CheckCircle2, MessageSquare, Download, Layers, Shield
+  Sparkles, ShieldCheck, Cpu, ArrowRight, Activity, Zap, Play, Pause,
+  Volume2, CheckCircle2, MessageSquare, Download, Layers, Shield, RefreshCw
 } from 'lucide-react';
 import React from 'react';
 
 import { useRouter } from 'next/navigation';
 import ThemeToggle from '../components/ThemeToggle';
+import { getApiUrl } from '../services/api';
 
 export default function Home() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [demoPlaying, setDemoPlaying] = React.useState(false);
-  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  // Interactive Playground States
+  const [previewText, setPreviewText] = React.useState("Welcome to the 21st Tech Speech Studio. Ready to transform text into soundwaves?");
+  const [selectedVoice, setSelectedVoice] = React.useState("en-US-ChristopherNeural");
+  const [previewLoading, setPreviewLoading] = React.useState(false);
+  const [previewPlaying, setPreviewPlaying] = React.useState(false);
+  const [previewAudioUrl, setPreviewAudioUrl] = React.useState("/demo.mp3");
+  const [playgroundError, setPlaygroundError] = React.useState<string | null>(null);
+
+  const playgroundAudioRef = React.useRef<HTMLAudioElement | null>(null);
+  const BACKEND_URL = getApiUrl();
 
   React.useEffect(() => {
     if (!loading && user) {
@@ -27,14 +37,69 @@ export default function Home() {
     }
   }, [user, loading, router]);
 
-  const toggleDemoPlay = () => {
-    if (!audioRef.current) return;
-    if (demoPlaying) {
-      audioRef.current.pause();
-      setDemoPlaying(false);
-    } else {
-      audioRef.current.play().catch(e => console.error(e));
-      setDemoPlaying(true);
+  const handlePlaygroundPreview = async () => {
+    if (previewPlaying) {
+      playgroundAudioRef.current?.pause();
+      setPreviewPlaying(false);
+      return;
+    }
+
+    // If audio is already synthesized and not loading, play it
+    if (previewAudioUrl && !previewLoading) {
+      playgroundAudioRef.current?.play().catch(e => console.error(e));
+      setPreviewPlaying(true);
+      return;
+    }
+
+    generatePreview();
+  };
+
+  const generatePreview = async () => {
+    if (!previewText.trim()) return;
+    setPreviewLoading(true);
+    setPlaygroundError(null);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/tts/preview`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          voiceId: selectedVoice,
+          text: previewText.substring(0, 150),
+          speed: 1.0,
+          pitch: 0,
+          tone: 'neutral',
+          depth: 0
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.audioUrl) {
+        let fullUrl = data.audioUrl;
+        if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+          const baseUrl = BACKEND_URL.replace(/\/+$/, '');
+          const cleanPath = fullUrl.startsWith('/') ? fullUrl : `/${fullUrl}`;
+          fullUrl = `${baseUrl}${cleanPath}`;
+        }
+        setPreviewAudioUrl(fullUrl);
+        setPreviewPlaying(false);
+        
+        setTimeout(() => {
+          if (playgroundAudioRef.current) {
+            playgroundAudioRef.current.load();
+            playgroundAudioRef.current.play()
+              .then(() => setPreviewPlaying(true))
+              .catch(e => console.error(e));
+          }
+        }, 100);
+      } else {
+        throw new Error(data.message || 'Failed to generate preview');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setPlaygroundError('Generation failed. Please try again.');
+    } finally {
+      setPreviewLoading(false);
     }
   };
 
@@ -119,35 +184,108 @@ export default function Home() {
           </a>
         </div>
 
-        {/* Demo Widget */}
+        {/* Interactive Preview Playground */}
         <div className="mt-16 w-full max-w-4xl p-1.5 rounded-2xl bg-neutral-900/35 border border-neutral-900/60 backdrop-blur-md shadow-2xl relative">
           <div className="absolute -inset-px bg-gradient-to-tr from-indigo-500/10 to-violet-500/10 rounded-2xl -z-10" />
           
-          <div className="p-6 md:p-8 rounded-xl bg-[#09090b]/80 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-4 text-left w-full md:w-auto">
-              <button 
-                onClick={toggleDemoPlay}
-                className="w-12 h-12 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white shrink-0 shadow-md shadow-indigo-500/20 active:scale-95 transition-all duration-200"
-              >
-                {demoPlaying ? <Activity className="w-5 h-5 animate-pulse" /> : <Play className="w-5 h-5 fill-white ml-0.5" />}
-              </button>
-              <div className="flex flex-col min-w-0">
-                <span className="text-xs font-bold text-neutral-400 uppercase tracking-widest">Live Synth Demo</span>
-                <span className="text-sm font-semibold text-neutral-200 mt-0.5 truncate max-w-md">"Welcome to the 21st Tech Speech Studio. Ready to transform text into soundwaves?"</span>
+          <div className="p-6 md:p-8 rounded-xl bg-[#09090b]/80 flex flex-col gap-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 border-b border-neutral-900/80 pb-4">
+              <div className="flex items-center gap-2 text-left w-full md:w-auto">
+                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0">
+                  <Volume2 className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">Live Synth Playground</span>
+                  <span className="text-xs text-neutral-500">Synthesize text to preview our neural engine in real-time</span>
+                </div>
+              </div>
+
+              {/* Voice select buttons */}
+              <div className="flex flex-wrap gap-2 justify-end w-full md:w-auto">
+                {[
+                  { id: 'en-US-ChristopherNeural', label: 'Christopher (US)' },
+                  { id: 'en-GB-RyanNeural', label: 'Ryan (UK)' },
+                  { id: 'en-US-AvaNeural', label: 'Ava (US)' },
+                  { id: 'en-US-EmmaNeural', label: 'Emma (US)' }
+                ].map((voice) => (
+                  <button
+                    key={voice.id}
+                    onClick={() => {
+                      setSelectedVoice(voice.id);
+                      setPreviewAudioUrl(""); // Force regeneration
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition border cursor-pointer ${
+                      selectedVoice === voice.id
+                        ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400'
+                        : 'border-neutral-800 bg-neutral-900 text-neutral-400 hover:text-neutral-200 hover:border-neutral-750'
+                    }`}
+                  >
+                    {voice.label}
+                  </button>
+                ))}
               </div>
             </div>
-            
-            <div className="flex items-center gap-3.5 self-stretch md:self-auto justify-end text-xs font-bold text-neutral-500 shrink-0">
-              <span className="px-2.5 py-1 bg-neutral-900 rounded-md border border-neutral-850">Voice: Ava (US)</span>
-              <span className="px-2.5 py-1 bg-neutral-900 rounded-md border border-neutral-850">Format: MP3</span>
+
+            <div className="flex flex-col md:flex-row items-stretch gap-4">
+              {/* Text Input */}
+              <div className="flex-1 flex flex-col gap-1.5 text-left">
+                <textarea
+                  value={previewText}
+                  onChange={(e) => {
+                    setPreviewText(e.target.value.substring(0, 150));
+                    setPreviewAudioUrl(""); // Force regeneration
+                    setPlaygroundError(null);
+                  }}
+                  placeholder="Type anything here to preview the AI voice..."
+                  maxLength={150}
+                  rows={2}
+                  className="w-full bg-[#0d0d11] border border-neutral-900 rounded-xl p-3.5 text-xs text-neutral-200 placeholder-neutral-500 focus:outline-none focus:border-indigo-500/50 resize-none font-medium leading-relaxed"
+                />
+                <div className="flex justify-between text-[10px] text-neutral-500 font-semibold px-1">
+                  {playgroundError ? (
+                    <span className="text-red-500">{playgroundError}</span>
+                  ) : (
+                    <span>Try changing the text or selecting another voice character!</span>
+                  )}
+                  <span>{150 - previewText.length} chars left</span>
+                </div>
+              </div>
+
+              {/* Generate/Play Trigger */}
+              <div className="flex items-center justify-center shrink-0">
+                <button 
+                  onClick={handlePlaygroundPreview}
+                  disabled={previewLoading || !previewText.trim()}
+                  className="px-6 py-4 md:py-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2.5 shadow-md shadow-indigo-500/10 active:scale-95 transition-all duration-200 cursor-pointer disabled:opacity-55 w-full md:w-auto h-full shrink-0"
+                >
+                  {previewLoading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Synthesizing...</span>
+                    </>
+                  ) : previewPlaying ? (
+                    <>
+                      <Activity className="w-4 h-4 animate-pulse text-indigo-200" />
+                      <span>Pause Preview</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4 fill-white ml-0.5" />
+                      <span>Synthesize & Play</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
           
           <audio 
-            ref={audioRef} 
-            src="/demo.mp3" 
+            ref={playgroundAudioRef} 
+            src={previewAudioUrl || undefined} 
             className="hidden" 
-            onEnded={() => setDemoPlaying(false)}
+            onEnded={() => setPreviewPlaying(false)}
+            onPause={() => setPreviewPlaying(false)}
+            onPlay={() => setPreviewPlaying(true)}
           />
         </div>
       </section>

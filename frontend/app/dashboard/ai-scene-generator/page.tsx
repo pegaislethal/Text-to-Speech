@@ -418,10 +418,7 @@ export default function DashboardAISceneGenerator() {
               </div>
 
               {/* Speed */}
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[10px] font-semibold text-[var(--text-secondary)]">Voice Speed</span>
-                <VoiceSpeedControl speed={speed} onChange={setSpeed} />
-              </div>
+              <VoiceSpeedControl speed={speed} onChange={setSpeed} />
             </div>
           </div>
 

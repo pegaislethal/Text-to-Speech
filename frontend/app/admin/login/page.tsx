@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/authContext';
-import { Shield, AlertCircle, RefreshCw, ArrowRight, Lock, Mail } from 'lucide-react';
+import { Shield, AlertCircle, RefreshCw, ArrowRight, Lock, Mail, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -18,6 +18,16 @@ export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('logout') === 'success') {
+        setSuccessMsg('Logged out successfully.');
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +88,13 @@ export default function AdminLogin() {
             <h2 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Administrator Login</h2>
             <p className="text-xs text-[var(--text-secondary)] font-medium">Enter your admin email and password.</p>
           </div>
+
+          {successMsg && (
+            <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-xs font-semibold flex items-center gap-2.5">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+              <span>{successMsg}</span>
+            </div>
+          )}
 
           {errorMsg && (
             <div className="p-4 rounded-xl border border-[var(--status-error-text)]/20 bg-[var(--status-error-bg)] text-[var(--status-error-text)] text-xs font-semibold flex items-center gap-2.5">

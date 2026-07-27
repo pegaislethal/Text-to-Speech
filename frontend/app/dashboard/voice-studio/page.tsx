@@ -156,7 +156,7 @@ export default function VoiceStudio() {
   const router = useRouter();
 
   // Tab State
-  const [activeTab, setActiveTab] = useState<'library' | 'clone'>('library');
+  const [activeTab, setActiveTab] = useState<'library' | 'clone'>('clone');
   const [libraryCategory, setLibraryCategory] = useState<'all' | 'documentary' | 'male' | 'female' | 'custom'>('all');
 
   // Custom Cloned Voices States
@@ -440,67 +440,69 @@ export default function VoiceStudio() {
       </div>
 
       {/* Voice Preview Audio Controls Bar */}
-      <div className="rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] p-4 flex flex-col gap-4 shadow-sm">
-        <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-app)]">
-          <Sliders className="w-4 h-4 text-indigo-400" />
-          <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">Voice Synthesis Controls</h3>
-          <span className="text-[10px] text-[var(--text-muted)] font-medium ml-1">Configure options before playing a card preview</span>
-        </div>
+      {activeTab === 'library' && (
+        <div className="rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] p-4 flex flex-col gap-4 shadow-sm">
+          <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-app)]">
+            <Sliders className="w-4 h-4 text-indigo-400" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">Voice Synthesis Controls</h3>
+            <span className="text-[10px] text-[var(--text-muted)] font-medium ml-1">Configure options before playing a card preview</span>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 items-center">
-          {/* Pitch */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between text-[11px]">
-              <span className="font-semibold text-[var(--text-secondary)]">Pitch Offset</span>
-              <span className="font-mono text-indigo-400">{pitch > 0 ? `+${pitch}` : pitch}</span>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-5 items-center">
+            {/* Pitch */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex justify-between text-[11px]">
+                <span className="font-semibold text-[var(--text-secondary)]">Pitch Offset</span>
+                <span className="font-mono text-indigo-400">{pitch > 0 ? `+${pitch}` : pitch}</span>
+              </div>
+              <input 
+                type="range" 
+                min="-20" 
+                max="20" 
+                value={pitch} 
+                onChange={(e) => setPitch(parseInt(e.target.value))} 
+                className="w-full h-1 bg-[var(--border-app)] rounded-lg appearance-none cursor-pointer accent-indigo-600 focus:outline-none"
+              />
             </div>
-            <input 
-              type="range" 
-              min="-20" 
-              max="20" 
-              value={pitch} 
-              onChange={(e) => setPitch(parseInt(e.target.value))} 
-              className="w-full h-1.5 bg-[var(--bg-input)] rounded-lg appearance-none cursor-pointer accent-indigo-600"
-            />
-          </div>
 
-          {/* Depth */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between text-[11px]">
-              <span className="font-semibold text-[var(--text-secondary)]">Voice Depth</span>
-              <span className="font-mono text-indigo-400">{depth}%</span>
+            {/* Depth */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex justify-between text-[11px]">
+                <span className="font-semibold text-[var(--text-secondary)]">Voice Depth</span>
+                <span className="font-mono text-indigo-400">{depth}%</span>
+              </div>
+              <input 
+                type="range" 
+                min="0" 
+                max="100" 
+                value={depth} 
+                onChange={(e) => setDepth(parseInt(e.target.value))} 
+                className="w-full h-1 bg-[var(--border-app)] rounded-lg appearance-none cursor-pointer accent-indigo-600 focus:outline-none"
+              />
             </div>
-            <input 
-              type="range" 
-              min="0" 
-              max="100" 
-              value={depth} 
-              onChange={(e) => setDepth(parseInt(e.target.value))} 
-              className="w-full h-1.5 bg-[var(--bg-input)] rounded-lg appearance-none cursor-pointer accent-indigo-600"
-            />
-          </div>
 
-          {/* Tone */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-semibold text-[var(--text-secondary)]">E.Q. Tone Preset</label>
-            <select
-              value={tone}
-              onChange={(e) => setTone(e.target.value)}
-              className="bg-[var(--bg-input)] text-xs text-[var(--text-primary)] border border-[var(--border-app)] rounded-lg p-2 focus:outline-none focus:border-indigo-500"
-            >
-              <option value="neutral">Neutral</option>
-              <option value="deep">Deep & Bass</option>
-              <option value="warm">Warm Narration</option>
-              <option value="professional">Professional articulative</option>
-              <option value="cinematic">Cinematic Wide</option>
-              <option value="dramatic">Dramatic Studio</option>
-            </select>
-          </div>
+            {/* Tone */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-semibold text-[var(--text-secondary)]">EQ Tone Preset</label>
+              <select
+                value={tone}
+                onChange={(e) => setTone(e.target.value)}
+                className="bg-[var(--bg-input)] text-xs text-[var(--text-primary)] border border-[var(--border-app)] rounded-lg p-2 focus:outline-none focus:border-indigo-550"
+              >
+                <option value="neutral">Neutral</option>
+                <option value="deep">Deep & Bass</option>
+                <option value="warm">Warm Narration</option>
+                <option value="professional">Professional articulative</option>
+                <option value="cinematic">Cinematic Wide</option>
+                <option value="dramatic">Dramatic Studio</option>
+              </select>
+            </div>
 
-          {/* Speed */}
-          <VoiceSpeedControl speed={speed} onChange={setSpeed} />
+            {/* Speed */}
+            <VoiceSpeedControl speed={speed} onChange={setSpeed} />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Tab content: Library */}
       {activeTab === 'library' && (

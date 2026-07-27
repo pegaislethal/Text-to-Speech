@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/authContext';
 import { GoogleLogin } from '@react-oauth/google';
-import { Sparkles, AlertCircle, RefreshCw, ArrowRight, User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Sparkles, AlertCircle, RefreshCw, ArrowRight, User, Mail, Lock, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
 import { useRouter } from 'next/navigation';
@@ -16,8 +16,18 @@ export default function UserLogin() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDevBypass, setShowDevBypass] = useState(false);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('logout') === 'success') {
+        setSuccessMsg('Logged out successfully.');
+      }
+    }
+  }, []);
 
   React.useEffect(() => {
     if (!loading && user) {
@@ -120,6 +130,13 @@ export default function UserLogin() {
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[var(--text-primary)]">Welcome Back</h2>
             <p className="text-xs text-[var(--text-secondary)] font-medium">Sign in to your account with Google or Email.</p>
           </div>
+
+          {successMsg && (
+            <div className="p-3.5 sm:p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-xs font-semibold flex items-center gap-2.5">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+              <span>{successMsg}</span>
+            </div>
+          )}
 
           {errorMsg && (
             <div className="p-3.5 sm:p-4 rounded-xl border border-[var(--status-error-text)]/20 bg-[var(--status-error-bg)] text-[var(--status-error-text)] text-xs font-semibold flex items-center gap-2.5">
