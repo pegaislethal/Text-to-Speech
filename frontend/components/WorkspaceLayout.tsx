@@ -36,28 +36,27 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
 
   // Single canonical navigation definition for normal workspace (Linear / Vercel style)
   const userNavItems = [
-    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Speech Studio', href: '/speech-studio', icon: Mic },
-    ...(user.premiumAccess ? [{ name: 'AI Scene Generator', href: '/ai-scene-generator', icon: Sparkles }] : []),
-    { name: 'History', href: '/history', icon: History },
-    { name: 'Profile', href: '/profile', icon: User },
+    { name: 'Dashboard', href: '/dashboard', exact: true, icon: LayoutDashboard },
+    { name: 'Speech Studio', href: '/dashboard/speech-studio', exact: true, icon: Mic },
+    ...(user.premiumAccess ? [{ name: 'AI Scene Generator', href: '/dashboard/ai-scene-generator', exact: true, icon: Sparkles }] : []),
+    { name: 'AI Voice Clone Generator', href: '/dashboard/voice-studio', exact: true, icon: Star },
+    { name: 'History', href: '/dashboard/history', exact: true, icon: History },
+    { name: 'Profile', href: '/profile', exact: true, icon: User },
+    { name: 'Settings', href: '/settings', exact: true, icon: Settings },
   ];
 
-  // Navigation definition for Control Center (Admin portal)
+  // Navigation definition for Admin portal
   const adminNavItems = [
-    { name: 'Control Dashboard', href: '/control-center/dashboard', icon: Shield },
-    { name: 'User Directory', href: '/control-center/users', icon: Users },
-    { name: 'Premium Control', href: '/control-center/premium', icon: Star },
-    { name: 'System Settings', href: '/control-center/settings', icon: Settings },
+    { name: 'Control Dashboard', href: '/admin/dashboard', exact: true, icon: Shield }
   ];
 
   const currentNavItems = isAdminArea ? adminNavItems : userNavItems;
 
-  const isActive = (href: string) => {
-    if (href === '/dashboard' && pathname === '/dashboard') return true;
-    if (href === '/speech-studio' && (pathname === '/speech-studio' || pathname === '/dashboard')) return true;
-    if (href === '/ai-scene-generator' && (pathname === '/ai-scene-generator' || pathname === '/dashboard/ai-scene-generator')) return true;
-    return pathname === href || (href !== '/' && href !== '/dashboard' && pathname.startsWith(`${href}`));
+  const isActive = (item: { href: string; exact?: boolean }) => {
+    if (item.exact) {
+      return pathname === item.href;
+    }
+    return pathname.startsWith(item.href);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent, href: string) => {
@@ -94,7 +93,7 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
             </span>
             
             {currentNavItems.map((item) => {
-              const active = isActive(item.href);
+              const active = isActive(item);
               const Icon = item.icon;
               return (
                 <Link
@@ -105,7 +104,7 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
                   aria-current={active ? 'page' : undefined}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-150 relative outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                     active 
-                      ? 'bg-[var(--accent-light)] text-[var(--accent-text)] font-semibold'
+                      ? 'bg-[var(--accent-light)] text-[var(--accent-text)] font-semibold shadow-sm'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
                   }`}
                 >
@@ -136,7 +135,7 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
                   </Link>
                 ) : (
                   <Link
-                    href="/control-center/dashboard"
+                    href="/admin/dashboard"
                     className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-violet-400 hover:bg-violet-500/10 transition-colors"
                   >
                     <Shield className="w-3.5 h-3.5" />
@@ -250,7 +249,7 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
           <div className="absolute top-full left-0 w-full border-b border-[var(--border-app)] bg-[var(--bg-sidebar)] p-4 flex flex-col gap-3 shadow-xl max-h-[calc(100vh-60px)] overflow-y-auto">
             <nav className="flex flex-col gap-1">
               {currentNavItems.map((item) => {
-                const active = isActive(item.href);
+                const active = isActive(item);
                 const Icon = item.icon;
                 return (
                   <Link
