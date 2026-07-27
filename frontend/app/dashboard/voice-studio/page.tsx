@@ -6,11 +6,11 @@ import { useAuth } from '../../../context/authContext';
 import { useToast } from '../../../context/toastContext';
 import { 
   cloneVoiceApi, getVoiceLibraryApi, deleteCustomVoiceApi, 
-  previewSpeechApi, getApiUrl 
+  previewSpeechApi, getApiUrl, getUploadSignatureApi, uploadToCloudinaryDirectApi
 } from '../../../services/api';
 import { 
-  Sparkles, ShieldCheck, Star, Music, RefreshCw, Play, Pause, Trash2, 
-  Upload, FileText, Sliders, Volume2, Bookmark, CheckSquare, Info, ShieldAlert
+  Mic, Sparkles, Star, Play, Pause, Trash2, Sliders, Volume2, 
+  Upload, Check, AlertCircle, RefreshCw, AudioWaveform, ShieldCheck, ShieldAlert, CheckCircle2, Zap
 } from 'lucide-react';
 import ThemeToggle from '../../../components/ThemeToggle';
 import VoiceSpeedControl from '../../../components/VoiceSpeedControl';
@@ -42,12 +42,16 @@ export default function VoiceStudio() {
   const [loadingLibrary, setLoadingLibrary] = useState<boolean>(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Cloning Form States
+  // Form state for voice cloning
   const [voiceName, setVoiceName] = useState<string>('');
   const [provider, setProvider] = useState<'XTTS' | 'OpenVoice'>('XTTS');
-  const [consent, setConsent] = useState<boolean>(false);
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [audioDuration, setAudioDuration] = useState<number | null>(null);
+  const [consent, setConsent] = useState<boolean>(false);
   const [cloning, setCloning] = useState<boolean>(false);
+  const [isCompressing, setIsCompressing] = useState<boolean>(false);
+  const [uploadStep, setUploadStep] = useState<1 | 2 | 3 | 4>(1);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   // Advanced Audio Control States (For previews)
   const [pitch, setPitch] = useState<number>(0);
@@ -92,18 +96,45 @@ export default function VoiceStudio() {
   };
 
   const validateAudioFile = (file: File): boolean => {
-    const validTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/x-m4a', 'audio/m4a', 'audio/mp4'];
-    const isAudio = validTypes.includes(file.type) || file.name.endsWith('.m4a') || file.name.endsWith('.mp3') || file.name.endsWith('.wav');
-    if (!isAudio) {
-      showToast('Please upload a valid MP3, WAV, or M4A audio file.', 'error');
+    const validExtensions = ['.mp3', '.wav', '.m4a'];
+    const fileNameLower = file.name.toLowerCase();
+    const isValidExt = validExtensions.some(ext => fileNameLower.endsWith(ext));
+    const validMimes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/m4a', 'audio/x-m4a', 'audio/mp4', 'audio/aac'];
+    const isValidMime = validMimes.includes(file.type.toLowerCase()) || file.type.startsWith('audio/');
+
+    if (!isValidExt && !isValidMime) {
+      showToast('Please upload MP3, WAV, or M4A.', 'error');
       return false;
     }
-    const maxSize = 50 * 1024 * 1024; // 50MB
+
+    const maxSize = 100 * 1024 * 1024; // 100MB
     if (file.size > maxSize) {
-      showToast('File size must be below 50MB.', 'error');
+      showToast('Audio file is too large. Please upload a smaller sample.', 'error');
       return false;
     }
+
     return true;
+  };
+
+  const handleSelectAudioFile = (file: File) => {
+    if (!validateAudioFile(file)) return;
+    setAudioFile(file);
+
+    // Parse audio duration
+    try {
+      const url = URL.createObjectURL(file);
+      const audio = new Audio(url);
+      audio.onloadedmetadata = () => {
+        setAudioDuration(audio.duration);
+        URL.revokeObjectURL(url);
+      };
+      audio.onerror = () => {
+        setAudioDuration(null);
+        URL.revokeObjectURL(url);
+      };
+    } catch {
+      setAudioDuration(null);
+    }
   };
 
   // Drag & Drop Handlers
@@ -111,29 +142,102 @@ export default function VoiceStudio() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (validateAudioFile(file)) {
-        setAudioFile(file);
-      }
+      handleSelectAudioFile(e.dataTransfer.files[0]);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (validateAudioFile(file)) {
-        setAudioFile(file);
-      }
+      handleSelectAudioFile(e.target.files[0]);
     }
   };
 
-  // Convert file to Base64 data string
-  const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = error => reject(error);
-  });
+  const formatDurationDisplay = (seconds: number | null) => {
+    if (seconds === null || isNaN(seconds)) return 'Unknown length';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  // Client-Side Audio Optimization (Resamples to Mono 22.05kHz PCM WAV)
+  const optimizeAudioFile = async () => {
+    if (!audioFile) return;
+    setIsCompressing(true);
+    showToast('Optimizing audio sample...', 'info');
+
+    try {
+      const arrayBuffer = await audioFile.arrayBuffer();
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const decodedBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+      const targetSampleRate = 22050;
+      const offlineCtx = new OfflineAudioContext(1, Math.ceil(decodedBuffer.duration * targetSampleRate), targetSampleRate);
+
+      const source = offlineCtx.createBufferSource();
+      source.buffer = decodedBuffer;
+      source.connect(offlineCtx.destination);
+      source.start(0);
+
+      const renderedBuffer = await offlineCtx.startRendering();
+
+      // WAV Encoder
+      const wavBlob = audioBufferToWavBlob(renderedBuffer);
+      const optimizedFile = new File([wavBlob], audioFile.name.replace(/\.[^/.]+$/, '_optimized.wav'), { type: 'audio/wav' });
+
+      setAudioFile(optimizedFile);
+      setAudioDuration(renderedBuffer.duration);
+      showToast(`Audio optimized! New size: ${(optimizedFile.size / (1024 * 1024)).toFixed(2)} MB`, 'success');
+    } catch (err: any) {
+      console.error('Optimization error:', err);
+      showToast('Optimization failed. Using original file.', 'error');
+    } finally {
+      setIsCompressing(false);
+    }
+  };
+
+  function audioBufferToWavBlob(buffer: AudioBuffer): Blob {
+    const numOfChan = buffer.numberOfChannels;
+    const length = buffer.length * numOfChan * 2 + 44;
+    const outBuffer = new ArrayBuffer(length);
+    const view = new DataView(outBuffer);
+    const channels = [];
+    let sample = 0;
+    let offset = 0;
+    let pos = 0;
+
+    function setUint16(data: number) { view.setUint16(offset, data, true); offset += 2; }
+    function setUint32(data: number) { view.setUint32(offset, data, true); offset += 4; }
+
+    setUint32(0x46464952); // "RIFF"
+    setUint32(length - 8);
+    setUint32(0x45564157); // "WAVE"
+    setUint32(0x20746d66); // "fmt "
+    setUint32(16);
+    setUint16(1); // PCM
+    setUint16(numOfChan);
+    setUint32(buffer.sampleRate);
+    setUint32(buffer.sampleRate * 2 * numOfChan);
+    setUint16(numOfChan * 2);
+    setUint16(16);
+    setUint32(0x61746164); // "data"
+    setUint32(length - offset - 4);
+
+    for (let i = 0; i < buffer.numberOfChannels; i++) {
+      channels.push(buffer.getChannelData(i));
+    }
+
+    while (pos < buffer.length) {
+      for (let i = 0; i < numOfChan; i++) {
+        sample = Math.max(-1, Math.min(1, channels[i][pos]));
+        sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+        view.setInt16(offset, sample, true);
+        offset += 2;
+      }
+      pos++;
+    }
+
+    return new Blob([outBuffer], { type: 'audio/wav' });
+  }
 
   const handleCloneVoice = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,25 +255,47 @@ export default function VoiceStudio() {
     }
 
     setCloning(true);
-    showToast('Extracting tone characteristics & cloning voice...', 'loading');
+    setUploadStep(2); // Step 2: Uploading
+    setUploadProgress(0);
 
     try {
-      const base64Data = await toBase64(audioFile);
-      const res = await cloneVoiceApi(voiceName, base64Data, consent);
+      // Step 2: Fetch upload signature & upload directly to Cloudinary
+      const sigRes = await getUploadSignatureApi('voice-clones/samples');
+      if (!sigRes.success) {
+        throw new Error(sigRes.message || 'Unable to upload voice sample.');
+      }
+
+      const { audioUrl } = await uploadToCloudinaryDirectApi(
+        audioFile,
+        sigRes,
+        (percent) => setUploadProgress(percent)
+      );
+
+      // Step 3: Send audio URL to backend for embedding creation
+      setUploadStep(3); // Step 3: Analyzing voice...
+      const res = await cloneVoiceApi(voiceName.trim(), audioUrl, consent);
       
       if (res.success) {
-        showToast('Voice cloned successfully!', 'success');
-        setVoiceName('');
-        setAudioFile(null);
-        setConsent(false);
-        fetchVoiceLibrary();
-        setActiveTab('library');
-        setLibraryCategory('custom');
+        setUploadStep(4); // Step 4: Success
+        showToast('Voice created successfully!', 'success');
+        
+        setTimeout(() => {
+          setVoiceName('');
+          setAudioFile(null);
+          setAudioDuration(null);
+          setConsent(false);
+          setUploadStep(1);
+          fetchVoiceLibrary();
+          setActiveTab('library');
+          setLibraryCategory('custom');
+        }, 1500);
       } else {
-        throw new Error(res.message || 'Cloning failed');
+        throw new Error(res.message || 'Voice cloning failed. Please try another sample.');
       }
     } catch (err: any) {
-      showToast(err.message || 'Unable to clone voice. Please try again.', 'error');
+      console.error('Voice Clone Error:', err);
+      showToast(err.message || 'Voice cloning failed. Please try another sample.', 'error');
+      setUploadStep(1);
     } finally {
       setCloning(false);
     }
@@ -236,8 +362,10 @@ export default function VoiceStudio() {
         throw new Error(res.message);
       }
     } catch (err: any) {
-      showToast(err.message || 'Preview generation failed.', 'error');
+      console.error('Preview failed:', err);
+      showToast('Preview not available for this voice at the moment.', 'error');
       setPreviewingVoiceId(null);
+    } finally {
       setPreviewLoading(false);
     }
   };
@@ -553,6 +681,69 @@ export default function VoiceStudio() {
               <Upload className="w-4 h-4 text-indigo-400" /> Create Custom Voice Profile
             </h3>
 
+            {/* 4-Step Progress Indicator */}
+            <div className="grid grid-cols-4 gap-2 my-1">
+              {[
+                { step: 1, label: '1. Voice sample' },
+                { step: 2, label: '2. Uploading...' },
+                { step: 3, label: '3. Analyzing voice' },
+                { step: 4, label: '4. Voice created' }
+              ].map(s => (
+                <div 
+                  key={s.step} 
+                  className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl border text-center transition-all ${
+                    uploadStep === s.step 
+                      ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-400 font-bold' 
+                      : uploadStep > s.step 
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-medium' 
+                        : 'bg-[var(--bg-input)] border-[var(--border-app)] text-[var(--text-muted)]'
+                  }`}
+                >
+                  <span className="text-[10px] truncate">{s.label}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Step 2 Progress Bar */}
+            {uploadStep === 2 && (
+              <div className="p-4 rounded-xl border border-indigo-500/30 bg-indigo-500/10 flex flex-col gap-2 animate-in fade-in">
+                <div className="flex justify-between items-center text-xs font-bold text-indigo-300">
+                  <span className="flex items-center gap-2">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Uploading audio sample directly to cloud storage...
+                  </span>
+                  <span>{uploadProgress}%</span>
+                </div>
+                <div className="w-full bg-neutral-800 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="bg-indigo-500 h-2 rounded-full transition-all duration-200" 
+                    style={{ width: `${uploadProgress}%` }} 
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Step 3 AI Analyzing Banner */}
+            {uploadStep === 3 && (
+              <div className="p-4 rounded-xl border border-purple-500/30 bg-purple-500/10 flex items-center gap-3 animate-in fade-in">
+                <Sparkles className="w-5 h-5 text-purple-400 animate-spin" />
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-purple-300">Analyzing voice & creating speaker embedding...</span>
+                  <span className="text-[10px] text-purple-400/80">Processing sample URL through AI neural network</span>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4 Success Banner */}
+            {uploadStep === 4 && (
+              <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex items-center gap-3 animate-in fade-in">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-emerald-300">Voice created successfully!</span>
+                  <span className="text-[10px] text-emerald-400/80">Redirecting to your voice library...</span>
+                </div>
+              </div>
+            )}
+
             {/* Voice Name */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-[var(--text-secondary)]">Voice Profile Name</label>
@@ -562,7 +753,8 @@ export default function VoiceStudio() {
                 value={voiceName}
                 onChange={(e) => setVoiceName(e.target.value)}
                 required
-                className="w-full bg-[var(--bg-input)] text-xs text-[var(--text-primary)] border border-[var(--border-app)] rounded-lg p-2.5 focus:outline-none focus:border-indigo-500 transition-all font-medium"
+                disabled={cloning}
+                className="w-full bg-[var(--bg-input)] text-xs text-[var(--text-primary)] border border-[var(--border-app)] rounded-lg p-2.5 focus:outline-none focus:border-indigo-500 transition-all font-medium disabled:opacity-50"
               />
             </div>
 
@@ -572,7 +764,8 @@ export default function VoiceStudio() {
               <select
                 value={provider}
                 onChange={(e) => setProvider(e.target.value as 'XTTS' | 'OpenVoice')}
-                className="w-full bg-[var(--bg-input)] text-xs text-[var(--text-primary)] border border-[var(--border-app)] rounded-lg p-2.5 focus:outline-none focus:border-indigo-500 transition-all font-medium"
+                disabled={cloning}
+                className="w-full bg-[var(--bg-input)] text-xs text-[var(--text-primary)] border border-[var(--border-app)] rounded-lg p-2.5 focus:outline-none focus:border-indigo-500 transition-all font-medium disabled:opacity-50"
               >
                 <option value="XTTS">XTTS v2.0 (High voice embedding quality)</option>
                 <option value="OpenVoice">OpenVoice v2.0 (Tone color style conversion)</option>
@@ -581,12 +774,20 @@ export default function VoiceStudio() {
 
             {/* Upload Box */}
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-semibold text-[var(--text-secondary)]">Voice Sample Audio File</label>
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-semibold text-[var(--text-secondary)]">Voice Sample Audio File</label>
+                <span className="text-[10px] font-semibold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
+                  Recommended: 30s – 3 min
+                </span>
+              </div>
+              
               <div
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-[var(--border-app)] hover:border-indigo-500/50 bg-[var(--bg-input)] p-8 rounded-lg flex flex-col items-center justify-center gap-3 cursor-pointer transition"
+                onClick={() => !cloning && fileInputRef.current?.click()}
+                className={`border-2 border-dashed border-[var(--border-app)] hover:border-indigo-500/50 bg-[var(--bg-input)] p-6 rounded-lg flex flex-col items-center justify-center gap-3 cursor-pointer transition ${
+                  cloning ? 'opacity-50 pointer-events-none' : ''
+                }`}
               >
                 <input 
                   type="file" 
@@ -602,10 +803,44 @@ export default function VoiceStudio() {
                     {audioFile ? audioFile.name : 'Select or drag & drop audio file'}
                   </span>
                   <span className="text-[10px] text-[var(--text-secondary)]">
-                    MP3, WAV, or M4A format (max 5 minutes, max 50MB)
+                    MP3, WAV, or M4A format (max 100MB)
                   </span>
                 </div>
               </div>
+
+              {/* Display Selected Audio Metadata & Optimization Option */}
+              {audioFile && (
+                <div className="mt-2 p-3 rounded-lg bg-[var(--bg-input)] border border-[var(--border-app)] flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <AudioWaveform className="w-4 h-4 text-indigo-400 shrink-0" />
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-bold text-[var(--text-primary)] truncate">{audioFile.name}</span>
+                      <div className="flex items-center gap-2 text-[10px] text-[var(--text-secondary)] mt-0.5">
+                        <span>Duration: {formatDurationDisplay(audioDuration)}</span>
+                        <span>•</span>
+                        <span>Size: {(audioFile.size / (1024 * 1024)).toFixed(2)} MB</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={optimizeAudioFile}
+                    disabled={isCompressing || cloning}
+                    className="px-2.5 py-1.5 rounded-md bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 hover:bg-indigo-500/20 text-[10px] font-bold flex items-center gap-1.5 shrink-0 transition disabled:opacity-50"
+                  >
+                    {isCompressing ? (
+                      <>
+                        <RefreshCw className="w-3 h-3 animate-spin" /> Optimizing...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-3 h-3 text-amber-400" /> Optimize sample
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Consent Box */}
@@ -615,6 +850,7 @@ export default function VoiceStudio() {
                 id="consent-check"
                 checked={consent}
                 onChange={(e) => setConsent(e.target.checked)}
+                disabled={cloning}
                 className="w-4 h-4 rounded border-[var(--border-app)] text-indigo-600 focus:ring-indigo-500 focus:ring-opacity-25 mt-0.5"
               />
               <div className="flex flex-col gap-0.5 leading-normal">
@@ -635,11 +871,11 @@ export default function VoiceStudio() {
           >
             {cloning ? (
               <>
-                <RefreshCw className="w-4 h-4 animate-spin" /> Synthesizing Voice Embeddings...
+                <RefreshCw className="w-4 h-4 animate-spin" /> Processing AI Voice Clone...
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4" /> Initialize Custom Cloned Voice
+                <Sparkles className="w-4 h-4" /> Create AI Voice Clone
               </>
             )}
           </button>

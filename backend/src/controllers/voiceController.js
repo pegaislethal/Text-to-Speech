@@ -7,7 +7,7 @@ const voiceCloningService = require('../services/voice-cloning');
  */
 exports.cloneVoice = async (req, res) => {
   try {
-    const { voiceName, audioData, consent } = req.body;
+    const { voiceName, audioUrl, consent } = req.body;
     const user = req.user;
 
     // Premium Check
@@ -30,47 +30,19 @@ exports.cloneVoice = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Voice name is required.' });
     }
 
-    if (!audioData) {
-      return res.status(400).json({ success: false, message: 'No voice sample audio data provided.' });
-    }
-
-    // Format Validation: MP3, WAV, M4A
-    const validFormatsRegex = /^data:audio\/(mpeg|mp3|wav|m4a|x-m4a|mp4|aac|ogg);base64,/i;
-    const isDataUri = typeof audioData === 'string' && audioData.startsWith('data:audio/');
-
-    if (isDataUri && !validFormatsRegex.test(audioData)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please upload a voice sample in MP3, WAV, or M4A format.'
-      });
-    }
-
-    // Decode base64 to buffer
-    const base64Data = audioData.replace(/^data:audio\/\w+;base64,/, '');
-    const audioBuffer = Buffer.from(base64Data, 'base64');
-
-    // Size limit (50MB max)
-    const MAX_SIZE_BYTES = 50 * 1024 * 1024;
-    if (audioBuffer.length > MAX_SIZE_BYTES) {
-      return res.status(400).json({
-        success: false,
-        message: 'Voice sample file size must be below 50MB.'
-      });
+    if (!audioUrl) {
+      return res.status(400).json({ success: false, message: 'Audio URL is required.' });
     }
 
     // Process Voice Clone
-    const extension = audioData.match(/audio\/(\w+)/)?.[1] || 'mp3';
-    const filename = `clone-${user._id}-${Date.now()}.${extension}`;
-    
     const cloneResult = await voiceCloningService.cloneVoice(
       user._id, 
       voiceName.trim(), 
-      audioBuffer, 
-      filename
+      audioUrl
     );
 
     if (!cloneResult.success) {
-      throw new Error('Voice cloning service processing failed.');
+      throw new Error('Voice cloning processing failed.');
     }
 
     // Save Voice Profile to DB
@@ -80,12 +52,14 @@ exports.cloneVoice = async (req, res) => {
       voiceName: voiceName.trim(),
       type: 'custom',
       provider: cloneResult.provider,
-      sampleUrl: cloneResult.sampleUrl,
+      sampleUrl: audioUrl,
+      sampleAudioUrl: audioUrl,
       embeddingUrl: cloneResult.embeddingUrl,
+      status: 'completed',
       settings: cloneResult.settings,
       modelProvider: cloneResult.provider,
       voiceEmbedding: cloneResult.embeddingUrl,
-      sampleFiles: [cloneResult.sampleUrl]
+      sampleFiles: [audioUrl]
     });
 
     await voiceProfile.save();
@@ -100,7 +74,7 @@ exports.cloneVoice = async (req, res) => {
     console.error('Clone Voice Error:', error);
     res.status(500).json({
       success: false,
-      message: error.message || 'Failed to process voice clone sample.'
+      message: error.message || 'Voice cloning failed. Please try another sample.'
     });
   }
 };

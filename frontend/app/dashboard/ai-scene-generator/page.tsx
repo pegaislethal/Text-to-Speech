@@ -119,7 +119,7 @@ export default function DashboardAISceneGenerator() {
       }
     } catch (err) {
       console.error('Preview failed:', err);
-      showToast('Voice preview failed.', 'error');
+      showToast('Preview not available for this voice at the moment.', 'error');
     } finally {
       setPreviewingVoice(null);
     }

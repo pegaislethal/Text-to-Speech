@@ -1,16 +1,33 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { 
   getAdminUsers, updateAdminUser, toggleAdminUserPremium, 
-  deleteAdminUser, getAdminStats, getAdminSettings, updateAdminSettings 
+  deleteAdminUser, getAdminStats, getAdminSettings, updateAdminSettings,
+  getAnalyticsOverview, getAnalyticsVoices, getAnalyticsTimeline
 } from '../../../services/api';
 import { 
   Search, ShieldAlert, Check, ToggleLeft, ToggleRight, Trash2, 
   Save, RefreshCw, Users, Music, Activity, Star, Mail, Edit3, ShieldCheck, 
-  Settings, Layers, Sliders, CheckCircle2, AlertCircle
+  Settings, Layers, Sliders, CheckCircle2, AlertCircle, Volume2
 } from 'lucide-react';
 import { useToast } from '../../../context/toastContext';
+
+const VoicePopularityChart = dynamic(
+  () => import('../../../components/DashboardCharts').then((mod) => mod.VoicePopularityChart),
+  { ssr: false }
+);
+
+const VoiceDistributionChart = dynamic(
+  () => import('../../../components/DashboardCharts').then((mod) => mod.VoiceDistributionChart),
+  { ssr: false }
+);
+
+const GenerationTimelineChart = dynamic(
+  () => import('../../../components/DashboardCharts').then((mod) => mod.GenerationTimelineChart),
+  { ssr: false }
+);
 
 interface UserItem {
   _id: string;
@@ -66,6 +83,18 @@ export default function UnifiedAdminDashboard() {
   const [settingsLoading, setSettingsLoading] = useState<boolean>(true);
   const [settingsSaving, setSettingsSaving] = useState<boolean>(false);
 
+  // Global Analytics States
+  const [globalOverview, setGlobalOverview] = useState<{
+    totalGenerations: number;
+    totalDuration: number;
+    mostUsedVoice: string;
+    totalUsers: number;
+    premiumUsage: number;
+  } | null>(null);
+  const [globalVoices, setGlobalVoices] = useState<any[]>([]);
+  const [globalTimeline, setGlobalTimeline] = useState<any[]>([]);
+  const [analyticsLoading, setAnalyticsLoading] = useState<boolean>(true);
+
   // Initial Data Load
   useEffect(() => {
     loadDashboardData();
@@ -76,6 +105,44 @@ export default function UnifiedAdminDashboard() {
       fetchSettingsData();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'analytics') {
+      fetchGlobalAnalytics();
+    }
+  }, [activeTab]);
+
+  const fetchGlobalAnalytics = async () => {
+    setAnalyticsLoading(true);
+    try {
+      const [overviewRes, voicesRes, timelineRes] = await Promise.all([
+        getAnalyticsOverview(true),
+        getAnalyticsVoices(true),
+        getAnalyticsTimeline(true)
+      ]);
+
+      if (overviewRes.success) setGlobalOverview(overviewRes);
+      if (voicesRes.success) setGlobalVoices(voicesRes.voices);
+      if (timelineRes.success) setGlobalTimeline(timelineRes.timeline);
+    } catch (err) {
+      console.error('Failed to load global admin analytics:', err);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
+
+  const formatDuration = (seconds: number) => {
+    if (!seconds || seconds <= 0) return '0s';
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = Math.round(seconds % 60);
+
+    const parts = [];
+    if (hrs > 0) parts.push(`${hrs}h`);
+    if (mins > 0) parts.push(`${mins}m`);
+    if (secs > 0 && hrs === 0) parts.push(`${secs}s`);
+    return parts.join(' ') || '0s';
+  };
 
   const loadDashboardData = async () => {
     try {
@@ -254,50 +321,145 @@ export default function UnifiedAdminDashboard() {
       {/* Tab 1: Analytics */}
       {activeTab === 'analytics' && (
         <div className="flex flex-col gap-8 animate-in fade-in duration-200">
-          {stats ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              <div className="p-4 sm:p-6 rounded-2xl border border-[var(--border-app)] bg-[var(--bg-card)] flex items-center gap-4 shadow-md">
-                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-indigo-400 shrink-0">
-                  <Users className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-wider">Total Users</span>
-                  <span className="text-xl sm:text-2xl font-black text-[var(--text-primary)] mt-1">{stats.totalUsers}</span>
-                </div>
+          {analyticsLoading ? (
+            // Loading State (Skeleton Cards)
+            <div className="flex flex-col gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map(n => (
+                  <div key={n} className="p-5 rounded-2xl border border-[var(--border-app)] bg-[var(--bg-card)] h-24 animate-pulse flex flex-col gap-3">
+                    <div className="h-3 w-24 bg-neutral-800 rounded" />
+                    <div className="h-6 w-16 bg-neutral-800 rounded" />
+                  </div>
+                ))}
               </div>
-
-              <div className="p-4 sm:p-6 rounded-2xl border border-[var(--border-app)] bg-[var(--bg-card)] flex items-center gap-4 shadow-md">
-                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-indigo-400 shrink-0">
-                  <Activity className="w-5 h-5 sm:w-5.5 sm:h-5.5 animate-pulse" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-wider">Active Sessions</span>
-                  <span className="text-xl sm:text-2xl font-black text-[var(--text-primary)] mt-1">{stats.activeUsers}</span>
-                </div>
-              </div>
-
-              <div className="p-4 sm:p-6 rounded-2xl border border-[var(--border-app)] bg-[var(--bg-card)] flex items-center gap-4 shadow-md">
-                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-indigo-400 shrink-0">
-                  <Star className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-wider">Premium Access</span>
-                  <span className="text-xl sm:text-2xl font-black text-[var(--text-primary)] mt-1">{stats.premiumUsers}</span>
-                </div>
-              </div>
-
-              <div className="p-4 sm:p-6 rounded-2xl border border-[var(--border-app)] bg-[var(--bg-card)] flex items-center gap-4 shadow-md">
-                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center text-indigo-400 shrink-0">
-                  <Music className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-wider">Generated Clips</span>
-                  <span className="text-xl sm:text-2xl font-black text-[var(--text-primary)] mt-1">{stats.totalAudioCount}</span>
-                </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-1 border border-[var(--border-app)] bg-[var(--bg-card)] rounded-2xl h-80 animate-pulse" />
+                <div className="lg:col-span-2 border border-[var(--border-app)] bg-[var(--bg-card)] rounded-2xl h-80 animate-pulse" />
               </div>
             </div>
           ) : (
-            <div className="py-20 text-center text-xs text-[var(--text-secondary)]">No platform metrics loadable.</div>
+            <div className="flex flex-col gap-6">
+              {/* Overview Stats Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Card 1: Total Users */}
+                <div className="p-5 rounded-2xl border border-[var(--border-app)] bg-[var(--bg-card)] flex items-center gap-4 shadow-sm hover:border-indigo-500/25 transition">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                    <Users className="w-4.5 h-4.5" />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-wider">Total Users</span>
+                    <span className="text-xl sm:text-2xl font-black text-[var(--text-primary)]">{globalOverview?.totalUsers || 0}</span>
+                  </div>
+                </div>
+
+                {/* Card 2: Total Generations */}
+                <div className="p-5 rounded-2xl border border-[var(--border-app)] bg-[var(--bg-card)] flex items-center gap-4 shadow-sm hover:border-indigo-500/25 transition">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                    <Sliders className="w-4.5 h-4.5" />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-wider">Total Generations</span>
+                    <span className="text-xl sm:text-2xl font-black text-[var(--text-primary)]">{globalOverview?.totalGenerations || 0}</span>
+                  </div>
+                </div>
+
+                {/* Card 3: Audio Generated */}
+                <div className="p-5 rounded-2xl border border-[var(--border-app)] bg-[var(--bg-card)] flex items-center gap-4 shadow-sm hover:border-indigo-500/25 transition">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                    <Volume2 className="w-4.5 h-4.5" />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-wider">Audio Generated</span>
+                    <span className="text-xl sm:text-2xl font-black text-[var(--text-primary)]">
+                      {formatDuration(globalOverview?.totalDuration || 0)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Card 4: Premium Usage */}
+                <div className="p-5 rounded-2xl border border-[var(--border-app)] bg-[var(--bg-card)] flex items-center gap-4 shadow-sm hover:border-indigo-500/25 transition">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
+                    <Star className="w-4.5 h-4.5" />
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-wider">Premium Usage</span>
+                    <span className="text-xl sm:text-2xl font-black text-[var(--text-primary)]">{globalOverview?.premiumUsage || 0}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Charts and Rankings Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Platform Voice Ranking List */}
+                <div className="p-5 rounded-2xl border border-[var(--border-app)] bg-[var(--bg-card)] flex flex-col gap-4 shadow-sm">
+                  <div className="border-b border-[var(--border-app)] pb-2.5">
+                    <h3 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">Platform Voice Ranking</h3>
+                    <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">Most used voices across all users</p>
+                  </div>
+
+                  <div className="flex flex-col gap-3 max-h-[250px] overflow-y-auto pr-1">
+                    {globalVoices.length === 0 ? (
+                      <div className="text-center text-xs text-[var(--text-muted)] py-8 font-medium">
+                        No voices used yet.
+                      </div>
+                    ) : (
+                      globalVoices.map((voice, idx) => (
+                        <div key={voice.voiceName} className="flex items-center justify-between gap-3 text-xs">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0 ${
+                              idx === 0 
+                                ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' 
+                                : 'bg-[var(--bg-input)] border border-[var(--border-app)] text-[var(--text-secondary)]'
+                            }`}>
+                              #{idx + 1}
+                            </span>
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-bold text-[var(--text-primary)] truncate">{voice.voiceName}</span>
+                              <span className="text-[9px] text-[var(--text-secondary)] mt-0.5 capitalize">{voice.category}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col items-end shrink-0">
+                            <span className="font-bold text-[var(--text-primary)]">{voice.usageCount} times</span>
+                            <span className="text-[9px] text-[var(--text-secondary)] mt-0.5">{voice.percentage}% share</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Charts Display */}
+                <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {/* Voice Popularity Chart Card */}
+                  <div className="p-5 rounded-2xl border border-[var(--border-app)] bg-[var(--bg-card)] flex flex-col gap-4 shadow-sm">
+                    <div className="border-b border-[var(--border-app)] pb-2.5">
+                      <h3 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">Voice Popularity</h3>
+                      <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">Top 5 voices comparison</p>
+                    </div>
+                    <VoicePopularityChart data={globalVoices} />
+                  </div>
+
+                  {/* Voice Distribution Card */}
+                  <div className="p-5 rounded-2xl border border-[var(--border-app)] bg-[var(--bg-card)] flex flex-col gap-4 shadow-sm">
+                    <div className="border-b border-[var(--border-app)] pb-2.5">
+                      <h3 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">Usage Distribution</h3>
+                      <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">Distribution by voice category</p>
+                    </div>
+                    <VoiceDistributionChart data={globalVoices} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Line Chart: Timeline Card */}
+              <div className="p-5 rounded-2xl border border-[var(--border-app)] bg-[var(--bg-card)] flex flex-col gap-4 shadow-sm">
+                <div className="border-b border-[var(--border-app)] pb-2.5">
+                  <h3 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">Generation Timeline</h3>
+                  <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">Daily synthesis operations timeline</p>
+                </div>
+                <GenerationTimelineChart data={globalTimeline} />
+              </div>
+            </div>
           )}
         </div>
       )}

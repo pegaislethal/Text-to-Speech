@@ -115,4 +115,46 @@ const processAudio = async (audioBuffer, pitch = 0, tone = 'natural', depth = 0)
   }
 };
 
-module.exports = { processAudio };
+/**
+ * Helper function to parse output duration using ffmpeg command line
+ */
+const getAudioDuration = async (audioBuffer) => {
+  const isFfmpegAvailable = checkFfmpegAvailability();
+  if (!isFfmpegAvailable) {
+    // Basic fallback: roughly 15 characters per second
+    return 1;
+  }
+
+  const tempDir = os.tmpdir();
+  const randId = crypto.randomBytes(8).toString('hex');
+  const tempInputPath = pathLib.join(tempDir, `duration_${randId}.mp3`);
+
+  try {
+    await fsPromises.writeFile(tempInputPath, audioBuffer);
+    const cmd = `"${ffmpegPath}" -i "${tempInputPath}"`;
+    let output = '';
+    try {
+      execSync(cmd, { stdio: 'pipe' });
+    } catch (err) {
+      // ffmpeg exits with code 1 when no output file is specified, which is fine
+      output = err.stderr ? err.stderr.toString() : '';
+    }
+
+    const match = output.match(/Duration:\s*(\d+):(\d+):(\d+\.\d+)/);
+    if (match) {
+      const hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const seconds = parseFloat(match[3]);
+      return hours * 3600 + minutes * 60 + seconds;
+    }
+  } catch (err) {
+    console.error('[AudioProcessor] Failed to get audio duration:', err.message);
+  } finally {
+    try {
+      if (fs.existsSync(tempInputPath)) await fsPromises.unlink(tempInputPath);
+    } catch (_) {}
+  }
+  return 0;
+};
+
+module.exports = { processAudio, getAudioDuration };

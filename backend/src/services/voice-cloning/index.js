@@ -15,9 +15,9 @@ class VoiceCloningService {
   /**
    * Route voice cloning requests to specified provider (default: XTTS)
    */
-  async cloneVoice(userId, voiceName, audioBuffer, filename, providerName = 'XTTS') {
+  async cloneVoice(userId, voiceName, sampleUrl, providerName = 'XTTS') {
     const provider = this.providers[providerName] || this.providers.XTTS;
-    return await provider.cloneVoice(userId, voiceName, audioBuffer, filename);
+    return await provider.cloneVoice(userId, voiceName, sampleUrl);
   }
 
   /**

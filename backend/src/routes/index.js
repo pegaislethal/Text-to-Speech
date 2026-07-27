@@ -72,10 +72,21 @@ router.delete('/voice/:id', authMiddleware, voiceController.deleteVoice);
 
 // TTS Operations
 router.post('/tts/generate', authMiddleware, ttsController.generateSpeech);
-router.post('/tts/preview', ttsController.previewSpeech);
+router.post('/tts/preview', authMiddleware.optional, ttsController.previewSpeech);
 router.get('/history', authMiddleware, ttsController.getHistory);
 router.delete('/history/:id', authMiddleware, ttsController.deleteHistoryItem);
 router.delete('/history', authMiddleware, ttsController.clearHistory);
+
+// Analytics Operations
+const analyticsController = require('../controllers/analyticsController');
+router.get('/analytics/seed', analyticsController.seedMockData);
+router.get('/analytics/overview', authMiddleware, analyticsController.getOverview);
+router.get('/analytics/voices', authMiddleware, analyticsController.getVoices);
+router.get('/analytics/timeline', authMiddleware, analyticsController.getTimeline);
+
+// Upload Operations
+const uploadController = require('../controllers/uploadController');
+router.post('/upload/signature', authMiddleware, uploadController.getSignature);
 
 // Preset Operations
 router.get('/presets', authMiddleware, presetController.getPresets);

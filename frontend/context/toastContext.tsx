@@ -5,14 +5,20 @@ import { CheckCircle2, AlertCircle, Info, RefreshCw, X } from 'lucide-react';
 
 export type ToastType = 'info' | 'success' | 'error' | 'loading';
 
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 export interface ToastMessage {
   id: string;
   message: string;
   type: ToastType;
+  action?: ToastAction;
 }
 
 interface ToastContextType {
-  showToast: (message: string, type?: ToastType) => void;
+  showToast: (message: string, type?: ToastType, action?: ToastAction) => void;
   clearToasts: () => void;
 }
 
@@ -21,15 +27,15 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  const showToast = useCallback((message: string, type: ToastType = 'info') => {
+  const showToast = useCallback((message: string, type: ToastType = 'info', action?: ToastAction) => {
     const id = Date.now().toString() + Math.random().toString(36).substring(2, 6);
-    const newToast: ToastMessage = { id, message, type };
+    const newToast: ToastMessage = { id, message, type, action };
 
     setToasts((prev) => [...prev, newToast]);
 
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3000);
+    }, action ? 6000 : 3000);
   }, []);
 
   const clearToasts = useCallback(() => {
@@ -63,7 +69,21 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               {toast.type === 'error' && <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />}
               {toast.type === 'info' && <Info className="w-5 h-5 text-indigo-400 shrink-0" />}
               {toast.type === 'loading' && <RefreshCw className="w-5 h-5 text-indigo-400 shrink-0 animate-spin" />}
-              <span className="text-xs font-semibold leading-snug">{toast.message}</span>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold leading-snug">{toast.message}</span>
+                {toast.action && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toast.action?.onClick();
+                      removeToast(toast.id);
+                    }}
+                    className="px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-[10px] font-bold text-white transition self-start cursor-pointer pointer-events-auto active:scale-95 shadow-sm shadow-indigo-500/20"
+                  >
+                    {toast.action.label}
+                  </button>
+                )}
+              </div>
             </div>
             <button
               onClick={() => removeToast(toast.id)}

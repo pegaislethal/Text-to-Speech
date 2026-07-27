@@ -4,8 +4,9 @@ const User = require('../models/user');
 const AudioHistory = require('../models/audioHistory');
 const Settings = require('../models/settings');
 const Voice = require('../models/voice');
+const VoiceAnalytics = require('../models/voiceAnalytics');
 const { isCloudinaryConfigured, uploadAudioBuffer } = require('../config/cloudinary');
-const { processAudio } = require('../utils/audioProcessor');
+const { processAudio, getAudioDuration } = require('../utils/audioProcessor');
 const mongoose = require('mongoose');
 
 let UniversalCommunicate;
@@ -211,6 +212,37 @@ exports.generateSpeech = async (req, res) => {
     });
     await historyEntry.save();
 
+    // Step 7: Record Voice Analytics and Invalidate Cache
+    try {
+      const audioDuration = await getAudioDuration(audioBuffer);
+      const isPremiumVoice = voiceDoc ? voiceDoc.isPremium : false;
+      const voiceCategory = voiceDoc ? voiceDoc.category : 'general';
+
+      const analyticsEntry = new VoiceAnalytics({
+        userId: user._id,
+        voiceId: baseVoiceId,
+        voiceName: voiceDisplayName,
+        provider: voiceDoc?.provider || 'Microsoft',
+        generationCount: 1,
+        totalCharacters: characterCount,
+        duration: audioDuration,
+        isPremium: isPremiumVoice,
+        category: voiceCategory,
+        createdAt: new Date()
+      });
+      await analyticsEntry.save();
+
+      // Invalidate cache
+      try {
+        const { invalidateAnalyticsCache } = require('./analyticsController');
+        invalidateAnalyticsCache(user._id);
+      } catch (cacheErr) {
+        console.warn('Failed to invalidate analytics cache:', cacheErr.message);
+      }
+    } catch (analyticsErr) {
+      console.error('Failed to log voice analytics:', analyticsErr.message);
+    }
+
     return res.status(200).json({
       success: true,
       audioUrl,
@@ -249,6 +281,16 @@ exports.previewSpeech = async (req, res) => {
     return res.status(400).json({ success: false, message: 'voiceId is required for preview' });
   }
 
+  // Backend verification for homepage guest requests
+  if (!req.user) {
+    if (targetVoiceId !== 'en-US-ChristopherNeural') {
+      return res.status(403).json({
+        success: false,
+        message: 'Login required for this voice'
+      });
+    }
+  }
+
   try {
     // Resolve Voice Profile & check permissions
     let baseVoiceId = targetVoiceId;
@@ -271,6 +313,23 @@ exports.previewSpeech = async (req, res) => {
           return res.status(403).json({ success: false, message: 'Upgrade to Premium to unlock this voice.' });
         }
         baseVoiceId = voiceDoc.voiceId;
+      }
+    }
+
+    // Voice Preview Handling
+    if (voiceDoc) {
+      if (voiceDoc.previewAvailable === false) {
+        return res.status(400).json({
+          success: false,
+          message: 'Preview not available for this voice at the moment.'
+        });
+      }
+      if (voiceDoc.previewUrl) {
+        return res.status(200).json({
+          success: true,
+          audioUrl: voiceDoc.previewUrl,
+          message: 'Voice preview loaded from cache successfully'
+        });
       }
     }
 

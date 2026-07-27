@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { useAuth } from '../context/authContext';
+import { useToast } from '../context/toastContext';
 import { 
   Sparkles, ShieldCheck, Cpu, ArrowRight, Activity, Zap, Play, Pause,
-  Volume2, CheckCircle2, MessageSquare, Download, Layers, Shield, RefreshCw
+  Volume2, CheckCircle2, MessageSquare, Download, Layers, Shield, RefreshCw,
+  Lock
 } from 'lucide-react';
 import React from 'react';
 
@@ -14,6 +16,7 @@ import { getApiUrl } from '../services/api';
 
 export default function Home() {
   const { user, loading } = useAuth();
+  const { showToast } = useToast();
   const router = useRouter();
 
   // Interactive Playground States
@@ -37,10 +40,30 @@ export default function Home() {
     }
   }, [user, loading, router]);
 
+  const isVoiceLocked = React.useCallback((voiceId: string) => {
+    if (!user) {
+      return voiceId !== 'en-US-ChristopherNeural';
+    }
+    if (voiceId === 'en-US-ChristopherNeural') return false;
+    return !user.premiumAccess;
+  }, [user]);
+
   const handlePlaygroundPreview = async () => {
     if (previewPlaying) {
       playgroundAudioRef.current?.pause();
       setPreviewPlaying(false);
+      return;
+    }
+
+    if (isVoiceLocked(selectedVoice)) {
+      if (!user) {
+        showToast('Login required to use this voice.', 'error', {
+          label: 'Login',
+          onClick: () => router.push('/login')
+        });
+      } else {
+        showToast('Upgrade to Premium to unlock this voice.', 'error');
+      }
       return;
     }
 
@@ -56,6 +79,17 @@ export default function Home() {
 
   const generatePreview = async () => {
     if (!previewText.trim()) return;
+    if (isVoiceLocked(selectedVoice)) {
+      if (!user) {
+        showToast('Login required to use this voice.', 'error', {
+          label: 'Login',
+          onClick: () => router.push('/login')
+        });
+      } else {
+        showToast('Upgrade to Premium to unlock this voice.', 'error');
+      }
+      return;
+    }
     setPreviewLoading(true);
     setPlaygroundError(null);
     try {
@@ -207,22 +241,42 @@ export default function Home() {
                   { id: 'en-GB-RyanNeural', label: 'Ryan (UK)' },
                   { id: 'en-US-AvaNeural', label: 'Ava (US)' },
                   { id: 'en-US-EmmaNeural', label: 'Emma (US)' }
-                ].map((voice) => (
-                  <button
-                    key={voice.id}
-                    onClick={() => {
-                      setSelectedVoice(voice.id);
-                      setPreviewAudioUrl(""); // Force regeneration
-                    }}
-                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition border cursor-pointer ${
-                      selectedVoice === voice.id
-                        ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400'
-                        : 'border-neutral-800 bg-neutral-900 text-neutral-400 hover:text-neutral-200 hover:border-neutral-750'
-                    }`}
-                  >
-                    {voice.label}
-                  </button>
-                ))}
+                ].map((voice) => {
+                  const locked = isVoiceLocked(voice.id);
+                  return (
+                    <button
+                      key={voice.id}
+                      onClick={() => {
+                        if (locked) {
+                          if (!user) {
+                            showToast('Login required to use this voice.', 'error', {
+                              label: 'Login',
+                              onClick: () => router.push('/login')
+                            });
+                          } else {
+                            showToast('Upgrade to Premium to unlock this voice.', 'error');
+                          }
+                          return;
+                        }
+                        setSelectedVoice(voice.id);
+                        setPreviewAudioUrl(""); // Force regeneration
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition border cursor-pointer flex items-center gap-1.5 ${
+                        selectedVoice === voice.id && !locked
+                          ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400'
+                          : 'border-neutral-800 bg-neutral-900 text-neutral-400 hover:text-neutral-200 hover:border-neutral-750'
+                      }`}
+                    >
+                      <span>{voice.label}</span>
+                      {locked && (
+                        <span className="text-[8px] bg-neutral-850 dark:bg-neutral-800 text-neutral-450 dark:text-neutral-450 px-1.5 py-0.5 rounded-md flex items-center gap-1 font-bold">
+                          <Lock className="w-2.5 h-2.5 shrink-0" />
+                          {!user ? 'Login Required' : 'Premium'}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

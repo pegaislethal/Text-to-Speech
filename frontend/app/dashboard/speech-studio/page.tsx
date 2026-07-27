@@ -187,8 +187,7 @@ export default function SpeechStudio() {
       }
     } catch (err: any) {
       console.error('Preview Error:', err);
-      setError('Preview failed: ' + (err.message || 'Unknown error'));
-      showToast('Voice preview failed.', 'error');
+      showToast('Preview not available for this voice at the moment.', 'error');
     } finally {
       setPreviewingVoice(null);
     }

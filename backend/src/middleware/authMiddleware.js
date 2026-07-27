@@ -56,4 +56,28 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
+const optionalAuthMiddleware = async (req, res, next) => {
+  try {
+    let token = req.cookies.token;
+
+    if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key_123');
+      const userId = decoded.id || decoded.userId;
+      const user = await User.findById(userId);
+      if (user && user.isActive) {
+        req.user = user;
+      }
+    }
+  } catch (error) {
+    console.error('Optional auth middleware token verification failed:', error.message);
+  }
+  next();
+};
+
+authMiddleware.optional = optionalAuthMiddleware;
+
 module.exports = authMiddleware;

@@ -98,6 +98,24 @@ export const getHistory = async () => {
   }
 };
 
+export const getAnalyticsOverview = async (global: boolean = false) => {
+  const query = global ? '?global=true' : '';
+  const res = await apiFetch(`/api/analytics/overview${query}`);
+  return res.json();
+};
+
+export const getAnalyticsVoices = async (global: boolean = false) => {
+  const query = global ? '?global=true' : '';
+  const res = await apiFetch(`/api/analytics/voices${query}`);
+  return res.json();
+};
+
+export const getAnalyticsTimeline = async (global: boolean = false) => {
+  const query = global ? '?global=true' : '';
+  const res = await apiFetch(`/api/analytics/timeline${query}`);
+  return res.json();
+};
+
 export const deleteHistoryItemApi = async (id: string) => {
   const res = await apiFetch(`/api/history/${id}`, {
     method: 'DELETE',
@@ -334,13 +352,68 @@ export const removeProfileImageApi = async () => {
 };
 
 // ==========================================
-// Voice Cloning APIs
+// Voice Cloning & Direct Upload APIs
 // ==========================================
 
-export const cloneVoiceApi = async (voiceName: string, audioData: string, consent: boolean) => {
+export const getUploadSignatureApi = async (folder: string = 'voice-clones/samples') => {
+  const res = await apiFetch('/api/upload/signature', {
+    method: 'POST',
+    body: JSON.stringify({ folder }),
+  });
+  return res.json();
+};
+
+export const uploadToCloudinaryDirectApi = async (
+  file: File | Blob, 
+  signatureData: { signature: string; timestamp: number; cloudName: string; apiKey: string; folder: string },
+  onProgress?: (percent: number) => void
+) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('api_key', signatureData.apiKey);
+  formData.append('timestamp', signatureData.timestamp.toString());
+  formData.append('signature', signatureData.signature);
+  formData.append('folder', signatureData.folder);
+
+  const xhr = new XMLHttpRequest();
+  return new Promise<{ audioUrl: string; publicId: string }>((resolve, reject) => {
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${signatureData.cloudName}/auto/upload`);
+
+    if (onProgress && xhr.upload) {
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          onProgress(percent);
+        }
+      };
+    }
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const response = JSON.parse(xhr.responseText);
+        resolve({
+          audioUrl: response.secure_url || response.url,
+          publicId: response.public_id
+        });
+      } else {
+        try {
+          const errorResp = JSON.parse(xhr.responseText);
+          reject(new Error(errorResp.error?.message || 'Cloudinary upload failed'));
+        } catch {
+          reject(new Error('Unable to upload voice sample.'));
+        }
+      }
+    };
+
+    xhr.onerror = () => reject(new Error('Unable to upload voice sample.'));
+    xhr.send(formData);
+  });
+};
+
+export const cloneVoiceApi = async (voiceName: string, audioUrl: string, consent: boolean) => {
   const res = await apiFetch('/api/voice/clone', {
     method: 'POST',
-    body: JSON.stringify({ voiceName, audioData, consent }),
+    body: JSON.stringify({ voiceName, audioUrl, consent }),
   });
   return res.json();
 };

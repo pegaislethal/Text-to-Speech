@@ -122,10 +122,41 @@ const uploadImageBuffer = (input, folder = 'user-profiles', filename = null) => 
   });
 };
 
+/**
+ * Generate a signed upload signature for direct client uploads
+ * @param {string} folder - Destination folder in Cloudinary
+ * @returns {object} { signature, timestamp, cloudName, apiKey, folder }
+ */
+const generateUploadSignature = (folder = 'voice-clones/samples') => {
+  if (!isCloudinaryConfigured()) {
+    throw new Error('Cloudinary environment variables are not configured.');
+  }
+
+  const timestamp = Math.round(new Date().getTime() / 1000);
+  const paramsToSign = {
+    timestamp: timestamp,
+    folder: folder,
+  };
+
+  const signature = cloudinary.utils.api_sign_request(
+    paramsToSign,
+    process.env.CLOUDINARY_API_SECRET
+  );
+
+  return {
+    signature,
+    timestamp,
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    folder,
+  };
+};
+
 module.exports = {
   cloudinary,
   isCloudinaryConfigured,
   uploadAudioBuffer,
   uploadImageBuffer,
+  generateUploadSignature,
 };
 

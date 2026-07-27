@@ -13,27 +13,10 @@ class OpenVoiceProvider {
   /**
    * Clone voice from sample (extracts tone color)
    */
-  async cloneVoice(userId, voiceName, audioBuffer, filename) {
-    console.log(`[OpenVoice] Cloning voice "${voiceName}" for user ${userId}...`);
+  async cloneVoice(userId, voiceName, sampleUrl) {
+    console.log(`[OpenVoice] Extracting tone color for voice "${voiceName}" from URL: ${sampleUrl}...`);
 
-    const isCloudinary = isCloudinaryConfigured();
-    let sampleUrl;
-
-    if (isCloudinary) {
-      sampleUrl = await uploadAudioBuffer(audioBuffer, 'voice-clones/samples', filename);
-    } else {
-      const localDir = path.join(__dirname, '../../../../public/uploads/samples');
-      if (!fs.existsSync(localDir)) {
-        fs.mkdirSync(localDir, { recursive: true });
-      }
-      const localPath = path.join(localDir, filename);
-      await fs.promises.writeFile(localPath, audioBuffer);
-      sampleUrl = `/uploads/samples/${filename}`;
-    }
-
-    const embeddingUrl = isCloudinary 
-      ? sampleUrl.replace(/\.[^/.]+$/, '_tone_color.json') 
-      : `/uploads/samples/${filename.replace(/\.[^/.]+$/, '_tone_color.json')}`;
+    const embeddingUrl = sampleUrl.replace(/\.[^/.]+$/, '_tone_color.json');
 
     console.log(`[OpenVoice] Tone color extracted. Sample URL: ${sampleUrl}`);
 
