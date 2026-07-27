@@ -74,8 +74,8 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
         <div className="flex flex-col gap-6">
           {/* Logo Header */}
           <Link href="/dashboard" className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] transition-colors group">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-600/20 group-hover:scale-105 transition-transform duration-200">
-              <AudioLines className="w-4.5 h-4.5 text-white" />
+            <div className="w-8 h-8 rounded-lg bg-black overflow-hidden flex items-center justify-center shadow-md shadow-indigo-600/20 group-hover:scale-105 transition-transform duration-200">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
             </div>
             <div className="flex flex-col">
               <span className="font-bold tracking-tight text-sm text-[var(--text-primary)] group-hover:text-indigo-400 transition-colors">
@@ -228,8 +228,8 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
       {/* Header - Mobile */}
       <header className="flex md:hidden border-b border-[var(--border-app)] bg-[var(--bg-sidebar)] px-4 py-3 items-center justify-between z-30 sticky top-0 w-full">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
-            <AudioLines className="w-4 h-4 text-white" />
+          <div className="w-7 h-7 rounded-lg bg-black overflow-hidden flex items-center justify-center shrink-0">
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
           </div>
           <span className="font-bold text-sm text-[var(--text-primary)]">21st Tech</span>
         </Link>

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useAuth } from '../context/authContext';
 import { 
-  Sparkles, AudioLines, ShieldCheck, Cpu, ArrowRight, Activity, Zap, Play, 
+  Sparkles, ShieldCheck, Cpu, ArrowRight, Activity, Zap, Play, 
   Volume2, CheckCircle2, MessageSquare, Download, Layers, Shield
 } from 'lucide-react';
 import React from 'react';
@@ -48,8 +48,8 @@ export default function Home() {
       {/* Navigation Header */}
       <header className="sticky top-0 z-50 backdrop-blur-md border-b border-input bg-background/80 px-6 md:px-12 py-4 flex items-center justify-between transition-all duration-300">
         <div className="flex items-center gap-2.5 group cursor-pointer">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-all duration-300">
-            <AudioLines className="w-5 h-5 text-white" />
+          <div className="w-9 h-9 rounded-xl bg-black overflow-hidden flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-all duration-300">
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
           </div>
           <span className="text-lg font-bold tracking-tight bg-gradient-to-r from-neutral-900 to-neutral-600 dark:from-neutral-50 dark:to-neutral-400 bg-clip-text text-transparent group-hover:text-foreground transition duration-200">
             21st Tech Company

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/authContext';
 import { GoogleLogin } from '@react-oauth/google';
-import { AudioLines, Sparkles, AlertCircle, RefreshCw, ArrowRight, User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Sparkles, AlertCircle, RefreshCw, ArrowRight, User, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 
 import { useRouter } from 'next/navigation';
@@ -73,8 +73,8 @@ export default function UserLogin() {
         {/* Top Logo & Theme Toggle */}
         <div className="flex items-center justify-between z-10">
           <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group w-fit">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform duration-300 shrink-0">
-              <AudioLines className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-black overflow-hidden flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform duration-300 shrink-0">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
             </div>
             <span className="text-lg sm:text-xl font-bold tracking-tight text-foreground truncate">21st Tech Company</span>
           </Link>

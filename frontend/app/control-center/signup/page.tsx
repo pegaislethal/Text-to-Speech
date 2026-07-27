@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../../../context/authContext';
-import { AudioLines, Shield, AlertCircle, RefreshCw, ArrowRight, Lock, Mail, User } from 'lucide-react';
+import { Shield, AlertCircle, RefreshCw, ArrowRight, Lock, Mail, User } from 'lucide-react';
 import Link from 'next/link';
 import ThemeToggle from '../../../components/ThemeToggle';
 
@@ -36,8 +36,8 @@ export default function ControlCenterSignup() {
       <div className="md:w-1/2 p-8 md:p-16 bg-[var(--bg-sidebar)] border-b md:border-b-0 md:border-r border-[var(--border-app)] flex flex-col justify-between relative overflow-hidden">
         <div className="flex items-center justify-between w-full z-10">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-600/20 group-hover:scale-105 transition-transform duration-200">
-              <AudioLines className="w-5 h-5 text-white" />
+            <div className="w-9 h-9 rounded-lg bg-black overflow-hidden flex items-center justify-center shadow-md shadow-indigo-600/20 group-hover:scale-105 transition-transform duration-200">
+              <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
             </div>
             <span className="text-lg font-bold tracking-tight text-[var(--text-primary)]">21st Tech Control Center</span>
           </Link>

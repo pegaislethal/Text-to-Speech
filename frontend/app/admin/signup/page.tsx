@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../../../context/authContext';
-import { AudioLines, Shield, AlertCircle, RefreshCw, ArrowRight, Lock, Mail, User } from 'lucide-react';
+import { Shield, AlertCircle, RefreshCw, ArrowRight, Lock, Mail, User } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AdminSignup() {
@@ -46,8 +46,8 @@ export default function AdminSignup() {
         <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] rounded-full bg-violet-600/10 blur-[130px] pointer-events-none" />
 
         <Link href="/" className="flex items-center gap-3 group w-fit z-10">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-violet-500/25 group-hover:scale-105 transition-transform duration-300">
-            <AudioLines className="w-6 h-6 text-white" />
+          <div className="w-10 h-10 rounded-xl bg-black overflow-hidden flex items-center justify-center shadow-lg shadow-violet-500/25 group-hover:scale-105 transition-transform duration-300">
+            <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
           </div>
           <span className="text-xl font-bold tracking-tight text-white">21st Tech Operator</span>
         </Link>
