@@ -1,0 +1,83 @@
+/* 21st Tech SaaS Unified Theme Design System */
+
+:root, html.dark {
+  /* Dark Mode Tokens (Deep Charcoal / Production AI Workspace) */
+  --bg-app: #09090b;
+  --bg-sidebar: #0d0d11;
+  --bg-card: #121217;
+  --bg-card-hover: #181820;
+  --bg-input: #16161d;
+  --bg-muted: #1a1a24;
+
+  --border-app: #22222e;
+  --border-subtle: #1c1c27;
+  --border-focus: #6366f1;
+
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+
+  --accent-primary: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-light: rgba(99, 102, 241, 0.12);
+  --accent-border: rgba(99, 102, 241, 0.28);
+  --accent-text: #818cf8;
+
+  --status-success-bg: rgba(16, 185, 129, 0.12);
+  --status-success-text: #34d399;
+  --status-warning-bg: rgba(245, 158, 11, 0.12);
+  --status-warning-text: #fbbf24;
+  --status-error-bg: rgba(239, 68, 68, 0.12);
+  --status-error-text: #f87171;
+
+  color-scheme: dark;
+}
+
+html.light {
+  /* Light Mode Tokens (Clean, crisp, high-contrast SaaS) */
+  --bg-app: #f8fafc;
+  --bg-sidebar: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --bg-input: #ffffff;
+  --bg-muted: #f1f5f9;
+
+  --border-app: #e2e8f0;
+  --border-subtle: #f1f5f9;
+  --border-focus: #4f46e5;
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+
+  --accent-primary: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-light: rgba(79, 70, 229, 0.08);
+  --accent-border: rgba(79, 70, 229, 0.22);
+  --accent-text: #4338ca;
+
+  --status-success-bg: #ecfdf5;
+  --status-success-text: #059669;
+  --status-warning-bg: #fffbeb;
+  --status-warning-text: #d97706;
+  --status-error-bg: #fef2f2;
+  --status-error-text: #dc2626;
+
+  color-scheme: light;
+}
+
+/* Custom Design Utility Helpers */
+.bg-app { background-color: var(--bg-app); }
+.bg-sidebar { background-color: var(--bg-sidebar); }
+.bg-card-custom { background-color: var(--bg-card); }
+.bg-card-hover { background-color: var(--bg-card-hover); }
+.bg-input-custom { background-color: var(--bg-input); }
+.bg-muted-custom { background-color: var(--bg-muted); }
+
+.border-app { border-color: var(--border-app); }
+.border-subtle { border-color: var(--border-subtle); }
+
+.text-primary-custom { color: var(--text-primary); }
+.text-secondary-custom { color: var(--text-secondary); }
+.text-muted-custom { color: var(--text-muted); }
+.text-accent-custom { color: var(--accent-text); }

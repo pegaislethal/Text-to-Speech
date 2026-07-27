@@ -242,7 +242,7 @@ exports.adminSignup = async (req, res) => {
       role: 'admin',
       premiumAccess: true,
       isActive: true,
-      permissions: ['all']
+      permissions: ['MANAGE_USERS', 'MANAGE_PREMIUM', 'VIEW_ANALYTICS']
     });
 
     await newAdmin.save();

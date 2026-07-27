@@ -9,12 +9,13 @@ const userController = require('../controllers/userController');
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
 const premiumMiddleware = require('../middleware/premiumMiddleware');
-
+const { requirePermission } = require('../middleware/permissionMiddleware');
 
 router.get('/', (req, res) => {
   console.log("Deployed");
   res.status(200).json({ message: "Deployed" });
 });
+
 // Health check endpoint
 router.get('/health', (req, res) => {
   res.status(200).json({
@@ -43,6 +44,7 @@ router.get('/auth/me', authMiddleware, (req, res) => {
       profileImageUrl: req.user.profileImageUrl || req.user.profileImage,
       bio: req.user.bio || '',
       role: req.user.role,
+      permissions: req.user.permissions || [],
       premiumAccess: req.user.premiumAccess,
       freeCredits: req.user.freeCredits,
       usedCredits: req.user.usedCredits,
@@ -74,12 +76,12 @@ router.post('/presets', authMiddleware, presetController.createPreset);
 router.delete('/presets/:id', authMiddleware, presetController.deletePreset);
 
 // Admin Operations
-router.get('/admin/users', authMiddleware, adminMiddleware, adminController.getUsers);
-router.patch('/admin/users/:id', authMiddleware, adminMiddleware, adminController.updateUser);
-router.delete('/admin/users/:id', authMiddleware, adminMiddleware, adminController.deleteUser);
-router.patch('/admin/users/:id/premium', authMiddleware, adminMiddleware, adminController.togglePremium);
-router.get('/admin/stats', authMiddleware, adminMiddleware, adminController.getStats);
-router.get('/admin/settings', authMiddleware, adminMiddleware, adminController.getSettings);
-router.patch('/admin/settings', authMiddleware, adminMiddleware, adminController.updateSettings);
+router.get('/admin/users', authMiddleware, adminMiddleware, requirePermission('MANAGE_USERS'), adminController.getUsers);
+router.patch('/admin/users/:id', authMiddleware, adminMiddleware, requirePermission('MANAGE_USERS'), adminController.updateUser);
+router.delete('/admin/users/:id', authMiddleware, adminMiddleware, requirePermission('MANAGE_USERS'), adminController.deleteUser);
+router.patch('/admin/users/:id/premium', authMiddleware, adminMiddleware, requirePermission('MANAGE_PREMIUM'), adminController.togglePremium);
+router.get('/admin/stats', authMiddleware, adminMiddleware, requirePermission('VIEW_ANALYTICS'), adminController.getStats);
+router.get('/admin/settings', authMiddleware, adminMiddleware, requirePermission('MANAGE_USERS'), adminController.getSettings);
+router.patch('/admin/settings', authMiddleware, adminMiddleware, requirePermission('MANAGE_USERS'), adminController.updateSettings);
 
 module.exports = router;

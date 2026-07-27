@@ -15,6 +15,7 @@ export interface User {
   profileImageUrl?: string;
   bio?: string;
   role: 'user' | 'admin';
+  permissions?: string[];
   premiumAccess: boolean;
   freeCredits: number;
   usedCredits: number;
@@ -67,7 +68,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           setUser(JSON.parse(storedUser));
         } catch (_) {}
-        // Optimistically set loading to false for instant page access
         setLoading(false);
       } else {
         setLoading(false);
@@ -95,6 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               profileImageUrl: data.user.profileImageUrl || data.user.profileImage,
               bio: data.user.bio || '',
               role: data.user.role,
+              permissions: data.user.permissions || [],
               premiumAccess: data.user.premiumAccess,
               freeCredits: data.user.freeCredits,
               usedCredits: data.user.usedCredits,
@@ -104,7 +105,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             localStorage.setItem('user', JSON.stringify(verifiedUser));
           }
         } else if (res.status === 401 || res.status === 403) {
-          // Token invalid or session expired -> clear session
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           syncAuthCookie(null);
@@ -123,7 +123,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       const apiUrl = getApiUrl();
-      console.log('Sending Google credential to:', `${apiUrl}/api/auth/google`);
       const res = await fetch(`${apiUrl}/api/auth/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -152,19 +151,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(data.user);
 
       if (data.user.role === 'admin') {
-        router.push('/admin/dashboard');
+        router.push('/control-center/dashboard');
       } else {
         router.push('/dashboard');
       }
     } catch (error: any) {
       console.error('Google login error:', error);
-      if (error instanceof TypeError || (error.message && error.message.includes('Failed to fetch'))) {
-        const isProd = process.env.NODE_ENV === 'production' || (typeof window !== 'undefined' && window.location.hostname.endsWith('.vercel.app'));
-        const friendlyMsg = isProd 
-          ? 'Authentication service temporarily unavailable. Please try again.' 
-          : 'Authentication server unavailable. Check local backend.';
-        throw new Error(friendlyMsg);
-      }
       throw error;
     } finally {
       setLoading(false);
@@ -199,7 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(data.token);
       setUser(data.user);
       if (data.user.role === 'admin') {
-        router.push('/admin/dashboard');
+        router.push('/control-center/dashboard');
       } else {
         router.push('/dashboard');
       }
@@ -220,7 +212,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       syncAuthCookie(data.token);
       setToken(data.token);
       setUser(data.user);
-      router.push('/admin/dashboard');
+      router.push('/control-center/dashboard');
     } catch (error: any) {
       console.error('Admin signup error:', error);
       throw error;
@@ -238,7 +230,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       syncAuthCookie(data.token);
       setToken(data.token);
       setUser(data.user);
-      router.push('/admin/dashboard');
+      router.push('/control-center/dashboard');
     } catch (error: any) {
       console.error('Admin login error:', error);
       throw error;
@@ -277,13 +269,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(data.user);
 
       if (data.user.role === 'admin') {
-        router.push('/admin/dashboard');
+        router.push('/control-center/dashboard');
       } else {
         router.push('/dashboard');
       }
     } catch (error: any) {
       console.error('Bypass login error:', error);
-      alert('Mock Login failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -291,15 +282,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     setIsLoggingOut(true);
-    showToast('Logging out... Cleaning up session', 'loading');
+    showToast('Logging out...', 'loading');
     try {
       const apiUrl = getApiUrl();
       await fetch(`${apiUrl}/api/auth/logout`, {
         method: 'POST',
         credentials: 'include'
       });
-      // Short delay for a smooth user experience with the loading animation
-      await new Promise((resolve) => setTimeout(resolve, 600));
+      await new Promise((resolve) => setTimeout(resolve, 400));
     } catch (err) {
       console.error('Backend logout call failed:', err);
     }
@@ -331,6 +321,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           profileImageUrl: data.user.profileImageUrl || data.user.profileImage,
           bio: data.user.bio || '',
           role: data.user.role,
+          permissions: data.user.permissions || [],
           premiumAccess: data.user.premiumAccess,
           freeCredits: data.user.freeCredits,
           usedCredits: data.user.usedCredits,
@@ -349,12 +340,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {isLoggingOut && (
         <div className="fixed inset-0 z-[9999] bg-neutral-950/80 backdrop-blur-md flex flex-col items-center justify-center gap-4 transition-all duration-300 animate-in fade-in">
           <div className="relative flex items-center justify-center">
-            <div className="w-14 h-14 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin" />
-            <RefreshCw className="w-6 h-6 text-indigo-400 animate-spin absolute" />
+            <div className="w-12 h-12 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin" />
+            <RefreshCw className="w-5 h-5 text-indigo-400 animate-spin absolute" />
           </div>
           <div className="flex flex-col items-center gap-1 text-center">
-            <p className="text-sm font-bold text-white tracking-wide">Logging Out...</p>
-            <p className="text-xs text-neutral-400">Cleaning up secure session</p>
+            <p className="text-xs font-bold text-white tracking-wide">Logging Out...</p>
           </div>
         </div>
       )}

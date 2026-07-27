@@ -11,24 +11,21 @@ export const ThemeToggle: React.FC<{ className?: string }> = ({ className = '' }
     <button
       onClick={toggleTheme}
       type="button"
-      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 border shadow-sm ${
+      aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+      className={`relative p-2 rounded-lg transition-all duration-300 border focus:outline-none focus:ring-2 focus:ring-indigo-500/50 group ${
         theme === 'dark'
-          ? 'bg-neutral-900 border-neutral-700 text-neutral-200 hover:bg-neutral-800'
-          : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
+          ? 'bg-[#121217] border-[#22222e] text-neutral-300 hover:text-white hover:bg-[#181820]'
+          : 'bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50'
       } ${className}`}
-      title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
     >
-      {theme === 'dark' ? (
-        <>
-          <Moon className="w-3.5 h-3.5 text-indigo-400 fill-indigo-400/20" />
-          <span>🌙 Dark</span>
-        </>
-      ) : (
-        <>
-          <Sun className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
-          <span>☀️ Light</span>
-        </>
-      )}
+      <div className="relative w-4 h-4 flex items-center justify-center">
+        {theme === 'dark' ? (
+          <Moon className="w-4 h-4 text-indigo-400 transition-all duration-300 transform group-hover:scale-110 group-hover:-rotate-12" />
+        ) : (
+          <Sun className="w-4 h-4 text-amber-500 transition-all duration-300 transform group-hover:scale-110 group-hover:rotate-45" />
+        )}
+      </div>
     </button>
   );
 };

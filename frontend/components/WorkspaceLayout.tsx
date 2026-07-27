@@ -2,10 +2,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../context/authContext';
 import { 
-  AudioLines, LogOut, Keyboard, History, User, Shield, Users, Settings, ArrowLeft, Menu, X, Star, Sparkles, ChevronUp
+  AudioLines, LogOut, History, User, Shield, Users, Settings, ArrowLeft, Menu, X, Star, Sparkles, ChevronUp, LayoutDashboard, Mic
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
@@ -17,6 +17,7 @@ interface WorkspaceLayoutProps {
 export default function WorkspaceLayout({ children, isAdminArea = false }: WorkspaceLayoutProps) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -33,58 +34,63 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
 
   if (!user) return null;
 
-  // Single canonical navigation definition for normal workspace
+  // Single canonical navigation definition for normal workspace (Linear / Vercel style)
   const userNavItems = [
-    { name: 'Speech Studio', href: '/dashboard', icon: Keyboard },
-    ...(user.premiumAccess ? [{ name: 'AI Scene Generator', href: '/dashboard/ai-scene-generator', icon: Sparkles }] : []),
-    { name: 'Audio History', href: '/history', icon: History },
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Speech Studio', href: '/speech-studio', icon: Mic },
+    ...(user.premiumAccess ? [{ name: 'AI Scene Generator', href: '/ai-scene-generator', icon: Sparkles }] : []),
+    { name: 'History', href: '/history', icon: History },
     { name: 'Profile', href: '/profile', icon: User },
-    { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
-  // Navigation definition for admin portal
+  // Navigation definition for Control Center (Admin portal)
   const adminNavItems = [
-    { name: 'Admin Dashboard', href: '/admin/dashboard', icon: Shield },
-    { name: 'User Directory', href: '/admin/users', icon: Users },
-    { name: 'Premium Management', href: '/admin/premium', icon: Star },
-    { name: 'System Settings', href: '/admin/settings', icon: Settings },
+    { name: 'Control Dashboard', href: '/control-center/dashboard', icon: Shield },
+    { name: 'User Directory', href: '/control-center/users', icon: Users },
+    { name: 'Premium Control', href: '/control-center/premium', icon: Star },
+    { name: 'System Settings', href: '/control-center/settings', icon: Settings },
   ];
 
   const currentNavItems = isAdminArea ? adminNavItems : userNavItems;
 
   const isActive = (href: string) => {
-    if (href === '/admin' && pathname !== '/admin') return false;
-    return pathname === href || (href !== '/' && pathname.startsWith(`${href}/`));
+    if (href === '/dashboard' && pathname === '/dashboard') return true;
+    if (href === '/speech-studio' && (pathname === '/speech-studio' || pathname === '/dashboard')) return true;
+    if (href === '/ai-scene-generator' && (pathname === '/ai-scene-generator' || pathname === '/dashboard/ai-scene-generator')) return true;
+    return pathname === href || (href !== '/' && href !== '/dashboard' && pathname.startsWith(`${href}`));
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, href: string) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      router.push(href);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#070708] text-neutral-200 flex flex-col md:flex-row relative">
-      {/* Background radial accent glows */}
-      <div className="absolute top-0 right-1/4 w-[600px] h-[600px] rounded-full bg-indigo-900/5 blur-[140px] pointer-events-none -z-10" />
-      <div className="absolute bottom-0 left-1/4 w-[600px] h-[600px] rounded-full bg-purple-950/5 blur-[140px] pointer-events-none -z-10" />
-
-      {/* Sidebar - Desktop */}
-      <aside className="hidden md:flex w-64 border-r border-neutral-900/80 bg-neutral-950/40 backdrop-blur-xl p-6 flex-col justify-between shrink-0 h-screen sticky top-0">
-        <div className="flex flex-col gap-8">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 px-2 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-all duration-300">
-              <AudioLines className="w-5 h-5 text-white" />
+    <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] flex flex-col md:flex-row relative">
+      {/* Sidebar - Desktop (Minimal SaaS aesthetic inspired by Linear / Vercel) */}
+      <aside className="hidden md:flex w-60 border-r border-[var(--border-app)] bg-[var(--bg-sidebar)] p-4 flex-col justify-between shrink-0 h-screen sticky top-0 z-40 transition-colors duration-200">
+        <div className="flex flex-col gap-6">
+          {/* Logo Header */}
+          <Link href="/dashboard" className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-600/20 group-hover:scale-105 transition-transform duration-200">
+              <AudioLines className="w-4.5 h-4.5 text-white" />
             </div>
             <div className="flex flex-col">
-              <span className="font-bold tracking-tight text-neutral-100 text-sm group-hover:text-white transition duration-200">
+              <span className="font-bold tracking-tight text-sm text-[var(--text-primary)] group-hover:text-indigo-400 transition-colors">
                 21st Tech
               </span>
-              <span className="text-[10px] text-neutral-500 font-semibold tracking-wider uppercase">
-                {isAdminArea ? 'Operator Panel' : 'TTS Platform'}
+              <span className="text-[10px] text-[var(--text-muted)] font-medium tracking-wider uppercase">
+                {isAdminArea ? 'Control Center' : 'Voice Platform'}
               </span>
             </div>
           </Link>
 
           {/* Navigation Links */}
-          <nav className="flex flex-col gap-1.5">
-            <span className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest px-3 mb-2">
-              Navigation
+          <nav className="flex flex-col gap-0.5" aria-label="Main Navigation">
+            <span className="text-[10px] text-[var(--text-muted)] font-semibold uppercase tracking-wider px-3 mb-1">
+              Platform
             </span>
             
             {currentNavItems.map((item) => {
@@ -94,42 +100,47 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative ${
+                  tabIndex={0}
+                  onKeyDown={(e) => handleKeyDown(e, item.href)}
+                  aria-current={active ? 'page' : undefined}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-150 relative outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                     active 
-                      ? 'bg-neutral-900 text-indigo-400 border border-neutral-800'
-                      : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-900/40 border border-transparent'
+                      ? 'bg-[var(--accent-light)] text-[var(--accent-text)] font-semibold'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
                   }`}
                 >
-                  <Icon className={`w-4.5 h-4.5 transition-transform duration-300 ${active ? 'text-indigo-400' : 'text-neutral-400 group-hover:scale-110'}`} />
-                  {item.name}
+                  {/* Active Indicator Accent Line */}
                   {active && (
-                    <span className="absolute right-3 w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                    <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-indigo-500 rounded-r" />
                   )}
+
+                  <Icon className={`w-4 h-4 transition-colors ${active ? 'text-indigo-500' : 'text-[var(--text-muted)]'}`} />
+                  <span className="truncate">{item.name}</span>
                 </Link>
               );
             })}
 
-            {/* Quick Toggle Link for Admin between workspaces */}
+            {/* Quick Switch for Admin */}
             {user.role === 'admin' && (
-              <div className="mt-6 pt-6 border-t border-neutral-900/80">
-                <span className="text-[10px] text-neutral-600 font-bold uppercase tracking-widest px-3 mb-2 block">
-                  Quick Switch
+              <div className="mt-4 pt-4 border-t border-[var(--border-app)] flex flex-col gap-1">
+                <span className="text-[10px] text-[var(--text-muted)] font-semibold uppercase tracking-wider px-3 mb-1">
+                  System Context
                 </span>
                 {isAdminArea ? (
                   <Link
                     href="/dashboard"
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-indigo-400 hover:bg-indigo-950/15 border border-indigo-950/20 hover:border-indigo-900/35 transition-all duration-200"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-indigo-400 hover:bg-indigo-500/10 transition-colors"
                   >
-                    <ArrowLeft className="w-4.5 h-4.5" />
+                    <ArrowLeft className="w-3.5 h-3.5" />
                     Speech Studio
                   </Link>
                 ) : (
                   <Link
-                    href="/admin/dashboard"
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-violet-400 hover:bg-violet-950/15 border border-violet-950/20 hover:border-violet-900/35 transition-all duration-200"
+                    href="/control-center/dashboard"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-violet-400 hover:bg-violet-500/10 transition-colors"
                   >
-                    <Shield className="w-4.5 h-4.5" />
-                    Admin Control
+                    <Shield className="w-3.5 h-3.5" />
+                    Control Center
                   </Link>
                 )}
               </div>
@@ -137,87 +148,77 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
           </nav>
         </div>
 
-        {/* User Card with Interactive Avatar Dropdown Menu */}
-        <div className="flex flex-col gap-4 relative" ref={dropdownRef}>
-          {/* Plan Status / Credits Box (User Area Only) */}
+        {/* Footer: User & Controls */}
+        <div className="flex flex-col gap-3" ref={dropdownRef}>
+          {/* User Credits Bar (Non-premium user) */}
           {!isAdminArea && !user.premiumAccess && (
-            <div className="p-4 rounded-2xl bg-neutral-950/80 border border-neutral-900/80 flex flex-col gap-2.5">
-              <div className="flex items-center justify-between text-xs font-semibold">
-                <span className="text-neutral-500">Credits Used</span>
-                <span className="text-neutral-300 font-bold">
+            <div className="p-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border-app)] flex flex-col gap-2">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-[var(--text-muted)] font-medium">Credits</span>
+                <span className="text-[var(--text-primary)] font-semibold">
                   {user.usedCredits} / {user.freeCredits}
                 </span>
               </div>
-              <div className="w-full bg-neutral-900 h-1.5 rounded-full overflow-hidden">
+              <div className="w-full bg-[var(--bg-input)] h-1 rounded-full overflow-hidden">
                 <div 
-                  className="bg-gradient-to-r from-indigo-500 to-violet-500 h-full rounded-full transition-all duration-500"
+                  className="bg-indigo-500 h-full rounded-full transition-all duration-300"
                   style={{ width: `${Math.min(100, (user.usedCredits / user.freeCredits) * 100)}%` }}
                 />
               </div>
-              <span className="text-[10px] text-neutral-500 leading-normal font-medium">
-                {user.freeCredits - user.usedCredits} credits remaining
-              </span>
             </div>
           )}
 
-          {/* Premium Plan active banner */}
-          {!isAdminArea && user.premiumAccess && (
-            <div className="p-3.5 rounded-2xl bg-indigo-950/10 border border-indigo-900/25 flex items-center justify-center gap-2">
-              <span className="text-[11px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
-                ⭐ Premium Access Active
-              </span>
-            </div>
-          )}
-
-          {/* User Profile Card Button */}
-          <button
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="w-full flex items-center justify-between p-2.5 rounded-xl border border-neutral-900/40 bg-neutral-950/20 hover:bg-neutral-900/40 transition-all duration-300 group text-left"
-          >
-            <div className="flex items-center gap-3 min-w-0">
+          {/* User Profile Bar */}
+          <div className="flex items-center justify-between pt-2 border-t border-[var(--border-app)] gap-2">
+            <button
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] transition-colors min-w-0 text-left flex-1"
+            >
               <img
                 src={user.profileImageUrl || user.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'}
                 alt={user.name}
-                className="w-9 h-9 rounded-full border border-neutral-800 shrink-0 object-cover"
+                className="w-7 h-7 rounded-full border border-[var(--border-app)] object-cover shrink-0"
               />
               <div className="flex flex-col min-w-0">
-                <span className="text-xs font-bold truncate text-neutral-200 group-hover:text-white transition duration-200">
+                <span className="text-xs font-semibold text-[var(--text-primary)] truncate">
                   {user.name}
                 </span>
-                <span className="text-[10px] text-neutral-500 truncate font-medium">
-                  {user.email}
+                <span className="text-[10px] text-[var(--text-muted)] truncate">
+                  {user.role === 'admin' ? 'Administrator' : 'User'}
                 </span>
               </div>
-            </div>
-            <ChevronUp className={`w-4 h-4 text-neutral-500 group-hover:text-neutral-300 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
-          </button>
+              <ChevronUp className={`w-3.5 h-3.5 text-[var(--text-muted)] transition-transform duration-200 ml-auto shrink-0 ${dropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
 
-          {/* Avatar Popover Dropdown */}
+            <ThemeToggle />
+          </div>
+
+          {/* Profile Dropdown Popover */}
           {dropdownOpen && (
-            <div className="absolute bottom-16 inset-x-0 bg-neutral-950 border border-neutral-800 rounded-2xl p-2 shadow-2xl z-50 flex flex-col gap-1 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div className="absolute bottom-16 left-4 right-4 bg-[var(--bg-card)] border border-[var(--border-app)] rounded-xl p-1.5 shadow-xl z-50 flex flex-col gap-0.5 animate-in fade-in slide-in-from-bottom-2 duration-150">
               <Link
                 href="/profile"
                 onClick={() => setDropdownOpen(false)}
-                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-neutral-300 hover:text-white hover:bg-neutral-900 transition"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
               >
-                <User className="w-4 h-4 text-indigo-400" /> View Profile
+                <User className="w-3.5 h-3.5 text-indigo-400" /> View Profile
               </Link>
               <Link
                 href="/settings"
                 onClick={() => setDropdownOpen(false)}
-                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-neutral-300 hover:text-white hover:bg-neutral-900 transition"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition-colors"
               >
-                <Settings className="w-4 h-4 text-indigo-400" /> Account Settings
+                <Settings className="w-3.5 h-3.5 text-indigo-400" /> Settings
               </Link>
-              <div className="border-t border-neutral-900 my-1" />
+              <div className="border-t border-[var(--border-app)] my-1" />
               <button
                 onClick={() => {
                   setDropdownOpen(false);
                   logout();
                 }}
-                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-red-400 hover:bg-red-950/20 transition text-left w-full"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium text-red-500 hover:bg-red-500/10 transition-colors w-full text-left"
               >
-                <LogOut className="w-4 h-4 text-red-400" /> Logout
+                <LogOut className="w-3.5 h-3.5" /> Logout
               </button>
             </div>
           )}
@@ -225,29 +226,29 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
       </aside>
 
       {/* Header - Mobile */}
-      <header className="flex md:hidden border-b border-neutral-900 bg-[#070708]/85 backdrop-blur-md px-4 sm:px-6 py-3.5 items-center justify-between z-30 sticky top-0 w-full">
-        <Link href="/" className="flex items-center gap-2 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0">
-            <AudioLines className="w-4.5 h-4.5 text-white" />
+      <header className="flex md:hidden border-b border-[var(--border-app)] bg-[var(--bg-sidebar)] px-4 py-3 items-center justify-between z-30 sticky top-0 w-full">
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
+            <AudioLines className="w-4 h-4 text-white" />
           </div>
-          <span className="font-bold tracking-tight text-neutral-200 text-sm truncate">21st Tech</span>
+          <span className="font-bold text-sm text-[var(--text-primary)]">21st Tech</span>
         </Link>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <ThemeToggle />
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
-            className="p-2 rounded-xl border border-neutral-800 bg-neutral-900/60 text-neutral-300 hover:text-white transition"
+            className="p-1.5 rounded-lg border border-[var(--border-app)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
             aria-label="Toggle menu"
           >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
         </div>
 
-        {/* Mobile Dropdown Panel */}
+        {/* Mobile Dropdown */}
         {mobileMenuOpen && (
-          <div className="absolute top-[61px] left-0 w-full border-b border-neutral-900 bg-[#0a0a0c] p-5 flex flex-col gap-4 animate-in slide-in-from-top duration-200 shadow-2xl max-h-[calc(100vh-70px)] overflow-y-auto">
-            <nav className="flex flex-col gap-1.5">
+          <div className="absolute top-full left-0 w-full border-b border-[var(--border-app)] bg-[var(--bg-sidebar)] p-4 flex flex-col gap-3 shadow-xl max-h-[calc(100vh-60px)] overflow-y-auto">
+            <nav className="flex flex-col gap-1">
               {currentNavItems.map((item) => {
                 const active = isActive(item.href);
                 const Icon = item.icon;
@@ -256,80 +257,28 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
                     key={item.href}
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                       active 
-                        ? 'bg-neutral-900 text-indigo-400 border border-neutral-800'
-                        : 'text-neutral-400 border border-transparent hover:bg-neutral-900/40 hover:text-neutral-200'
+                        ? 'bg-[var(--accent-light)] text-[var(--accent-text)] font-semibold'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)]'
                     }`}
                   >
-                    <Icon className="w-4.5 h-4.5" />
+                    <Icon className="w-4 h-4" />
                     {item.name}
                   </Link>
                 );
               })}
-
-              {user.role === 'admin' && (
-                <div className="mt-3 pt-3 border-t border-neutral-900">
-                  {isAdminArea ? (
-                    <Link
-                      href="/dashboard"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-indigo-400 bg-indigo-950/10 border border-indigo-950/20 transition"
-                    >
-                      <ArrowLeft className="w-4.5 h-4.5" />
-                      Switch to Speech Studio
-                    </Link>
-                  ) : (
-                    <Link
-                      href="/admin/dashboard"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-violet-400 bg-violet-950/10 border border-violet-950/20 transition"
-                    >
-                      <Shield className="w-4.5 h-4.5" />
-                      Switch to Admin Control
-                    </Link>
-                  )}
-                </div>
-              )}
             </nav>
-
-            {/* Profile / Logout section mobile */}
-            <div className="flex flex-col gap-2 p-3.5 rounded-xl bg-neutral-950 border border-neutral-900 mt-1">
-              <div className="flex items-center gap-3 min-w-0 mb-2">
-                <img
-                  src={user.profileImageUrl || user.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'}
-                  alt={user.name}
-                  className="w-9 h-9 rounded-full border border-neutral-800 object-cover shrink-0"
-                />
-                <div className="flex flex-col min-w-0">
-                  <span className="text-xs font-bold text-neutral-200 truncate">{user.name}</span>
-                  <span className="text-[10px] text-neutral-500 truncate">{user.email}</span>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <Link
-                  href="/profile"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="py-2 px-3 rounded-lg bg-neutral-900 text-neutral-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
-                >
-                  <User className="w-3.5 h-3.5 text-indigo-400" /> Profile
-                </Link>
-                <Link
-                  href="/settings"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="py-2 px-3 rounded-lg bg-neutral-900 text-neutral-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
-                >
-                  <Settings className="w-3.5 h-3.5 text-indigo-400" /> Settings
-                </Link>
-              </div>
+            <div className="pt-2 border-t border-[var(--border-app)] flex justify-between items-center">
+              <span className="text-xs text-[var(--text-muted)]">{user.email}</span>
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
                   logout();
                 }}
-                className="mt-1 py-2 px-4 rounded-lg bg-red-950/20 border border-red-900/35 hover:bg-red-900/20 text-red-400 text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                className="px-2.5 py-1 rounded-lg text-xs font-medium text-red-500 bg-red-500/10 hover:bg-red-500/20"
               >
-                <LogOut className="w-3.5 h-3.5" /> Logout
+                Logout
               </button>
             </div>
           </div>
@@ -337,7 +286,7 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
       </header>
 
       {/* Main Workspace Frame */}
-      <main className="flex-1 p-4 sm:p-6 md:p-10 overflow-y-auto overflow-x-hidden relative w-full">
+      <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto overflow-x-hidden relative w-full">
         {children}
       </main>
     </div>
