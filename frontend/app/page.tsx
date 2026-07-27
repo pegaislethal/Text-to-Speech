@@ -230,29 +230,29 @@ export default function Home() {
       </section>
 
       {/* Call to Action Section */}
-      <section className="relative py-28 px-6 border-t border-neutral-900 bg-gradient-to-b from-[#070708] to-[#0d0d10] flex flex-col items-center text-center">
+      <section className="relative py-28 px-6 border-t border-[var(--border-app)] bg-gradient-to-b from-[var(--bg-app)] to-[var(--bg-card)] flex flex-col items-center text-center">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-px bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
         
-        <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4 text-white">Start Converting Text Today</h2>
-        <p className="text-neutral-400 max-w-lg mb-10 text-xs sm:text-sm font-medium leading-relaxed">
+        <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4 text-[var(--text-primary)]">Start Converting Text Today</h2>
+        <p className="text-[var(--text-secondary)] max-w-lg mb-10 text-xs sm:text-sm font-medium leading-relaxed">
           Provide your team with instant high-quality voiceover generation. Unified onboarding allows instant access for sandbox profiles.
         </p>
         <Link
           href="/login"
-          className="px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition-all duration-300 font-bold text-sm text-white shadow-xl shadow-indigo-500/20 flex items-center gap-2 active:scale-98"
+          className="px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 transition-all duration-300 font-bold text-sm text-white shadow-xl shadow-indigo-500/20 flex items-center gap-2 active:scale-98 cursor-pointer"
         >
           Sign In Instantly <ArrowRight className="w-4 h-4" />
         </Link>
       </section>
 
       {/* Footer */}
-      <footer className="py-10 px-6 border-t border-neutral-900/60 text-center text-neutral-500 text-[11px] font-medium bg-[#070708]">
+      <footer className="py-10 px-6 border-t border-[var(--border-app)]/60 text-center text-[var(--text-muted)] text-[11px] font-medium bg-background">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <span>&copy; {new Date().getFullYear()} 21st Tech Company. All rights reserved.</span>
-          <div className="flex gap-4 text-neutral-600">
-            <span className="hover:text-neutral-450 transition cursor-pointer">Terms of Service</span>
+          <div className="flex gap-4 text-[var(--text-muted)]">
+            <span className="hover:text-[var(--text-secondary)] transition cursor-pointer">Terms of Service</span>
             <span>&bull;</span>
-            <span className="hover:text-neutral-450 transition cursor-pointer">Privacy Policy</span>
+            <span className="hover:text-[var(--text-secondary)] transition cursor-pointer">Privacy Policy</span>
           </div>
         </div>
       </footer>
