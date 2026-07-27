@@ -1,105 +1,36 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { useAuth } from '../../context/authContext';
 import { useToast } from '../../context/toastContext';
-import ThemeToggle from '../../components/ThemeToggle';
-import VoiceSpeedControl from '../../components/VoiceSpeedControl';
-import DownloadButton from '../../components/DownloadButton';
-import { generateSpeech, previewSpeechApi, getPresets, createPreset, deletePreset, getApiUrl, downloadAudioFile } from '../../services/api';
+import { getHistory, downloadAudioFile, getApiUrl } from '../../services/api';
 import { 
-  Play, Pause, Volume2, AlertCircle, RefreshCw, 
-  CheckCircle, Save, Trash2, Bookmark, Mic, FileText, Check
+  Play, Pause, Download, Mic, Sparkles, Layers, History, 
+  ArrowRight, ShieldCheck, HelpCircle, Star, Music, RefreshCw, Calendar, Volume2, User
 } from 'lucide-react';
 
-interface VoiceOption {
-  voiceId: string;
-  name: string;
-  gender: 'Male';
-  language: string;
-  description: string;
-  style: string;
-  premium: boolean;
-}
-
-const DEEP_MALE_VOICES: VoiceOption[] = [
-  {
-    voiceId: 'en-US-ChristopherNeural',
-    name: 'Deep Documentary Male',
-    gender: 'Male',
-    language: 'en-US',
-    description: 'Deep, cinematic, and calm tone modeled for National Geographic & nature documentaries.',
-    style: 'Deep & Cinematic',
-    premium: false,
-  },
-  {
-    voiceId: 'en-US-EricNeural',
-    name: 'Dark Storyteller Male',
-    gender: 'Male',
-    language: 'en-US',
-    description: 'Low pitch, dramatic, and moody cadence tailored for mystery and thriller narration.',
-    style: 'Dramatic Mystery',
-    premium: false,
-  },
-  {
-    voiceId: 'en-US-AndrewNeural',
-    name: 'Professional Podcast Male',
-    gender: 'Male',
-    language: 'en-US',
-    description: 'Clear, warm, articulate tone optimized for technical podcasts and interviews.',
-    style: 'Warm & Professional',
-    premium: false,
-  },
-  {
-    voiceId: 'en-GB-RyanNeural',
-    name: 'Ancient History Narrator',
-    gender: 'Male',
-    language: 'en-GB',
-    description: 'Slow, resonant British accent with emotional weight for historical & epic audiobooks.',
-    style: 'Resonant & Emotional',
-    premium: true,
-  },
-  {
-    voiceId: 'en-US-SteffanNeural',
-    name: 'News Documentary Male',
-    gender: 'Male',
-    language: 'en-US',
-    description: 'Serious, clean, powerful voice ideal for investigative journalism and video essays.',
-    style: 'Serious & Powerful',
-    premium: true,
-  },
-];
-
-interface PresetItem {
+interface HistoryItem {
   _id: string;
-  presetName: string;
-  voiceId: string;
-  speed: number;
-  settings?: any;
+  text: string;
+  voice: string;
+  audioUrl: string;
+  characterCount: number;
+  createdAt: string;
 }
 
-export default function SpeechStudio() {
-  const { user, refreshUser } = useAuth();
+export default function UserDashboard() {
+  const { user } = useAuth();
   const { showToast } = useToast();
-  const [text, setText] = useState<string>('');
-  const [voiceId, setVoiceId] = useState<string>('en-US-ChristopherNeural');
-  const [speed, setSpeed] = useState<number>(0.75);
-  const [generating, setGenerating] = useState<boolean>(false);
-  const [downloadingMp3, setDownloadingMp3] = useState<boolean>(false);
-  const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [recentClips, setRecentClips] = useState<HistoryItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [activeClip, setActiveClip] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-
-  // Preset System States
-  const [presets, setPresets] = useState<PresetItem[]>([]);
-  const [presetNameInput, setPresetNameInput] = useState<string>('');
-  const [savingPreset, setSavingPreset] = useState<boolean>(false);
-
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
   const BACKEND_URL = getApiUrl();
 
-  const getFullAudioUrl = (urlPath: string | null) => {
+  const getFullAudioUrl = (urlPath: string) => {
     if (!urlPath) return '';
     if (urlPath.startsWith('http://') || urlPath.startsWith('https://')) return urlPath;
     const baseUrl = BACKEND_URL.replace(/\/+$/, '');
@@ -107,435 +38,316 @@ export default function SpeechStudio() {
     return `${baseUrl}${cleanPath}`;
   };
 
-  const characterCount = text.length;
-  const creditsRequired = Math.max(1, Math.ceil(characterCount / 50));
-
   useEffect(() => {
-    loadPresets();
+    fetchHistoryList();
   }, []);
 
-  useEffect(() => {
-    if (audioUrl && audioRef.current) {
-      audioRef.current.src = getFullAudioUrl(audioUrl);
-      audioRef.current.load();
-    }
-  }, [audioUrl, BACKEND_URL]);
-
-  const loadPresets = async () => {
+  const fetchHistoryList = async () => {
     try {
-      const res = await getPresets();
-      if (res && res.success && Array.isArray(res.presets)) {
-        setPresets(res.presets);
+      const res = await getHistory();
+      if (res.success) {
+        setRecentClips(res.history.slice(0, 3));
       }
-    } catch (err) {
-      console.warn('Failed to load presets:', err);
-    }
-  };
-
-  const handleGenerate = async () => {
-    if (!text.trim()) {
-      setError('Please enter text before generating speech.');
-      return;
-    }
-
-    setGenerating(true);
-    setError(null);
-    setAudioUrl(null);
-    setIsPlaying(false);
-
-    try {
-      const selectedVoiceObj = DEEP_MALE_VOICES.find(v => v.voiceId === voiceId);
-      if (selectedVoiceObj?.premium && user && !user.premiumAccess) {
-        throw new Error('This is a Premium Voice. Upgrade your account or select a free voice.');
-      }
-
-      console.log('Selected voice for generation:', voiceId);
-      const res = await generateSpeech(text, voiceId, speed);
-      
-      if (!res.audioUrl) {
-        throw new Error('Generation failed: Backend did not return an audio URL.');
-      }
-
-      setAudioUrl(res.audioUrl);
-      showToast('Speech generated successfully!', 'success');
-      await refreshUser();
-    } catch (err: any) {
-      console.error('Generation Error:', err);
-      setError(err.message || 'Generation failed. Please try again.');
-      showToast(err.message || 'Generation failed.', 'error');
+    } catch (error) {
+      console.error('Error fetching dashboard history:', error);
     } finally {
-      setGenerating(false);
+      setLoading(false);
     }
   };
 
-  const handlePreviewVoice = async (v: VoiceOption) => {
-    console.log('Selected voice for preview:', v.voiceId);
-    if (previewingVoice) return;
-    setPreviewingVoice(v.voiceId);
-    setError(null);
+  const handlePlayClip = (clipId: string, url: string) => {
+    if (!audioRef.current) return;
 
-    const demoText = `Hi, I am ${v.name}. This is a preview of my narration style.`;
-
-    try {
-      const res = await previewSpeechApi(v.voiceId, demoText);
-      if (!res.audioUrl) {
-        throw new Error('Backend failed to return preview audio URL.');
-      }
-
-      const fullUrl = getFullAudioUrl(res.audioUrl);
-      console.log('Preview generated:', fullUrl);
-
-      setAudioUrl(res.audioUrl);
-
-      if (audioRef.current) {
-        audioRef.current.src = fullUrl;
-        audioRef.current.load();
-        audioRef.current.play().catch((playErr) => {
-          console.error('Browser playback error:', playErr);
-          setError('Audio loaded successfully. Click play on the player below if browser blocked autoplay.');
-        });
+    if (activeClip === clipId) {
+      if (isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        audioRef.current.play().catch(err => console.error(err));
         setIsPlaying(true);
       }
-    } catch (err: any) {
-      console.error('Preview Error:', err);
-      setError('Preview failed: ' + (err.message || 'Unknown error'));
-      showToast('Voice preview failed.', 'error');
-    } finally {
-      setPreviewingVoice(null);
-    }
-  };
-
-  const handleExportMp3 = async () => {
-    if (!audioUrl) return;
-    setDownloadingMp3(true);
-    showToast('Your audio download has started', 'info');
-
-    const selectedVoice = DEEP_MALE_VOICES.find((v) => v.voiceId === voiceId);
-    const voiceNameClean = (selectedVoice?.name || voiceId).toLowerCase().replace(/[^a-z0-9]/g, '_');
-    const dateStr = new Date().toISOString().split('T')[0];
-    const filename = `speech_studio_${voiceNameClean}_${dateStr}.mp3`;
-
-    const fullUrl = getFullAudioUrl(audioUrl);
-    const success = await downloadAudioFile(fullUrl, filename);
-
-    setDownloadingMp3(false);
-    if (!success) {
-      showToast('Unable to download audio. Please try again.', 'error');
-    }
-  };
-
-  const handleSavePreset = async () => {
-    if (!presetNameInput.trim()) return;
-    setSavingPreset(true);
-    try {
-      const res = await createPreset(presetNameInput.trim(), voiceId, speed, { voiceId, speed });
-      if (res.success) {
-        setPresetNameInput('');
-        showToast('Preset saved successfully!', 'success');
-        await loadPresets();
-      }
-    } catch (err: any) {
-      showToast('Failed to save preset: ' + err.message, 'error');
-    } finally {
-      setSavingPreset(false);
-    }
-  };
-
-  const handleDeletePresetItem = async (id: string) => {
-    try {
-      const res = await deletePreset(id);
-      if (res.success) {
-        setPresets(presets.filter((p) => p._id !== id));
-        showToast('Preset deleted.', 'info');
-      }
-    } catch (err: any) {
-      showToast('Failed to delete preset.', 'error');
-    }
-  };
-
-  const handleApplyPreset = (p: PresetItem) => {
-    setVoiceId(p.voiceId);
-    setSpeed(p.speed);
-    showToast(`Preset "${p.presetName}" applied`, 'info');
-  };
-
-  const togglePlay = () => {
-    if (!audioUrl) {
-      setError('No audio URL available for playback');
-      return;
-    }
-    if (!audioRef.current) return;
-    if (isPlaying) {
-      audioRef.current.pause();
     } else {
-      audioRef.current.play().catch((e) => {
-        console.error('Playback error:', e);
-        setError('Failed to play audio stream');
-      });
+      audioRef.current.src = getFullAudioUrl(url);
+      audioRef.current.load();
+      audioRef.current.play()
+        .then(() => {
+          setActiveClip(clipId);
+          setIsPlaying(true);
+        })
+        .catch(err => console.error(err));
     }
   };
+
+  const handleAudioPause = () => setIsPlaying(false);
+  const handleAudioEnded = () => {
+    setIsPlaying(false);
+    setActiveClip(null);
+  };
+
+  const handleDownload = async (item: HistoryItem) => {
+    const filename = `generation_${item._id.substring(0, 6)}.mp3`;
+    const success = await downloadAudioFile(getFullAudioUrl(item.audioUrl), filename);
+    if (success) {
+      showToast('Audio download started', 'success');
+    } else {
+      showToast('Download failed. Try again.', 'error');
+    }
+  };
+
+  const remainingCredits = user ? user.freeCredits - user.usedCredits : 0;
 
   return (
     <div className="max-w-6xl mx-auto flex flex-col gap-8 animate-in fade-in duration-300">
-      {/* Header with ThemeToggle */}
-      <div className="border-b border-neutral-200 dark:border-neutral-900 pb-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-neutral-900 via-neutral-700 to-indigo-600 dark:from-neutral-50 dark:to-neutral-400 bg-clip-text text-transparent">
-            Speech Studio
-          </h1>
-          <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1">
-            Convert scripts to high-fidelity deep male narrative AI voices.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-          {user && !user.premiumAccess && (
-            <div className="px-4 py-2 rounded-xl bg-card border border-input flex items-center gap-3 shadow-sm">
-              <span className="text-xs text-neutral-500 dark:text-neutral-400 font-medium">Quota:</span>
-              <span className="text-sm font-bold text-indigo-500">{user.freeCredits - user.usedCredits} credits</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 items-start">
-        {/* Left Column: Text Area & Speed Panel */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
-          {/* Text Area Card */}
-          <div className="relative rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-4 sm:p-5 shadow-xl flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider flex items-center gap-2">
-                <FileText className="w-4 h-4 text-indigo-500" /> Script Editor
-              </span>
-              <span className="text-[11px] font-semibold text-neutral-400 dark:text-neutral-500">
-                {characterCount} / 2000 chars
-              </span>
-            </div>
-
-            <textarea
-              value={text}
-              onChange={(e) => {
-                setText(e.target.value);
-                setError(null);
-              }}
-              placeholder="Enter your script here to generate narrative audio..."
-              maxLength={2000}
-              className="w-full min-h-[180px] sm:min-h-[260px] bg-transparent text-foreground placeholder-neutral-400 dark:placeholder-neutral-600 focus:outline-none resize-none text-sm sm:text-base leading-relaxed"
-            />
-
-            <div className="flex flex-wrap items-center justify-between border-t border-input pt-3 text-xs text-neutral-500 dark:text-neutral-400 gap-2">
-              <span>Required Cost: <strong className="text-indigo-500">{creditsRequired} credits</strong></span>
-              <span>Rate: 1 credit / 50 chars</span>
-            </div>
-          </div>
-
-          {/* Voice Speed Controls Component */}
-          <VoiceSpeedControl speed={speed} onChange={setSpeed} />
-
-          {/* Action Generate Button */}
-          <button
-            onClick={handleGenerate}
-            disabled={generating || !text.trim()}
-            className="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 transition-all duration-300 font-bold text-sm text-white shadow-xl shadow-indigo-600/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-98"
-          >
-            {generating ? (
-              <>
-                <RefreshCw className="w-4.5 h-4.5 animate-spin" /> Synthesizing waveform ({speed.toFixed(2)}x speed)...
-              </>
-            ) : (
-              <>
-                <Volume2 className="w-4.5 h-4.5" /> Synthesize Audio Waveform
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Right Column: Deep Male Voice Library & Presets */}
-        <div className="flex flex-col gap-6">
-          {/* Voice Library Cards */}
-          <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-4 sm:p-6 shadow-xl flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <Mic className="w-4 h-4 text-indigo-500" /> Deep Male Voice Library
-              </h3>
-              <span className="text-[10px] font-bold text-neutral-400 uppercase">{DEEP_MALE_VOICES.length} Available</span>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              {DEEP_MALE_VOICES.map((v) => {
-                const isSelected = voiceId === v.voiceId;
-                const isLocked = v.premium && user && !user.premiumAccess;
-                const isPreviewing = previewingVoice === v.voiceId;
-
-                return (
-                  <div
-                    key={v.voiceId}
-                    onClick={() => {
-                      setVoiceId(v.voiceId);
-                      setError(null);
-                    }}
-                    className={`p-3.5 sm:p-4 rounded-xl border transition-all duration-200 cursor-pointer flex flex-col gap-2.5 ${
-                      isSelected
-                        ? 'border-indigo-500/60 bg-indigo-500/10 shadow-md'
-                        : 'border-input bg-background/50 hover:bg-background/80'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs font-bold text-foreground truncate">{v.name}</span>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-indigo-500 shrink-0" />}
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handlePreviewVoice(v);
-                          }}
-                          disabled={isPreviewing}
-                          className="px-2.5 py-1 rounded-md bg-background border border-input text-[10px] font-bold text-indigo-500 flex items-center gap-1 transition disabled:opacity-50"
-                        >
-                          {isPreviewing ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3 fill-indigo-500" />}
-                          <span>Preview</span>
-                        </button>
-
-                        {v.premium && (
-                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                            isLocked
-                              ? 'bg-neutral-200 dark:bg-neutral-800 text-neutral-500 border border-input'
-                              : 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20'
-                          }`}>
-                            {isLocked ? 'Locked' : 'Premium'}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-normal font-medium">{v.description}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Preset Manager Card */}
-          <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-4 sm:p-6 shadow-xl flex flex-col gap-4">
-            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <Bookmark className="w-4 h-4 text-indigo-500" /> Voice Presets
-            </h3>
-
-            {/* Save Preset Bar */}
+      {/* Welcome Banner */}
+      <div className="relative rounded-2xl border border-[var(--border-app)] bg-[var(--bg-card)] p-6 md:p-8 overflow-hidden shadow-lg">
+        {/* Glow Ambient */}
+        <div className="absolute -right-10 -top-10 w-44 h-44 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+          <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <input
-                type="text"
-                placeholder="Preset Name..."
-                value={presetNameInput}
-                onChange={(e) => setPresetNameInput(e.target.value)}
-                className="flex-1 min-w-0 bg-background border border-input rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500"
-              />
-              <button
-                onClick={handleSavePreset}
-                disabled={savingPreset || !presetNameInput.trim()}
-                className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white transition disabled:opacity-40 flex items-center gap-1 shrink-0"
-              >
-                {savingPreset ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                <span>Save</span>
-              </button>
+              <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                Workspace
+              </span>
+              {user?.premiumAccess && (
+                <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                  <Star className="w-3 h-3 fill-amber-400" /> Premium
+                </span>
+              )}
             </div>
+            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">
+              Welcome back, {user?.name || 'Creator'}!
+            </h1>
+            <p className="text-xs md:text-sm text-[var(--text-secondary)] max-w-xl">
+              Convert scripts to lifelike neural voices, manage scene narrations, and clone custom speech patterns in one unified workspace.
+            </p>
+          </div>
 
-            {/* Presets List */}
-            {presets.length === 0 ? (
-              <p className="text-[11px] text-neutral-400 font-medium text-center py-2">No saved presets yet.</p>
+          {/* Credits Box */}
+          <div className="p-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border-app)] flex flex-col gap-1.5 shrink-0 min-w-[200px]">
+            <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-wider">
+              Usage & Credits
+            </span>
+            {user?.premiumAccess ? (
+              <div className="flex flex-col">
+                <span className="text-lg font-black text-[var(--text-primary)]">Unlimited</span>
+                <span className="text-[10px] text-[var(--text-secondary)] font-medium">Enterprise Entitlement</span>
+              </div>
             ) : (
-              <div className="flex flex-col gap-2">
-                {presets.map((p) => (
-                  <div key={p._id} className="p-3 rounded-xl border border-input bg-background flex items-center justify-between gap-2">
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-xs font-bold text-foreground truncate">{p.presetName}</span>
-                      <span className="text-[10px] text-neutral-400 truncate">
-                        {DEEP_MALE_VOICES.find((v) => v.voiceId === p.voiceId)?.name || p.voiceId} ({p.speed}x)
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        onClick={() => handleApplyPreset(p)}
-                        className="px-2.5 py-1 rounded-md bg-card border border-input text-[10px] font-bold text-indigo-500 hover:bg-background transition"
-                      >
-                        Apply
-                      </button>
-                      <button
-                        onClick={() => handleDeletePresetItem(p._id)}
-                        className="p-1 rounded-md text-neutral-400 hover:text-red-500 transition"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+              <div className="flex flex-col">
+                <span className="text-xl font-black text-indigo-400">{remainingCredits} <span className="text-xs text-[var(--text-secondary)] font-medium">credits left</span></span>
+                {/* Progress bar */}
+                <div className="w-full bg-[var(--border-app)] h-1.5 rounded-full mt-2 overflow-hidden">
+                  <div 
+                    className="bg-indigo-500 h-full rounded-full transition-all duration-300"
+                    style={{ width: `${Math.max(0, Math.min(100, (remainingCredits / user!.freeCredits) * 100))}%` }}
+                  />
+                </div>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Audio Waveform Player Output */}
-      {audioUrl && (
-        <div className="p-4 sm:p-6 rounded-2xl border border-indigo-500/30 bg-indigo-500/10 backdrop-blur-xl shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4 animate-fade-in">
-          <div className="flex items-center gap-3 sm:gap-4 w-full md:w-auto">
-            <button
-              onClick={togglePlay}
-              className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white transition active:scale-95 shadow-lg shadow-indigo-500/20 shrink-0"
-            >
-              {isPlaying ? <Pause className="w-5 h-5 fill-white" /> : <Play className="w-5 h-5 fill-white ml-0.5" />}
-            </button>
-            <div className="flex flex-col min-w-0">
-              <span className="text-xs sm:text-sm font-semibold text-foreground truncate">Audio Stream Active</span>
-              <span className="text-[11px] sm:text-xs text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5 mt-0.5 truncate">
-                <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> Synthesized audio ready for playback & export
-              </span>
+      {/* Quick Actions Workspace Navigation */}
+      <div className="flex flex-col gap-4">
+        <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+          Quick Actions
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Action 1: Speech Studio */}
+          <Link 
+            href="/dashboard/speech-studio" 
+            className="group p-5 rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] hover:border-indigo-500/50 hover:bg-[var(--bg-card-hover)] transition-all duration-200 shadow-sm flex flex-col justify-between gap-6"
+          >
+            <div className="flex flex-col gap-2">
+              <div className="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform duration-200 shrink-0">
+                <Mic className="w-5 h-5" />
+              </div>
+              <h3 className="text-sm font-bold text-[var(--text-primary)] group-hover:text-indigo-400 transition-colors">
+                Speech Studio
+              </h3>
+              <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
+                Synthesize text into lifelike neural narrations using advanced speed controls.
+              </p>
             </div>
-          </div>
+            <span className="text-[10px] font-bold text-indigo-400 flex items-center gap-1 self-start">
+              Open Studio <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+            </span>
+          </Link>
 
-          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full md:w-auto justify-between md:justify-end">
-            <audio
-              ref={audioRef}
-              controls
-              src={getFullAudioUrl(audioUrl)}
-              className="h-10 text-xs rounded-lg w-full sm:w-auto max-w-full md:max-w-xs border border-input bg-card"
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
-              onEnded={() => setIsPlaying(false)}
-              onError={(e) => {
-                console.error('Audio element error:', e);
-                setError('Failed to play audio stream from backend server.');
-              }}
-            />
+          {/* Action 2: Voice Studio (Voice Cloning) */}
+          <Link 
+            href="/dashboard/voice-studio" 
+            className="group p-5 rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] hover:border-indigo-500/50 hover:bg-[var(--bg-card-hover)] transition-all duration-200 shadow-sm flex flex-col justify-between gap-6"
+          >
+            <div className="flex flex-col gap-2">
+              <div className="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform duration-200 shrink-0">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-[var(--text-primary)] group-hover:text-indigo-400 transition-colors">
+                  AI Voice Studio
+                </h3>
+                <span className="text-[9px] bg-amber-500/10 border border-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                  Cloning
+                </span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
+                Clone custom voices from uploaded audio samples and generate matching speech.
+              </p>
+            </div>
+            <span className="text-[10px] font-bold text-indigo-400 flex items-center gap-1 self-start">
+              Create AI Voice <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+            </span>
+          </Link>
 
-            {/* Reusable Export MP3 Download Button */}
-            <DownloadButton
-              onClick={handleExportMp3}
-              loading={downloadingMp3}
-              label="Export MP3"
-              variant="primary"
-              size="md"
-            />
-          </div>
+          {/* Action 3: AI Scene Generator */}
+          <Link 
+            href="/dashboard/ai-scene-generator" 
+            className="group p-5 rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] hover:border-indigo-500/50 hover:bg-[var(--bg-card-hover)] transition-all duration-200 shadow-sm flex flex-col justify-between gap-6"
+          >
+            <div className="flex flex-col gap-2">
+              <div className="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform duration-200 shrink-0">
+                <Layers className="w-5 h-5" />
+              </div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-[var(--text-primary)] group-hover:text-indigo-400 transition-colors">
+                  AI Scene Generator
+                </h3>
+                <span className="text-[9px] bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                  Pro
+                </span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
+                Synthesize multi-character scripts into structured scene-by-scene audio stems.
+              </p>
+            </div>
+            <span className="text-[10px] font-bold text-indigo-400 flex items-center gap-1 self-start">
+              Launch Builder <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+            </span>
+          </Link>
+
+          {/* Action 4: History */}
+          <Link 
+            href="/dashboard/history" 
+            className="group p-5 rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] hover:border-indigo-500/50 hover:bg-[var(--bg-card-hover)] transition-all duration-200 shadow-sm flex flex-col justify-between gap-6"
+          >
+            <div className="flex flex-col gap-2">
+              <div className="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform duration-200 shrink-0">
+                <History className="w-5 h-5" />
+              </div>
+              <h3 className="text-sm font-bold text-[var(--text-primary)] group-hover:text-indigo-400 transition-colors">
+                Generation History
+              </h3>
+              <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
+                Access your past voice creations, preview audio clips, and manage downloads.
+              </p>
+            </div>
+            <span className="text-[10px] font-bold text-indigo-400 flex items-center gap-1 self-start">
+              View History <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+            </span>
+          </Link>
         </div>
-      )}
+      </div>
 
-      {/* Error alert display */}
-      {error && (
-        <div className="p-5 rounded-2xl border border-red-500/30 bg-red-500/10 flex gap-3 text-red-500">
-          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-bold">Operation Exception</span>
-            <p className="text-xs opacity-90 leading-normal">{error}</p>
-          </div>
+      {/* Recent Generations Section */}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between pb-2 border-b border-[var(--border-app)]">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-2">
+            <Music className="w-4 h-4 text-indigo-400" /> Recent Generations
+          </h2>
+          {recentClips.length > 0 && (
+            <Link href="/dashboard/history" className="text-xs text-indigo-400 hover:underline font-semibold flex items-center gap-1">
+              View all history <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          )}
         </div>
-      )}
+
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-2">
+            <RefreshCw className="w-6 h-6 text-indigo-500 animate-spin" />
+            <span className="text-xs text-[var(--text-muted)]">Loading recent generations...</span>
+          </div>
+        ) : recentClips.length === 0 ? (
+          <div className="rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] p-10 flex flex-col items-center justify-center gap-4 text-center">
+            <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+              <Music className="w-6 h-6" />
+            </div>
+            <div className="flex flex-col gap-1 max-w-sm">
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">No Audio Created Yet</h3>
+              <p className="text-xs text-[var(--text-secondary)]">
+                Try synthesizing your first text passage into premium speech using the Speech Studio!
+              </p>
+            </div>
+            <Link 
+              href="/dashboard/speech-studio"
+              className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 transition rounded-lg flex items-center gap-1.5"
+            >
+              <Mic className="w-3.5 h-3.5" /> Open Speech Studio
+            </Link>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {recentClips.map((item) => {
+              const isClipPlaying = activeClip === item._id && isPlaying;
+              return (
+                <div 
+                  key={item._id}
+                  className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all duration-200 ${
+                    isClipPlaying 
+                      ? 'border-indigo-500/30 bg-indigo-950/10' 
+                      : 'border-[var(--border-app)] bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)]'
+                  }`}
+                >
+                  <div className="flex items-start gap-4 w-full sm:max-w-[75%] min-w-0">
+                    <button
+                      onClick={() => handlePlayClip(item._id, item.audioUrl)}
+                      className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition active:scale-95 shadow-sm ${
+                        isClipPlaying
+                          ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                          : 'bg-[var(--bg-input)] border border-[var(--border-app)] text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      {isClipPlaying ? <Pause className="w-3.5 h-3.5 fill-white" /> : <Play className="w-3.5 h-3.5 fill-current ml-0.5" />}
+                    </button>
+                    <div className="flex flex-col min-w-0 pt-0.5">
+                      <p className="text-xs font-medium text-[var(--text-primary)] leading-relaxed truncate">
+                        "{item.text}"
+                      </p>
+                      <div className="flex items-center gap-3 mt-1.5 text-[10px] text-[var(--text-secondary)] font-medium">
+                        <span className="flex items-center gap-1 bg-[var(--bg-input)] border border-[var(--border-app)] px-2 py-0.5 rounded">
+                          <Volume2 className="w-3 h-3 text-indigo-400 shrink-0" /> {item.voice}
+                        </span>
+                        <span className="flex items-center gap-1 bg-[var(--bg-input)] border border-[var(--border-app)] px-2 py-0.5 rounded">
+                          <Calendar className="w-3 h-3 text-indigo-400 shrink-0" /> {new Date(item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-stretch sm:self-auto shrink-0 border-t sm:border-t-0 border-[var(--border-app)] pt-2.5 sm:pt-0">
+                    <button
+                      onClick={() => handleDownload(item)}
+                      className="flex-1 sm:flex-none px-3 py-2 rounded-lg border border-[var(--border-app)] bg-[var(--bg-input)] text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] transition flex items-center justify-center gap-1.5 font-bold"
+                    >
+                      <Download className="w-3.5 h-3.5" /> Download
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Hidden audio player */}
+      <audio
+        ref={audioRef}
+        className="hidden"
+        onPause={handleAudioPause}
+        onEnded={handleAudioEnded}
+      />
     </div>
   );
 }

@@ -51,10 +51,10 @@ export const checkHealth = async () => {
   return res.json();
 };
 
-export const generateSpeech = async (text: string, voice: string, speed: number = 1.0) => {
+export const generateSpeech = async (text: string, voice: string, speed: number = 1.0, pitch?: number, tone?: string, depth?: number) => {
   const res = await apiFetch('/api/tts/generate', {
     method: 'POST',
-    body: JSON.stringify({ text, voice, speed }),
+    body: JSON.stringify({ text, voice, speed, pitch, tone, depth }),
   });
   return res.json();
 };
@@ -67,11 +67,11 @@ export const generateSceneVoicesApi = async (script: string, voiceId: string, sp
   return res.json();
 };
 
-export const previewSpeechApi = async (voiceId: string, text?: string) => {
+export const previewSpeechApi = async (voiceId: string, text?: string, speed?: number, pitch?: number, tone?: string, depth?: number) => {
   console.log('Selected voice for preview:', voiceId);
   const res = await apiFetch('/api/tts/preview', {
     method: 'POST',
-    body: JSON.stringify({ voiceId, text }),
+    body: JSON.stringify({ voiceId, text, speed, pitch, tone, depth }),
   });
   return res.json();
 };
@@ -311,6 +311,32 @@ export const uploadProfileImageApi = async (base64Image: string) => {
 
 export const removeProfileImageApi = async () => {
   const res = await apiFetch('/api/user/profile/image', {
+    method: 'DELETE',
+  });
+  return res.json();
+};
+
+// ==========================================
+// Voice Cloning APIs
+// ==========================================
+
+export const cloneVoiceApi = async (voiceName: string, audioData: string, consent: boolean) => {
+  const res = await apiFetch('/api/voice/clone', {
+    method: 'POST',
+    body: JSON.stringify({ voiceName, audioData, consent }),
+  });
+  return res.json();
+};
+
+export const getCustomVoicesApi = async () => {
+  const res = await apiFetch('/api/voice/library', {
+    method: 'GET',
+  });
+  return res.json();
+};
+
+export const deleteCustomVoiceApi = async (id: string) => {
+  const res = await apiFetch(`/api/voice/${id}`, {
     method: 'DELETE',
   });
   return res.json();

@@ -3,7 +3,10 @@ const path = require('path');
 const User = require('../models/user');
 const AudioHistory = require('../models/audioHistory');
 const Settings = require('../models/settings');
+const Voice = require('../models/voice');
 const { isCloudinaryConfigured, uploadAudioBuffer } = require('../config/cloudinary');
+const { processAudio } = require('../utils/audioProcessor');
+const mongoose = require('mongoose');
 
 let UniversalCommunicate;
 
@@ -79,10 +82,22 @@ const storeAudioBuffer = async (audioBuffer, folder, filename) => {
 };
 
 exports.generateSpeech = async (req, res) => {
-  const { text, voice, speed = 1.0 } = req.body;
+  const text = req.body.text || req.body.script;
+  const voice = req.body.voice || req.body.voiceId;
+  const speed = req.body.speed !== undefined ? req.body.speed : 1.0;
+  const pitch = req.body.pitch || 0;
+  const tone = req.body.tone || 'neutral';
+  const depth = req.body.depth || 0;
   const user = req.user;
 
-  console.log('Generate speech request received:', { textLength: text?.length, voice, speed });
+  console.log('Generate speech request received:', { 
+    textLength: text?.length, 
+    voice, 
+    speed, 
+    pitch, 
+    tone, 
+    depth 
+  });
 
   if (!text || !voice) {
     return res.status(400).json({ success: false, message: 'Text and voice are required' });
@@ -102,20 +117,36 @@ exports.generateSpeech = async (req, res) => {
   }
 
   try {
+    // 1. Resolve Voice Profile
+    let baseVoiceId = voice;
+    let voiceDisplayName = voice;
+    let customVoiceDoc = null;
+
+    if (mongoose.Types.ObjectId.isValid(voice)) {
+      // Custom voice cloning resolver
+      customVoiceDoc = await Voice.findOne({ _id: voice, userId: user._id });
+      if (customVoiceDoc) {
+        // Mapped default voice to generate raw speech before embedding style manipulation
+        baseVoiceId = 'en-US-ChristopherNeural'; 
+        voiceDisplayName = customVoiceDoc.voiceName;
+        console.log(`[TTS] Using custom cloned voice "${voiceDisplayName}" (Base: ${baseVoiceId})`);
+      } else {
+        return res.status(404).json({ success: false, message: 'Custom voice profile not found.' });
+      }
+    }
+
     const CommClass = await getCommunicateClass();
     const filename = `tts-${Date.now()}-${Math.random().toString(36).substring(7)}.mp3`;
     const rateStr = getRateString(speed);
 
-    // Step 1: Log Before TTS
-    console.log('Starting speech generation');
-
+    // Step 2: Generate Speech Stems
+    console.log('Starting speech generation via Edge TTS');
     const communicate = new CommClass(text, {
-      voice: voice,
+      voice: baseVoiceId,
       rate: rateStr
     });
 
     const audioChunks = [];
-
     for await (const chunk of communicate.stream()) {
       if (chunk.type === 'audio' && chunk.data) {
         audioChunks.push(chunk.data);
@@ -126,34 +157,33 @@ exports.generateSpeech = async (req, res) => {
       throw new Error('Audio generation returned empty data');
     }
 
-    const audioBuffer = Buffer.concat(audioChunks);
+    let audioBuffer = Buffer.concat(audioChunks);
+
+    // Step 3: Run Audio Processor (Pitch, Tone, Depth controls)
+    console.log('Applying advanced audio filters (pitch, tone, depth)...');
+    audioBuffer = await processAudio(audioBuffer, pitch, tone, depth);
 
     // Validate Audio Buffer
     if (!audioBuffer || audioBuffer.length === 0) {
-      throw new Error('Audio generation returned empty data');
+      throw new Error('Audio post-processing returned empty buffer');
     }
 
-    // Step 2: Log After TTS
-    console.log('Audio generated successfully');
-
-    // Step 3: Log Before Upload
-    console.log('Uploading audio');
+    // Step 4: Upload audio
+    console.log('Uploading processed audio buffer...');
     const audioUrl = await storeAudioBuffer(audioBuffer, 'tts-audio', filename);
 
-    // Step 4: Log After Upload
-    console.log('Audio uploaded successfully');
-
+    // Step 5: Quota credits consumption
     if (!user.premiumAccess) {
       user.usedCredits += creditsNeeded;
       await user.save();
     }
 
-    // Step 5: Log Before Database Save
-    console.log('Saving audio URL');
+    // Step 6: Log Audio History entry
+    console.log('Saving audio log in history');
     const historyEntry = new AudioHistory({
       userId: user._id,
       text,
-      voice,
+      voice: voiceDisplayName,
       voiceId: voice,
       speed: sanitizeSpeed(speed),
       audioUrl,
@@ -187,28 +217,43 @@ exports.generateSpeech = async (req, res) => {
 // Dedicated Voice Preview Controller
 exports.previewSpeech = async (req, res) => {
   const targetVoiceId = req.body.voiceId || req.body.voice;
-  const previewText = req.body.text || 'Hi, I am this voice. This is a preview of my narration style.';
+  const previewText = req.body.text || 'Hi, I am your AI narrator from 21st Tech Company.';
+  const pitch = req.body.pitch || 0;
+  const tone = req.body.tone || 'neutral';
+  const depth = req.body.depth || 0;
+  const speed = req.body.speed || 1.0;
 
-  console.log('Preview request:', req.body);
+  console.log('Preview request params:', { targetVoiceId, pitch, tone, depth, speed });
 
   if (!targetVoiceId) {
     return res.status(400).json({ success: false, message: 'voiceId is required for preview' });
   }
 
   try {
+    // Resolve Voice Profile
+    let baseVoiceId = targetVoiceId;
+    let customVoiceDoc = null;
+
+    if (mongoose.Types.ObjectId.isValid(targetVoiceId)) {
+      // Custom voice preview resolver
+      customVoiceDoc = await Voice.findOne({ _id: targetVoiceId, userId: req.user?._id });
+      if (customVoiceDoc) {
+        baseVoiceId = 'en-US-ChristopherNeural'; 
+      }
+    }
+
     const CommClass = await getCommunicateClass();
     const safeVoiceId = targetVoiceId.replace(/[^a-zA-Z0-9_-]/g, '_');
-    const filename = `preview-${safeVoiceId}.mp3`;
+    const filename = `preview-${safeVoiceId}-${Date.now()}.mp3`; // Fresh preview name on config change
 
-    console.log('Starting speech generation');
-
+    console.log('Starting preview speech generation');
+    const rateStr = getRateString(speed);
     const communicate = new CommClass(previewText, {
-      voice: targetVoiceId,
-      rate: '+0%'
+      voice: baseVoiceId,
+      rate: rateStr
     });
 
     const audioChunks = [];
-
     for await (const chunk of communicate.stream()) {
       if (chunk.type === 'audio' && chunk.data) {
         audioChunks.push(chunk.data);
@@ -219,18 +264,18 @@ exports.previewSpeech = async (req, res) => {
       throw new Error('Audio generation returned empty data');
     }
 
-    const audioBuffer = Buffer.concat(audioChunks);
+    let audioBuffer = Buffer.concat(audioChunks);
+
+    // Apply Audio Filters
+    console.log('Applying preview audio filters...');
+    audioBuffer = await processAudio(audioBuffer, pitch, tone, depth);
 
     if (!audioBuffer || audioBuffer.length === 0) {
-      throw new Error('Audio generation returned empty data');
+      throw new Error('Audio preview post-processing returned empty buffer');
     }
 
-    console.log('Audio generated successfully');
-    console.log('Uploading audio');
-
+    console.log('Uploading preview audio file...');
     const audioUrl = await storeAudioBuffer(audioBuffer, 'tts-previews', filename);
-
-    console.log('Audio uploaded successfully');
 
     return res.status(200).json({
       success: true,
@@ -242,7 +287,7 @@ exports.previewSpeech = async (req, res) => {
     console.error('Preview Generation Error:', error);
     return res.status(500).json({
       success: false,
-      message: error.message || 'Audio upload failed'
+      message: error.message || 'Audio preview failed'
     });
   }
 };

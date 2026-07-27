@@ -151,7 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(data.user);
 
       if (data.user.role === 'admin') {
-        router.push('/control-center/dashboard');
+        router.push('/admin/dashboard');
       } else {
         router.push('/dashboard');
       }
@@ -191,7 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(data.token);
       setUser(data.user);
       if (data.user.role === 'admin') {
-        router.push('/control-center/dashboard');
+        router.push('/admin/dashboard');
       } else {
         router.push('/dashboard');
       }
@@ -212,7 +212,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       syncAuthCookie(data.token);
       setToken(data.token);
       setUser(data.user);
-      router.push('/control-center/dashboard');
+      router.push('/admin/dashboard');
     } catch (error: any) {
       console.error('Admin signup error:', error);
       throw error;
@@ -230,7 +230,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       syncAuthCookie(data.token);
       setToken(data.token);
       setUser(data.user);
-      router.push('/control-center/dashboard');
+      router.push('/admin/dashboard');
     } catch (error: any) {
       console.error('Admin login error:', error);
       throw error;
@@ -269,7 +269,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(data.user);
 
       if (data.user.role === 'admin') {
-        router.push('/control-center/dashboard');
+        router.push('/admin/dashboard');
       } else {
         router.push('/dashboard');
       }
@@ -299,7 +299,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     setUser(null);
     setIsLoggingOut(false);
-    showToast('Signed out successfully', 'info');
+    showToast('Logged out successfully', 'success');
     router.push('/login');
   };
 

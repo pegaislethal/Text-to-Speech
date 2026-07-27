@@ -1,27 +1,29 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+// Pure JS JWT payload decoder for Next.js Edge Middleware
+const decodeJwt = (token: string) => {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(payload);
+  } catch (err) {
+    return null;
+  }
+};
+
 export function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
   const { pathname } = request.nextUrl;
 
-  // 1. Handle Legacy `/admin` URL redirects to `/control-center`
-  if (pathname.startsWith('/admin')) {
-    const newPathname = pathname.replace(/^\/admin/, '/control-center');
-    const targetUrl = new URL(newPathname, request.url);
-    return NextResponse.redirect(targetUrl);
-  }
-
-  const isControlCenterProtected = pathname.startsWith('/control-center') && !pathname.startsWith('/control-center/login') && !pathname.startsWith('/control-center/signup');
-  const isControlCenterAuth = pathname === '/control-center/login' || pathname === '/control-center/signup';
+  const isAdminProtected = pathname.startsWith('/admin') && !pathname.startsWith('/admin/login') && !pathname.startsWith('/admin/signup');
+  const isAdminAuth = pathname === '/admin/login' || pathname === '/admin/signup';
 
   const isUserProtected =
     pathname.startsWith('/dashboard') ||
-    pathname.startsWith('/speech-studio') ||
-    pathname.startsWith('/ai-scene-generator') ||
     pathname.startsWith('/profile') ||
-    pathname.startsWith('/settings') ||
-    pathname.startsWith('/history');
+    pathname.startsWith('/settings');
 
   const isUserAuth =
     pathname === '/login' ||
@@ -29,9 +31,9 @@ export function middleware(request: NextRequest) {
 
   const isHomepage = pathname === '/';
 
-  // 2. Unauthenticated user accessing protected route -> Redirect to appropriate login
-  if (isControlCenterProtected && !token) {
-    const loginUrl = new URL('/control-center/login', request.url);
+  // 1. Unauthenticated user accessing protected route -> Redirect to appropriate login
+  if (isAdminProtected && !token) {
+    const loginUrl = new URL('/admin/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }
@@ -42,14 +44,37 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // 3. Authenticated user accessing auth routes or homepage -> Redirect to dashboard
+  // 2. Decode JWT and run role-based check
+  let role = 'user';
+  if (token) {
+    const decoded = decodeJwt(token);
+    if (decoded && decoded.role) {
+      role = decoded.role;
+    }
+  }
+
+  // 3. Admin authorization checks
+  if (isAdminProtected && role !== 'admin') {
+    return new NextResponse(
+      JSON.stringify({ 
+        success: false, 
+        message: 'You do not have permission to access this page.' 
+      }),
+      { 
+        status: 403, 
+        headers: { 'content-type': 'application/json' } 
+      }
+    );
+  }
+
+  // 4. Authenticated user accessing auth routes or homepage -> Redirect to dashboard
   if ((isUserAuth || isHomepage) && token) {
-    const dashboardUrl = new URL('/dashboard', request.url);
+    const dashboardUrl = new URL(role === 'admin' ? '/admin/dashboard' : '/dashboard', request.url);
     return NextResponse.redirect(dashboardUrl);
   }
 
-  if (isControlCenterAuth && token) {
-    const adminDashboardUrl = new URL('/control-center/dashboard', request.url);
+  if (isAdminAuth && token) {
+    const adminDashboardUrl = new URL('/admin/dashboard', request.url);
     return NextResponse.redirect(adminDashboardUrl);
   }
 
@@ -62,12 +87,8 @@ export const config = {
     '/login',
     '/signup',
     '/dashboard/:path*',
-    '/speech-studio/:path*',
-    '/ai-scene-generator/:path*',
     '/profile',
     '/settings',
-    '/history',
-    '/admin/:path*',
-    '/control-center/:path*'
+    '/admin/:path*'
   ],
 };

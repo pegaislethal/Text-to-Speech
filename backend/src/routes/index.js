@@ -6,6 +6,7 @@ const adminController = require('../controllers/adminController');
 const presetController = require('../controllers/presetController');
 const premiumController = require('../controllers/premiumController');
 const userController = require('../controllers/userController');
+const voiceController = require('../controllers/voiceController');
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
 const premiumMiddleware = require('../middleware/premiumMiddleware');
@@ -62,6 +63,11 @@ router.delete('/user/profile/image', authMiddleware, userController.removeProfil
 // Premium Operations
 router.post('/premium/scene-generator', authMiddleware, premiumMiddleware, premiumController.generateSceneVoices);
 router.post('/premium/download-scenes-zip', authMiddleware, premiumMiddleware, premiumController.downloadScenesZip);
+
+// Voice Cloning Operations
+router.post('/voice/clone', authMiddleware, premiumMiddleware, voiceController.cloneVoice);
+router.get('/voice/library', authMiddleware, voiceController.getVoiceLibrary);
+router.delete('/voice/:id', authMiddleware, voiceController.deleteVoice);
 
 // TTS Operations
 router.post('/tts/generate', authMiddleware, ttsController.generateSpeech);
