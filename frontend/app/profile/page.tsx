@@ -106,12 +106,12 @@ export default function ProfilePage() {
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-8">
       {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-900/80 pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border-app)] pb-6">
           <div>
-            <h1 className="text-2xl font-black text-neutral-100 tracking-tight flex items-center gap-3">
+            <h1 className="text-2xl font-black text-[var(--text-primary)] tracking-tight flex items-center gap-3">
               User Profile
             </h1>
-            <p className="text-xs text-neutral-500 mt-1">
+            <p className="text-xs text-[var(--text-muted)] mt-1">
               Manage your personal information, profile photo, and account details.
             </p>
           </div>
@@ -119,7 +119,7 @@ export default function ProfilePage() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center p-16 text-neutral-500 gap-2">
+          <div className="flex items-center justify-center p-16 text-[var(--text-muted)] gap-2">
             <RefreshCw className="w-5 h-5 animate-spin text-indigo-500" />
             <span className="text-sm font-medium">Loading profile details...</span>
           </div>
@@ -128,7 +128,7 @@ export default function ProfilePage() {
             {/* Left Column: Profile Card & Quick Info */}
             <div className="md:col-span-1 flex flex-col gap-6">
               {/* Profile Card */}
-              <div className="p-6 rounded-2xl bg-neutral-950/80 border border-neutral-900/80 flex flex-col items-center text-center gap-4 relative overflow-hidden shadow-xl">
+              <div className="p-6 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-app)] flex flex-col items-center text-center gap-4 relative overflow-hidden shadow-xl">
                 <div className="absolute top-0 inset-x-0 h-16 bg-gradient-to-r from-indigo-900/30 via-violet-900/20 to-purple-900/30 -z-0" />
 
                 <div className="mt-4 z-10">
@@ -143,47 +143,47 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="flex flex-col items-center gap-1 z-10 w-full">
-                  <h2 className="text-lg font-bold text-neutral-100 truncate max-w-full">
+                  <h2 className="text-lg font-bold text-[var(--text-primary)] truncate max-w-full">
                     {activeUser?.name}
                   </h2>
-                  <span className="text-xs text-neutral-500 truncate max-w-full flex items-center gap-1">
+                  <span className="text-xs text-[var(--text-muted)] truncate max-w-full flex items-center gap-1">
                     <Mail className="w-3 h-3" /> {activeUser?.email}
                   </span>
                   <div className="mt-3">{getPlanBadge()}</div>
                 </div>
 
                 {activeUser?.bio && (
-                  <p className="text-xs text-neutral-400 italic bg-neutral-900/60 p-3 rounded-xl border border-neutral-800/60 w-full text-left font-normal mt-2">
+                  <p className="text-xs text-[var(--text-secondary)] italic bg-[var(--bg-muted)] p-3 rounded-xl border border-[var(--border-app)] w-full text-left font-normal mt-2">
                     "{activeUser.bio}"
                   </p>
                 )}
               </div>
 
               {/* Account Stats / Details */}
-              <div className="p-5 rounded-2xl bg-neutral-950/70 border border-neutral-900/80 flex flex-col gap-3">
-                <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
+              <div className="p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-app)] flex flex-col gap-3">
+                <h3 className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider">
                   Account Details
                 </h3>
 
-                <div className="flex items-center justify-between text-xs py-1 border-b border-neutral-900">
-                  <span className="text-neutral-500 flex items-center gap-1.5">
+                <div className="flex items-center justify-between text-xs py-1 border-b border-[var(--border-app)]">
+                  <span className="text-[var(--text-muted)] flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5" /> Joined
                   </span>
-                  <span className="text-neutral-300 font-semibold">
+                  <span className="text-[var(--text-primary)] font-semibold">
                     {formatDate(activeUser?.createdAt)}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between text-xs py-1 border-b border-neutral-900">
-                  <span className="text-neutral-500">Account Type</span>
-                  <span className="text-neutral-300 font-semibold capitalize">
+                <div className="flex items-center justify-between text-xs py-1 border-b border-[var(--border-app)]">
+                  <span className="text-[var(--text-muted)]">Account Type</span>
+                  <span className="text-[var(--text-primary)] font-semibold capitalize">
                     {activeUser?.role || 'User'}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between text-xs py-1">
-                  <span className="text-neutral-500">Credits Status</span>
-                  <span className="text-neutral-300 font-semibold">
+                  <span className="text-[var(--text-muted)]">Credits Status</span>
+                  <span className="text-[var(--text-primary)] font-semibold">
                     {activeUser?.premiumAccess
                       ? 'Unlimited'
                       : `${activeUser?.usedCredits || 0} / ${activeUser?.freeCredits || 100}`}

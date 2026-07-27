@@ -116,7 +116,7 @@ export default function UserDashboard() {
               )}
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">
-              Welcome back, {user?.name || 'Creator'}!
+              Create your next AI voice project
             </h1>
             <p className="text-xs md:text-sm text-[var(--text-secondary)] max-w-xl">
               Convert scripts to lifelike neural voices, manage scene narrations, and clone custom speech patterns in one unified workspace.
@@ -149,103 +149,88 @@ export default function UserDashboard() {
         </div>
       </div>
 
-      {/* Quick Actions Workspace Navigation */}
+      {/* Core AI Workspaces */}
       <div className="flex flex-col gap-4">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-          Quick Actions
+        <h2 className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
+          AI Voice Workspaces
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Action 1: Speech Studio */}
           <Link 
             href="/dashboard/speech-studio" 
-            className="group p-5 rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] hover:border-indigo-500/50 hover:bg-[var(--bg-card-hover)] transition-all duration-200 shadow-sm flex flex-col justify-between gap-6"
+            className="group p-6 rounded-2xl border border-[var(--border-app)] bg-[var(--bg-card)] hover:border-indigo-500/50 hover:bg-[var(--bg-card-hover)] hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-300 flex flex-col justify-between gap-8 cursor-pointer"
           >
-            <div className="flex flex-col gap-2">
-              <div className="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform duration-200 shrink-0">
+            <div className="flex flex-col gap-4">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform duration-200 shrink-0">
                 <Mic className="w-5 h-5" />
               </div>
-              <h3 className="text-sm font-bold text-[var(--text-primary)] group-hover:text-indigo-400 transition-colors">
-                Speech Studio
-              </h3>
-              <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
-                Synthesize text into lifelike neural narrations using advanced speed controls.
-              </p>
+              <div className="flex flex-col gap-1.5">
+                <h3 className="text-sm font-bold text-[var(--text-primary)] group-hover:text-indigo-400 transition-colors">
+                  Speech Studio
+                </h3>
+                <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
+                  Synthesize text into lifelike neural narrations using advanced speed, pitch, and depth controls.
+                </p>
+              </div>
             </div>
             <span className="text-[10px] font-bold text-indigo-400 flex items-center gap-1 self-start">
               Open Studio <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
             </span>
           </Link>
 
-          {/* Action 2: Voice Studio (Voice Cloning) */}
-          <Link 
-            href="/dashboard/voice-studio" 
-            className="group p-5 rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] hover:border-indigo-500/50 hover:bg-[var(--bg-card-hover)] transition-all duration-200 shadow-sm flex flex-col justify-between gap-6"
-          >
-            <div className="flex flex-col gap-2">
-              <div className="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform duration-200 shrink-0">
-                <Sparkles className="w-5 h-5" />
-              </div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-[var(--text-primary)] group-hover:text-indigo-400 transition-colors">
-                  AI Voice Studio
-                </h3>
-                <span className="text-[9px] bg-amber-500/10 border border-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
-                  Cloning
-                </span>
-              </div>
-              <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
-                Clone custom voices from uploaded audio samples and generate matching speech.
-              </p>
-            </div>
-            <span className="text-[10px] font-bold text-indigo-400 flex items-center gap-1 self-start">
-              Create AI Voice <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-            </span>
-          </Link>
-
-          {/* Action 3: AI Scene Generator */}
+          {/* Action 2: AI Scene Generator */}
           <Link 
             href="/dashboard/ai-scene-generator" 
-            className="group p-5 rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] hover:border-indigo-500/50 hover:bg-[var(--bg-card-hover)] transition-all duration-200 shadow-sm flex flex-col justify-between gap-6"
+            className="group p-6 rounded-2xl border border-[var(--border-app)] bg-[var(--bg-card)] hover:border-indigo-500/50 hover:bg-[var(--bg-card-hover)] hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-300 flex flex-col justify-between gap-8 cursor-pointer"
           >
-            <div className="flex flex-col gap-2">
-              <div className="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform duration-200 shrink-0">
+            <div className="flex flex-col gap-4">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform duration-200 shrink-0">
                 <Layers className="w-5 h-5" />
               </div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-[var(--text-primary)] group-hover:text-indigo-400 transition-colors">
-                  AI Scene Generator
-                </h3>
-                <span className="text-[9px] bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
-                  Pro
-                </span>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)] group-hover:text-indigo-400 transition-colors">
+                    AI Scene Generator
+                  </h3>
+                  <span className="text-[9px] bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                    Pro
+                  </span>
+                </div>
+                <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
+                  Synthesize multi-character scripts into structured scene-by-scene narrative audio stems.
+                </p>
               </div>
-              <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
-                Synthesize multi-character scripts into structured scene-by-scene audio stems.
-              </p>
             </div>
             <span className="text-[10px] font-bold text-indigo-400 flex items-center gap-1 self-start">
               Launch Builder <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
             </span>
           </Link>
 
-          {/* Action 4: History */}
+          {/* Action 3: AI Voice Clone Generator */}
           <Link 
-            href="/dashboard/history" 
-            className="group p-5 rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] hover:border-indigo-500/50 hover:bg-[var(--bg-card-hover)] transition-all duration-200 shadow-sm flex flex-col justify-between gap-6"
+            href="/dashboard/voice-studio" 
+            className="group p-6 rounded-2xl border border-[var(--border-app)] bg-[var(--bg-card)] hover:border-indigo-500/50 hover:bg-[var(--bg-card-hover)] hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-300 flex flex-col justify-between gap-8 cursor-pointer"
           >
-            <div className="flex flex-col gap-2">
-              <div className="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform duration-200 shrink-0">
-                <History className="w-5 h-5" />
+            <div className="flex flex-col gap-4">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform duration-200 shrink-0">
+                <Sparkles className="w-5 h-5" />
               </div>
-              <h3 className="text-sm font-bold text-[var(--text-primary)] group-hover:text-indigo-400 transition-colors">
-                Generation History
-              </h3>
-              <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
-                Access your past voice creations, preview audio clips, and manage downloads.
-              </p>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)] group-hover:text-indigo-400 transition-colors">
+                    AI Voice Clone Generator
+                  </h3>
+                  <span className="text-[9px] bg-amber-500/10 border border-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                    Premium
+                  </span>
+                </div>
+                <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
+                  Clone custom voices from uploaded audio samples and reuse them for future generations.
+                </p>
+              </div>
             </div>
             <span className="text-[10px] font-bold text-indigo-400 flex items-center gap-1 self-start">
-              View History <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              Create AI Voice <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
             </span>
           </Link>
         </div>

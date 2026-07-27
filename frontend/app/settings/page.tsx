@@ -50,12 +50,12 @@ export default function SettingsPage() {
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-8">
       {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-900/80 pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border-app)] pb-6">
           <div>
-            <h1 className="text-2xl font-black text-neutral-100 tracking-tight flex items-center gap-3">
+            <h1 className="text-2xl font-black text-[var(--text-primary)] tracking-tight flex items-center gap-3">
               Application Settings
             </h1>
-            <p className="text-xs text-neutral-500 mt-1">
+            <p className="text-xs text-[var(--text-muted)] mt-1">
               Configure your workspace preferences, theme, notifications, and security.
             </p>
           </div>
@@ -70,7 +70,7 @@ export default function SettingsPage() {
             icon={Moon}
             action={<ThemeToggle />}
           >
-            <div className="p-4 rounded-xl bg-neutral-900/40 border border-neutral-900 text-xs text-neutral-400 flex items-center gap-2">
+            <div className="p-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border-app)] text-xs text-[var(--text-secondary)] flex items-center gap-2">
               <Info className="w-4 h-4 text-indigo-400 shrink-0" />
               <span>Theme preference is saved locally and applies across all pages automatically.</span>
             </div>
@@ -98,15 +98,15 @@ export default function SettingsPage() {
             }
           >
             <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between py-2 border-b border-neutral-900 text-xs">
-                <span className="text-neutral-300 font-medium">Generation Status Alerts</span>
-                <span className="text-neutral-500">
+              <div className="flex items-center justify-between py-2 border-b border-[var(--border-app)] text-xs">
+                <span className="text-[var(--text-secondary)] font-medium">Generation Status Alerts</span>
+                <span className="text-[var(--text-muted)]">
                   {emailNotifications ? 'Enabled' : 'Disabled'}
                 </span>
               </div>
               <div className="flex items-center justify-between py-2 text-xs">
-                <span className="text-neutral-300 font-medium">Product Updates & Features</span>
-                <span className="text-neutral-500">
+                <span className="text-[var(--text-secondary)] font-medium">Product Updates & Features</span>
+                <span className="text-[var(--text-muted)]">
                   {emailNotifications ? 'Enabled' : 'Disabled'}
                 </span>
               </div>
@@ -120,38 +120,38 @@ export default function SettingsPage() {
             icon={User}
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl bg-neutral-900/40 border border-neutral-900 flex flex-col gap-1">
-                <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider flex items-center gap-1">
+              <div className="p-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border-app)] flex flex-col gap-1">
+                <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-wider flex items-center gap-1">
                   <Mail className="w-3 h-3 text-indigo-400" /> Primary Email
                 </span>
-                <span className="text-sm font-semibold text-neutral-200 truncate">
+                <span className="text-sm font-semibold text-[var(--text-primary)] truncate">
                   {user?.email}
                 </span>
               </div>
 
-              <div className="p-4 rounded-xl bg-neutral-900/40 border border-neutral-900 flex flex-col gap-1">
-                <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider flex items-center gap-1">
+              <div className="p-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border-app)] flex flex-col gap-1">
+                <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-wider flex items-center gap-1">
                   <Calendar className="w-3 h-3 text-indigo-400" /> Creation Date
                 </span>
-                <span className="text-sm font-semibold text-neutral-200">
+                <span className="text-sm font-semibold text-[var(--text-primary)]">
                   {formatDate(user?.createdAt)}
                 </span>
               </div>
 
-              <div className="p-4 rounded-xl bg-neutral-900/40 border border-neutral-900 flex flex-col gap-1">
-                <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider flex items-center gap-1">
+              <div className="p-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border-app)] flex flex-col gap-1">
+                <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-wider flex items-center gap-1">
                   <Shield className="w-3 h-3 text-indigo-400" /> Account Role
                 </span>
-                <span className="text-sm font-semibold text-neutral-200 capitalize">
+                <span className="text-sm font-semibold text-[var(--text-primary)] capitalize">
                   {user?.role || 'User'}
                 </span>
               </div>
 
-              <div className="p-4 rounded-xl bg-neutral-900/40 border border-neutral-900 flex flex-col gap-1">
-                <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider flex items-center gap-1">
+              <div className="p-4 rounded-xl bg-[var(--bg-input)] border border-[var(--border-app)] flex flex-col gap-1">
+                <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-wider flex items-center gap-1">
                   <Sparkles className="w-3 h-3 text-indigo-400" /> Plan Access
                 </span>
-                <span className="text-sm font-semibold text-neutral-200">
+                <span className="text-sm font-semibold text-[var(--text-primary)]">
                   {user?.premiumAccess ? 'Premium Member (Unlimited)' : 'Free User'}
                 </span>
               </div>

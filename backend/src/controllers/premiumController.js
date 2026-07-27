@@ -3,6 +3,7 @@ const path = require('path');
 const SceneVoiceGeneration = require('../models/sceneVoiceGeneration');
 const { parseScriptIntoScenes } = require('../utils/aiScriptParser');
 const { isCloudinaryConfigured, uploadAudioBuffer } = require('../config/cloudinary');
+const { processAudio } = require('../utils/audioProcessor');
 
 let UniversalCommunicate;
 
@@ -71,14 +72,17 @@ const storeSceneAudioBuffer = async (audioBuffer, filename) => {
 };
 
 exports.generateSceneVoices = async (req, res) => {
-  const { script, voiceId, speed = 1.0 } = req.body;
+  const { script, voiceId, speed = 1.0, pitch = 0, tone = 'neutral', depth = 0 } = req.body;
   const user = req.user;
 
   console.log('AI Scene Voice Generation Request:', {
     userId: user._id,
     scriptLength: script?.length,
     voiceId,
-    speed
+    speed,
+    pitch,
+    tone,
+    depth
   });
 
   if (!user.premiumAccess) {
@@ -144,15 +148,16 @@ exports.generateSceneVoices = async (req, res) => {
         throw new Error(`Audio generation returned empty data for Scene ${scene.sceneNumber}`);
       }
 
-      const audioBuffer = Buffer.concat(audioChunks);
+      let audioBuffer = Buffer.concat(audioChunks);
 
       // Validate buffer
       if (!audioBuffer || audioBuffer.length === 0) {
         throw new Error(`Audio generation returned empty data for Scene ${scene.sceneNumber}`);
       }
 
-      // Log Step 2: After TTS
-      console.log(`Audio generated successfully for Scene ${scene.sceneNumber}`);
+      // Log Step 2: After TTS & Advanced Filtering
+      console.log(`Audio generated successfully for Scene ${scene.sceneNumber}. Applying filters...`);
+      audioBuffer = await processAudio(audioBuffer, pitch, tone, depth);
 
       // Log Step 3: Before Upload
       console.log(`Uploading audio for Scene ${scene.sceneNumber}`);

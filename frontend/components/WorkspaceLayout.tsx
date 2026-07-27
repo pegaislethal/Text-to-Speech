@@ -69,10 +69,10 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
   return (
     <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] flex flex-col md:flex-row relative">
       {/* Sidebar - Desktop (Minimal SaaS aesthetic inspired by Linear / Vercel) */}
-      <aside className="hidden md:flex w-60 border-r border-[var(--border-app)] bg-[var(--bg-sidebar)] p-4 flex-col justify-between shrink-0 h-screen sticky top-0 z-40 transition-colors duration-200">
-        <div className="flex flex-col gap-6">
+      <aside className="hidden md:flex w-60 border-r border-[var(--border-app)] bg-[var(--bg-sidebar)] p-4 flex-col shrink-0 h-screen sticky top-0 z-40 transition-colors duration-200">
+        <div className="flex flex-col gap-6 flex-1 min-h-0">
           {/* Logo Header */}
-          <Link href="/dashboard" className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] transition-colors group">
+          <Link href="/dashboard" className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] transition-colors group shrink-0">
             <div className="w-8 h-8 rounded-lg bg-black overflow-hidden flex items-center justify-center shadow-md shadow-indigo-600/20 group-hover:scale-105 transition-transform duration-200">
               <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
             </div>
@@ -87,7 +87,7 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
           </Link>
 
           {/* Navigation Links */}
-          <nav className="flex flex-col gap-0.5" aria-label="Main Navigation">
+          <nav className="flex flex-col gap-0.5 flex-1 overflow-y-auto pr-1 select-none" aria-label="Main Navigation">
             <span className="text-[10px] text-[var(--text-muted)] font-semibold uppercase tracking-wider px-3 mb-1">
               Platform
             </span>
@@ -148,7 +148,7 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
         </div>
 
         {/* Footer: User & Controls */}
-        <div className="flex flex-col gap-3" ref={dropdownRef}>
+        <div className="flex flex-col gap-3 pt-4 border-t border-[var(--border-app)] shrink-0" ref={dropdownRef}>
           {/* User Credits Bar (Non-premium user) */}
           {!isAdminArea && !user.premiumAccess && (
             <div className="p-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border-app)] flex flex-col gap-2">

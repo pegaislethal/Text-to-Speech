@@ -1,12 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/authContext';
 import { Shield, AlertCircle, RefreshCw, ArrowRight, Lock, Mail } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function AdminLogin() {
-  const { adminLogin, loading } = useAuth();
+  const { adminLogin, loading, user } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user && user.role === 'admin') {
+      router.push('/admin/dashboard');
+    }
+  }, [user, router]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);

@@ -9,7 +9,7 @@ import VoiceSpeedControl from '../../../components/VoiceSpeedControl';
 import DownloadButton from '../../../components/DownloadButton';
 import { generateSceneVoicesApi, getApiUrl, downloadAudioFile, downloadScenesZipApi, getCustomVoicesApi } from '../../../services/api';
 import { 
-  Sparkles, FileText, Mic, RefreshCw, AlertCircle, Play, Pause, Clapperboard, Layers, ShieldCheck, FolderArchive, RotateCcw, CheckCircle2, Music2
+  Sparkles, FileText, Mic, RefreshCw, AlertCircle, Play, Pause, Clapperboard, Layers, ShieldCheck, FolderArchive, RotateCcw, CheckCircle2, Music2, Sliders
 } from 'lucide-react';
 
 interface GeneratedScene {
@@ -74,6 +74,9 @@ export default function DashboardAISceneGenerator() {
   const [script, setScript] = useState<string>(DEFAULT_SCRIPT_PLACEHOLDER);
   const [voiceId, setVoiceId] = useState<string>('en-US-ChristopherNeural');
   const [speed, setSpeed] = useState<number>(0.75);
+  const [pitch, setPitch] = useState<number>(0);
+  const [depth, setDepth] = useState<number>(0);
+  const [tone, setTone] = useState<string>('neutral');
   const [generating, setGenerating] = useState<boolean>(false);
   const [downloadingZip, setDownloadingZip] = useState<boolean>(false);
   const [downloadingSceneIndex, setDownloadingSceneIndex] = useState<number | null>(null);
@@ -139,7 +142,7 @@ export default function DashboardAISceneGenerator() {
     setPlayingIndex(null);
 
     try {
-      const res = await generateSceneVoicesApi(script, voiceId, speed);
+      const res = await generateSceneVoicesApi(script, voiceId, speed, pitch, tone, depth);
 
       if (!res.success || !res.scenes || res.scenes.length === 0) {
         throw new Error(res.message || 'Unable to generate scene audio.');
@@ -169,7 +172,7 @@ export default function DashboardAISceneGenerator() {
     showToast(`Regenerating Scene ${String(targetScene.sceneNumber).padStart(2, '0')}...`, 'info');
 
     try {
-      const res = await generateSceneVoicesApi(targetScene.text, voiceId, speed);
+      const res = await generateSceneVoicesApi(targetScene.text, voiceId, speed, pitch, tone, depth);
       if (res.success && res.scenes && res.scenes.length > 0) {
         const updated = [...generatedScenes];
         updated[index] = {
@@ -291,7 +294,7 @@ export default function DashboardAISceneGenerator() {
               <button
                 type="button"
                 onClick={() => setScript(DEFAULT_SCRIPT_PLACEHOLDER)}
-                className="text-xs text-indigo-400 hover:underline font-medium"
+                className="text-xs text-indigo-400 hover:underline font-medium cursor-pointer"
               >
                 Reset Template
               </button>
@@ -305,7 +308,7 @@ export default function DashboardAISceneGenerator() {
               }}
               placeholder={DEFAULT_SCRIPT_PLACEHOLDER}
               rows={11}
-              className="w-full bg-[var(--bg-input)] border border-[var(--border-app)] rounded-lg p-4 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-indigo-500 text-xs font-mono leading-relaxed resize-y min-h-[220px] transition-colors"
+              className="w-full bg-[var(--bg-input)] border border-[var(--border-app)] rounded-lg p-4 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-indigo-500 text-xs font-mono leading-relaxed resize-y min-h-[360px] transition-colors"
             />
 
             <div className="p-3 rounded-lg bg-[var(--bg-muted)] border border-[var(--border-app)] flex items-center justify-between text-xs text-[var(--text-secondary)]">
@@ -318,26 +321,6 @@ export default function DashboardAISceneGenerator() {
               </span>
             </div>
           </div>
-
-          {/* Speed Control */}
-          <VoiceSpeedControl speed={speed} onChange={setSpeed} />
-
-          {/* Generate Button */}
-          <button
-            onClick={handleGenerate}
-            disabled={generating || !script.trim()}
-            className="w-full py-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 transition-all duration-150 font-semibold text-xs text-white shadow-md shadow-indigo-600/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {generating ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin" /> Synthesizing Scene Audio Stems...
-              </>
-            ) : (
-              <>
-                <Layers className="w-4 h-4" /> Generate Voice Scenes
-              </>
-            )}
-          </button>
         </div>
 
         {/* Right: Generation Settings Panel */}
@@ -345,13 +328,12 @@ export default function DashboardAISceneGenerator() {
           <div className="rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] p-5 flex flex-col gap-4 shadow-sm">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
-                <Mic className="w-4 h-4 text-indigo-400" /> Generation Settings
+                <Mic className="w-4 h-4 text-indigo-400" /> Neural Voice characters
               </h3>
               <span className="text-[10px] text-[var(--text-muted)] font-mono">{allVoices.length} Available</span>
             </div>
 
-            <div className="flex flex-col gap-2.5">
-              <label className="text-xs text-[var(--text-secondary)] font-medium">Select Voice Character</label>
+            <div className="flex flex-col gap-2.5 max-h-[180px] overflow-y-auto pr-1">
               {allVoices.map((v) => {
                 const isSelected = voiceId === v.voiceId;
                 return (
@@ -361,22 +343,104 @@ export default function DashboardAISceneGenerator() {
                       setVoiceId(v.voiceId);
                       setError(null);
                     }}
-                    className={`p-3 rounded-lg border transition-all duration-150 cursor-pointer flex flex-col gap-1.5 ${
+                    className={`p-2.5 rounded-lg border transition-all duration-150 cursor-pointer flex flex-col gap-1.5 ${
                       isSelected
                         ? 'border-indigo-500 bg-indigo-500/10'
                         : 'border-[var(--border-app)] bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)]'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-[var(--text-primary)]">{v.name}</span>
-                      {isSelected && <ShieldCheck className="w-4 h-4 text-indigo-400" />}
+                      <span className="text-[11px] font-bold text-[var(--text-primary)]">{v.name}</span>
+                      {isSelected && <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />}
                     </div>
-                    <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">{v.description}</p>
+                    <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">{v.description}</p>
                   </div>
                 );
               })}
             </div>
           </div>
+
+          {/* Voice Advanced Waveform Controls Card */}
+          <div className="rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] p-5 flex flex-col gap-4 shadow-sm">
+            <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-app)]">
+              <Sliders className="w-4 h-4 text-indigo-400" />
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">Voice Settings</span>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              {/* Pitch */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between text-[10px]">
+                  <span className="font-semibold text-[var(--text-secondary)]">Pitch Offset</span>
+                  <span className="font-mono text-indigo-400">{pitch > 0 ? `+${pitch}` : pitch}</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="-20" 
+                  max="20" 
+                  value={pitch} 
+                  onChange={(e) => setPitch(parseInt(e.target.value))} 
+                  className="w-full h-1 bg-[var(--border-app)] rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                />
+              </div>
+
+              {/* Depth */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between text-[10px]">
+                  <span className="font-semibold text-[var(--text-secondary)]">Voice Depth</span>
+                  <span className="font-mono text-indigo-400">{depth}%</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="100" 
+                  value={depth} 
+                  onChange={(e) => setDepth(parseInt(e.target.value))} 
+                  className="w-full h-1 bg-[var(--border-app)] rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                />
+              </div>
+
+              {/* Tone preset */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-semibold text-[var(--text-secondary)]">EQ Tone Preset</label>
+                <select
+                  value={tone}
+                  onChange={(e) => setTone(e.target.value)}
+                  className="bg-[var(--bg-input)] text-xs text-[var(--text-primary)] border border-[var(--border-app)] rounded-lg p-2 focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="neutral">Neutral</option>
+                  <option value="deep">Deep & Bass</option>
+                  <option value="warm">Warm Narration</option>
+                  <option value="professional">Professional corporate</option>
+                  <option value="cinematic">Cinematic Wide</option>
+                  <option value="dramatic">Dramatic Studio</option>
+                </select>
+              </div>
+
+              {/* Speed */}
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[10px] font-semibold text-[var(--text-secondary)]">Voice Speed</span>
+                <VoiceSpeedControl speed={speed} onChange={setSpeed} />
+              </div>
+            </div>
+          </div>
+
+          {/* Generate Button */}
+          <button
+            onClick={handleGenerate}
+            disabled={generating || !script.trim()}
+            className="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 transition-all duration-300 font-bold text-sm text-white shadow-xl shadow-indigo-600/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+          >
+            {generating ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" /> Synthesizing waveform...
+              </>
+            ) : (
+              <>
+                <Layers className="w-4 h-4" /> Generate Voice Scenes
+              </>
+            )}
+          </button>
         </div>
       </div>
 

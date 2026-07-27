@@ -353,14 +353,14 @@ export default function VoiceStudio() {
   if (user && !user.premiumAccess) {
     return (
       <div className="max-w-4xl mx-auto flex items-center justify-center min-h-[75vh] px-6">
-        <div className="rounded-2xl border border-amber-500/20 bg-neutral-950/40 backdrop-blur-xl p-8 sm:p-12 shadow-2xl text-center flex flex-col items-center gap-6 max-w-lg">
+        <div className="rounded-2xl border border-amber-500/20 bg-[var(--bg-card)] backdrop-blur-xl p-8 sm:p-12 shadow-2xl text-center flex flex-col items-center gap-6 max-w-lg">
           <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400 shrink-0">
             <ShieldAlert className="w-8 h-8" />
           </div>
 
           <div className="flex flex-col gap-2">
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight uppercase">AI Voice Studio Locked</h1>
-            <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed font-medium">
+            <h1 className="text-xl sm:text-2xl font-black text-[var(--text-primary)] tracking-tight uppercase">AI Voice Studio Locked</h1>
+            <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed font-medium">
               This feature is available for premium users. Upgrade your subscription package to unlock voice cloning, infinite voice library custom uploads, and high-fidelity narrators.
             </p>
           </div>
@@ -368,7 +368,7 @@ export default function VoiceStudio() {
           <div className="flex flex-col gap-3 w-full mt-2">
             <button
               onClick={() => router.push('/dashboard')}
-              className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 transition font-bold text-xs text-black shadow-lg shadow-amber-500/10 active:scale-95"
+              className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 transition font-bold text-xs text-black shadow-lg shadow-amber-500/10 active:scale-95 cursor-pointer"
             >
               Back to Dashboard
             </button>

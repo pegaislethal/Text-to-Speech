@@ -59,10 +59,10 @@ export const generateSpeech = async (text: string, voice: string, speed: number 
   return res.json();
 };
 
-export const generateSceneVoicesApi = async (script: string, voiceId: string, speed: number = 1.0) => {
+export const generateSceneVoicesApi = async (script: string, voiceId: string, speed: number = 1.0, pitch?: number, tone?: string, depth?: number) => {
   const res = await apiFetch('/api/premium/scene-generator', {
     method: 'POST',
-    body: JSON.stringify({ script, voiceId, speed }),
+    body: JSON.stringify({ script, voiceId, speed, pitch, tone, depth }),
   });
   return res.json();
 };

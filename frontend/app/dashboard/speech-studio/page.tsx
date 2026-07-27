@@ -332,10 +332,10 @@ export default function SpeechStudio() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 items-start">
-        {/* Left Column: Text Area & Speed Panel */}
+        {/* Left Column: Script Editor */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           {/* Text Area Card */}
-          <div className="relative rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-4 sm:p-5 shadow-xl flex flex-col gap-4">
+          <div className="relative rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-5 shadow-xl flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider flex items-center gap-2">
                 <FileText className="w-4 h-4 text-indigo-500" /> Script Editor
@@ -353,12 +353,82 @@ export default function SpeechStudio() {
               }}
               placeholder="Enter your script here to generate narrative audio..."
               maxLength={2000}
-              className="w-full min-h-[180px] sm:min-h-[260px] bg-transparent text-foreground placeholder-neutral-400 dark:placeholder-neutral-600 focus:outline-none resize-none text-sm sm:text-base leading-relaxed"
+              className="w-full min-h-[300px] sm:min-h-[460px] bg-transparent text-foreground placeholder-neutral-400 dark:placeholder-neutral-600 focus:outline-none resize-none text-sm sm:text-base leading-relaxed"
             />
 
             <div className="flex flex-wrap items-center justify-between border-t border-input pt-3 text-xs text-neutral-500 dark:text-neutral-400 gap-2">
               <span>Required Cost: <strong className="text-indigo-500">{creditsRequired} credits</strong></span>
               <span>Rate: 1 credit / 50 chars</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Voice Library, Advanced Controls, Presets & Outputs */}
+        <div className="flex flex-col gap-6">
+          {/* Voice Library Cards */}
+          <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-4 sm:p-5 shadow-xl flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-foreground flex items-center gap-2 uppercase tracking-wider">
+                <Mic className="w-4 h-4 text-indigo-500" /> Neural Voice Library
+              </h3>
+              <span className="text-[10px] font-bold text-neutral-400 uppercase">{allVoices.length} Available</span>
+            </div>
+
+            <div className="flex flex-col gap-3 max-h-[260px] overflow-y-auto pr-1">
+              {allVoices.map((v) => {
+                const isSelected = voiceId === v.voiceId;
+                const isLocked = v.premium && user && !user.premiumAccess;
+                const isPreviewing = previewingVoice === v.voiceId;
+
+                return (
+                  <div
+                    key={v.voiceId}
+                    onClick={() => {
+                      setVoiceId(v.voiceId);
+                      setError(null);
+                    }}
+                    className={`p-3.5 sm:p-4 rounded-xl border transition-all duration-200 cursor-pointer flex flex-col gap-2.5 ${
+                      isSelected
+                        ? 'border-indigo-500/60 bg-indigo-500/10 shadow-md'
+                        : 'border-input bg-background/50 hover:bg-background/80'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xs font-bold text-foreground truncate">{v.name}</span>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-indigo-500 shrink-0" />}
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePreviewVoice(v);
+                          }}
+                          disabled={isPreviewing}
+                          className="px-2 py-0.5 rounded bg-background border border-input text-[9px] font-bold text-indigo-500 flex items-center gap-1 transition disabled:opacity-50 cursor-pointer"
+                        >
+                          {isPreviewing ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3 fill-indigo-500" />}
+                          <span>Preview</span>
+                        </button>
+
+                        {v.premium && (
+                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                            isLocked
+                              ? 'bg-neutral-200 dark:bg-neutral-800 text-neutral-500 border border-input'
+                              : 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20'
+                          }`}>
+                            {isLocked ? 'Locked' : 'Premium'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-normal font-medium">{v.description}</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -369,7 +439,7 @@ export default function SpeechStudio() {
               <span className="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Advanced Voice Controls</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-5 items-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
               {/* Pitch */}
               <div className="flex flex-col gap-1.5">
                 <div className="flex justify-between text-[11px]">
@@ -424,96 +494,9 @@ export default function SpeechStudio() {
             </div>
           </div>
 
-          {/* Action Generate Button */}
-          <button
-            onClick={handleGenerate}
-            disabled={generating || !text.trim()}
-            className="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 transition-all duration-300 font-bold text-sm text-white shadow-xl shadow-indigo-600/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-98"
-          >
-            {generating ? (
-              <>
-                <RefreshCw className="w-4.5 h-4.5 animate-spin" /> Synthesizing waveform ({speed.toFixed(2)}x speed)...
-              </>
-            ) : (
-              <>
-                <Volume2 className="w-4.5 h-4.5" /> Synthesize Audio Waveform
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Right Column: Deep Male Voice Library & Presets */}
-        <div className="flex flex-col gap-6">
-          {/* Voice Library Cards */}
-          <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-4 sm:p-6 shadow-xl flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <Mic className="w-4 h-4 text-indigo-500" /> Neural Voice Library
-              </h3>
-              <span className="text-[10px] font-bold text-neutral-400 uppercase">{allVoices.length} Available</span>
-            </div>
-
-            <div className="flex flex-col gap-3 max-h-[360px] overflow-y-auto pr-1">
-              {allVoices.map((v) => {
-                const isSelected = voiceId === v.voiceId;
-                const isLocked = v.premium && user && !user.premiumAccess;
-                const isPreviewing = previewingVoice === v.voiceId;
-
-                return (
-                  <div
-                    key={v.voiceId}
-                    onClick={() => {
-                      setVoiceId(v.voiceId);
-                      setError(null);
-                    }}
-                    className={`p-3.5 sm:p-4 rounded-xl border transition-all duration-200 cursor-pointer flex flex-col gap-2.5 ${
-                      isSelected
-                        ? 'border-indigo-500/60 bg-indigo-500/10 shadow-md'
-                        : 'border-input bg-background/50 hover:bg-background/80'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs font-bold text-foreground truncate">{v.name}</span>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-indigo-500 shrink-0" />}
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handlePreviewVoice(v);
-                          }}
-                          disabled={isPreviewing}
-                          className="px-2.5 py-1 rounded-md bg-background border border-input text-[10px] font-bold text-indigo-500 flex items-center gap-1 transition disabled:opacity-50"
-                        >
-                          {isPreviewing ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3 fill-indigo-500" />}
-                          <span>Preview</span>
-                        </button>
-
-                        {v.premium && (
-                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                            isLocked
-                              ? 'bg-neutral-200 dark:bg-neutral-800 text-neutral-500 border border-input'
-                              : 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20'
-                          }`}>
-                            {isLocked ? 'Locked' : 'Premium'}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-normal font-medium">{v.description}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Preset Manager Card */}
-          <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-4 sm:p-6 shadow-xl flex flex-col gap-4">
-            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+          <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-4 sm:p-5 shadow-xl flex flex-col gap-4">
+            <h3 className="text-xs font-bold text-foreground flex items-center gap-2 uppercase tracking-wider">
               <Bookmark className="w-4 h-4 text-indigo-500" /> Voice Presets
             </h3>
 
@@ -529,7 +512,7 @@ export default function SpeechStudio() {
               <button
                 onClick={handleSavePreset}
                 disabled={savingPreset || !presetNameInput.trim()}
-                className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white transition disabled:opacity-40 flex items-center gap-1 shrink-0"
+                className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white transition disabled:opacity-40 flex items-center gap-1 shrink-0 cursor-pointer"
               >
                 {savingPreset ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                 <span>Save</span>
@@ -540,7 +523,7 @@ export default function SpeechStudio() {
             {presets.length === 0 ? (
               <p className="text-[11px] text-neutral-400 font-medium text-center py-2">No saved presets yet.</p>
             ) : (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto pr-1">
                 {presets.map((p) => (
                   <div key={p._id} className="p-3 rounded-xl border border-input bg-background flex items-center justify-between gap-2">
                     <div className="flex flex-col min-w-0">
@@ -553,13 +536,13 @@ export default function SpeechStudio() {
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         onClick={() => handleApplyPreset(p)}
-                        className="px-2.5 py-1 rounded-md bg-card border border-input text-[10px] font-bold text-indigo-500 hover:bg-background transition"
+                        className="px-2.5 py-1 rounded-md bg-card border border-input text-[10px] font-bold text-indigo-500 hover:bg-background transition cursor-pointer"
                       >
                         Apply
                       </button>
                       <button
                         onClick={() => handleDeletePresetItem(p._id)}
-                        className="p-1 rounded-md text-neutral-400 hover:text-red-500 transition"
+                        className="p-1 rounded-md text-neutral-400 hover:text-red-500 transition cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -569,64 +552,81 @@ export default function SpeechStudio() {
               </div>
             )}
           </div>
+
+          {/* Action Generate Button */}
+          <button
+            onClick={handleGenerate}
+            disabled={generating || !text.trim()}
+            className="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 transition-all duration-300 font-bold text-sm text-white shadow-xl shadow-indigo-600/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-98 cursor-pointer"
+          >
+            {generating ? (
+              <>
+                <RefreshCw className="w-4.5 h-4.5 animate-spin" /> Synthesizing waveform ({speed.toFixed(2)}x speed)...
+              </>
+            ) : (
+              <>
+                <Volume2 className="w-4.5 h-4.5" /> Synthesize Audio Waveform
+              </>
+            )}
+          </button>
+
+          {/* Audio Waveform Player Output */}
+          {audioUrl && (
+            <div className="p-4 sm:p-5 rounded-2xl border border-indigo-500/30 bg-indigo-500/10 backdrop-blur-xl shadow-2xl flex flex-col gap-4 animate-fade-in">
+              <div className="flex items-center gap-3 w-full">
+                <button
+                  onClick={togglePlay}
+                  className="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white transition active:scale-95 shadow-lg shadow-indigo-500/20 shrink-0 cursor-pointer"
+                >
+                  {isPlaying ? <Pause className="w-4 h-4 fill-white" /> : <Play className="w-4 h-4 fill-white ml-0.5" />}
+                </button>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-semibold text-foreground truncate">Audio Stream Active</span>
+                  <span className="text-[10px] text-neutral-500 dark:text-neutral-400 flex items-center gap-1 mt-0.5 truncate">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> Synthesized audio ready
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3 w-full">
+                <audio
+                  ref={audioRef}
+                  controls
+                  src={getFullAudioUrl(audioUrl)}
+                  className="h-9 text-xs rounded-lg w-full border border-input bg-card"
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                  onEnded={() => setIsPlaying(false)}
+                  onError={(e) => {
+                    console.error('Audio element error:', e);
+                    setError('Failed to play audio stream from backend server.');
+                  }}
+                />
+
+                {/* Reusable Export MP3 Download Button */}
+                <DownloadButton
+                  onClick={handleExportMp3}
+                  loading={downloadingMp3}
+                  label="Export MP3"
+                  variant="primary"
+                  size="md"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Error alert display */}
+          {error && (
+            <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/10 flex gap-3 text-red-500">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs font-bold">Operation Exception</span>
+                <p className="text-[11px] opacity-90 leading-normal">{error}</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Audio Waveform Player Output */}
-      {audioUrl && (
-        <div className="p-4 sm:p-6 rounded-2xl border border-indigo-500/30 bg-indigo-500/10 backdrop-blur-xl shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4 animate-fade-in">
-          <div className="flex items-center gap-3 sm:gap-4 w-full md:w-auto">
-            <button
-              onClick={togglePlay}
-              className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white transition active:scale-95 shadow-lg shadow-indigo-500/20 shrink-0"
-            >
-              {isPlaying ? <Pause className="w-5 h-5 fill-white" /> : <Play className="w-5 h-5 fill-white ml-0.5" />}
-            </button>
-            <div className="flex flex-col min-w-0">
-              <span className="text-xs sm:text-sm font-semibold text-foreground truncate">Audio Stream Active</span>
-              <span className="text-[11px] sm:text-xs text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5 mt-0.5 truncate">
-                <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> Synthesized audio ready for playback & export
-              </span>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full md:w-auto justify-between md:justify-end">
-            <audio
-              ref={audioRef}
-              controls
-              src={getFullAudioUrl(audioUrl)}
-              className="h-10 text-xs rounded-lg w-full sm:w-auto max-w-full md:max-w-xs border border-input bg-card"
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
-              onEnded={() => setIsPlaying(false)}
-              onError={(e) => {
-                console.error('Audio element error:', e);
-                setError('Failed to play audio stream from backend server.');
-              }}
-            />
-
-            {/* Reusable Export MP3 Download Button */}
-            <DownloadButton
-              onClick={handleExportMp3}
-              loading={downloadingMp3}
-              label="Export MP3"
-              variant="primary"
-              size="md"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Error alert display */}
-      {error && (
-        <div className="p-5 rounded-2xl border border-red-500/30 bg-red-500/10 flex gap-3 text-red-500">
-          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-bold">Operation Exception</span>
-            <p className="text-xs opacity-90 leading-normal">{error}</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
