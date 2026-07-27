@@ -24,6 +24,7 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
+  role: 'user' | 'admin' | null;
   token: string | null;
   loading: boolean;
   isAuthenticated: boolean;
@@ -41,6 +42,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [role, setRole] = useState<'user' | 'admin' | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isLoggingOut, setIsLoggingOut] = useState<boolean>(false);
@@ -66,7 +69,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setToken(storedToken);
         syncAuthCookie(storedToken);
         try {
-          setUser(JSON.parse(storedUser));
+          const parsed = JSON.parse(storedUser);
+          setUser(parsed);
+          setRole(parsed.role);
+          setIsAuthenticated(true);
         } catch (_) {}
         setLoading(false);
       } else {
@@ -102,6 +108,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               createdAt: data.user.createdAt,
             };
             setUser(verifiedUser);
+            setRole(verifiedUser.role);
+            setIsAuthenticated(true);
             localStorage.setItem('user', JSON.stringify(verifiedUser));
           }
         } else if (res.status === 401 || res.status === 403) {
@@ -110,6 +118,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           syncAuthCookie(null);
           setToken(null);
           setUser(null);
+          setRole(null);
+          setIsAuthenticated(false);
         }
       } catch (err) {
         console.error('Session verification check error:', err);
@@ -164,6 +174,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       syncAuthCookie(data.token);
       setToken(data.token);
       setUser(data.user);
+      setRole(data.user.role);
+      setIsAuthenticated(true);
 
       if (data.user.role === 'admin') {
         router.push('/admin/dashboard');
@@ -187,6 +199,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       syncAuthCookie(data.token);
       setToken(data.token);
       setUser(data.user);
+      setRole(data.user.role);
+      setIsAuthenticated(true);
       router.push('/dashboard');
     } catch (error: any) {
       console.error('User signup error:', error);
@@ -205,6 +219,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       syncAuthCookie(data.token);
       setToken(data.token);
       setUser(data.user);
+      setRole(data.user.role);
+      setIsAuthenticated(true);
       if (data.user.role === 'admin') {
         router.push('/admin/dashboard');
       } else {
@@ -227,6 +243,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       syncAuthCookie(data.token);
       setToken(data.token);
       setUser(data.user);
+      setRole(data.user.role);
+      setIsAuthenticated(true);
       router.push('/admin/dashboard');
     } catch (error: any) {
       console.error('Admin signup error:', error);
@@ -245,6 +263,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       syncAuthCookie(data.token);
       setToken(data.token);
       setUser(data.user);
+      setRole(data.user.role);
+      setIsAuthenticated(true);
       router.push('/admin/dashboard');
     } catch (error: any) {
       console.error('Admin login error:', error);
@@ -282,6 +302,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       syncAuthCookie(data.token);
       setToken(data.token);
       setUser(data.user);
+      setRole(data.user.role);
+      setIsAuthenticated(true);
 
       if (data.user.role === 'admin') {
         router.push('/admin/dashboard');
@@ -297,6 +319,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async (expired: boolean = false) => {
     setIsLoggingOut(true);
+    const currentRole = user?.role || (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin') ? 'admin' : 'user');
     showToast(expired ? 'Session expired' : 'Logging out...', expired ? 'error' : 'loading');
     try {
       const apiUrl = getApiUrl();
@@ -313,17 +336,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     syncAuthCookie(null);
     setToken(null);
     setUser(null);
+    setRole(null);
+    setIsAuthenticated(false);
     setIsLoggingOut(false);
     clearToasts();
     if (expired) {
-      showToast('Session expired due to inactivity.', 'error');
-      const isAdmin = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
-      router.push(isAdmin ? '/admin/login?expired=true' : '/login?expired=true');
+      showToast('Session expired. Please login again.', 'error');
+      if (currentRole === 'admin') {
+        router.replace('/admin/login?expired=true');
+      } else {
+        router.replace('/login?expired=true');
+      }
     } else {
       showToast('Logged out successfully', 'success');
-      const isAdmin = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
-      router.push(isAdmin ? '/admin/login?logout=success' : '/login?logout=success');
+      if (currentRole === 'admin') {
+        router.replace('/admin/login?logout=success');
+      } else {
+        router.replace('/login?logout=success');
+      }
     }
+    router.refresh();
   };
 
   const refreshUser = async () => {
@@ -352,6 +384,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         setUser(updatedUser);
+        setRole(updatedUser.role);
+        setIsAuthenticated(true);
       }
     } catch (error) {
       console.error('Failed to refresh user:', error);
@@ -359,7 +393,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, isAuthenticated: Boolean(user), loginWithGoogle, userSignup, userLogin, adminSignup, adminLogin, loginBypass, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, role, token, loading, isAuthenticated, loginWithGoogle, userSignup, userLogin, adminSignup, adminLogin, loginBypass, logout, refreshUser }}>
       {isLoggingOut && (
         <div className="fixed inset-0 z-[9999] bg-neutral-950/80 backdrop-blur-md flex flex-col items-center justify-center gap-4 transition-all duration-300 animate-in fade-in">
           <div className="relative flex items-center justify-center">

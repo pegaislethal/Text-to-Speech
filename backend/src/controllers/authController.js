@@ -341,12 +341,40 @@ exports.adminLogin = async (req, res) => {
 
 exports.logout = async (req, res) => {
   try {
+    // 1. Verify current session
+    let token = req.cookies.token;
+    if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key_123');
+        console.log(`[Logout] User ${decoded.email} verified and logging out.`);
+      } catch (err) {
+        console.log('[Logout] Token verification failed or expired during logout.');
+      }
+    } else {
+      console.log('[Logout] No token found in request during logout.');
+    }
+
+    // 2. Clear authentication cookies
     res.clearCookie('token', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax'
     });
-    res.status(200).json({ success: true, message: 'Logged out successfully' });
+    res.clearCookie('accessToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
+    });
+
+    // 3. Return success response
+    return res.status(200).json({
+      success: true,
+      message: 'Logged out successfully'
+    });
   } catch (error) {
     console.error('Logout error:', error);
     res.status(500).json({ success: false, message: 'Logout failed: ' + error.message });
