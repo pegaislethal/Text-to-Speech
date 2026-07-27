@@ -7,10 +7,11 @@ import { useAuth } from '../../../context/authContext';
 import { useToast } from '../../../context/toastContext';
 import VoiceSpeedControl from '../../../components/VoiceSpeedControl';
 import DownloadButton from '../../../components/DownloadButton';
-import { generateSceneVoicesApi, getApiUrl, downloadAudioFile, downloadScenesZipApi, getCustomVoicesApi } from '../../../services/api';
+import { generateSceneVoicesApi, getApiUrl, downloadAudioFile, downloadScenesZipApi, getVoiceLibraryApi, previewSpeechApi } from '../../../services/api';
 import { 
   Sparkles, FileText, Mic, RefreshCw, AlertCircle, Play, Pause, Clapperboard, Layers, ShieldCheck, FolderArchive, RotateCcw, CheckCircle2, Music2, Sliders
 } from 'lucide-react';
+import { VoiceSelector, VoiceOption } from '../../../components/VoiceSelector';
 
 interface GeneratedScene {
   sceneNumber: number;
@@ -19,46 +20,6 @@ interface GeneratedScene {
   filename: string;
   status?: 'generating' | 'completed';
 }
-
-interface VoiceOption {
-  voiceId: string;
-  name: string;
-  language: string;
-  description: string;
-}
-
-const VOICE_OPTIONS: VoiceOption[] = [
-  {
-    voiceId: 'en-US-ChristopherNeural',
-    name: 'Deep Documentary Male',
-    language: 'en-US',
-    description: 'Deep, cinematic, and calm tone modeled for nature and history documentaries.'
-  },
-  {
-    voiceId: 'en-US-EricNeural',
-    name: 'Dark Storyteller',
-    language: 'en-US',
-    description: 'Low pitch, dramatic, and moody cadence for thrillers and mysteries.'
-  },
-  {
-    voiceId: 'en-GB-RyanNeural',
-    name: 'Ancient History Narrator',
-    language: 'en-GB',
-    description: 'Slow, resonant British accent with emotional weight for historical narratives.'
-  },
-  {
-    voiceId: 'en-US-AndrewNeural',
-    name: 'Professional Podcast Male',
-    language: 'en-US',
-    description: 'Clear, articulate, and engaging voice for technical essays and audiobooks.'
-  },
-  {
-    voiceId: 'en-US-SteffanNeural',
-    name: 'News Documentary Male',
-    language: 'en-US',
-    description: 'Serious, clean, and commanding voice ideal for investigative reporting.'
-  }
-];
 
 const DEFAULT_SCRIPT_PLACEHOLDER = `Scene1:
 Enter narration for the first scene of your script...
@@ -76,7 +37,7 @@ export default function DashboardAISceneGenerator() {
   const [speed, setSpeed] = useState<number>(0.75);
   const [pitch, setPitch] = useState<number>(0);
   const [depth, setDepth] = useState<number>(0);
-  const [tone, setTone] = useState<string>('neutral');
+  const [tone, setTone] = useState<string>('natural');
   const [generating, setGenerating] = useState<boolean>(false);
   const [downloadingZip, setDownloadingZip] = useState<boolean>(false);
   const [downloadingSceneIndex, setDownloadingSceneIndex] = useState<number | null>(null);
@@ -84,35 +45,87 @@ export default function DashboardAISceneGenerator() {
   const [error, setError] = useState<string | null>(null);
   const [generatedScenes, setGeneratedScenes] = useState<GeneratedScene[]>([]);
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+  const [systemVoices, setSystemVoices] = useState<VoiceOption[]>([]);
   const [customVoices, setCustomVoices] = useState<VoiceOption[]>([]);
+  const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
+  
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const audioRefs = useRef<{ [key: number]: HTMLAudioElement | null }>({});
   const BACKEND_URL = getApiUrl();
 
   useEffect(() => {
-    loadCustomVoices();
+    loadVoiceLibrary();
+    audioRef.current = new Audio();
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
   }, [user]);
 
-  const loadCustomVoices = async () => {
-    if (user?.premiumAccess) {
-      try {
-        const res = await getCustomVoicesApi();
-        if (res.success && res.customVoices) {
-          const cvs = res.customVoices.map((cv: any) => ({
-            voiceId: cv._id,
-            name: `${cv.voiceName} (Custom)`,
-            language: 'en-US (cloned)',
-            description: `Custom cloned voice profile (${cv.provider}).`,
-          }));
-          setCustomVoices(cvs);
-        }
-      } catch (err) {
-        console.warn('Failed to load custom voices for scene generator:', err);
+  const loadVoiceLibrary = async () => {
+    try {
+      const res = await getVoiceLibraryApi();
+      if (res.success) {
+        const sysVoices = (res.systemVoices || []).map((sv: any) => ({
+          voiceId: sv.voiceId,
+          name: sv.name,
+          gender: sv.category === 'female' ? 'Female' : 'Male',
+          language: 'en-US',
+          description: sv.description,
+          style: sv.category,
+          premium: sv.isPremium,
+          isPremium: sv.isPremium
+        }));
+        
+        const custVoices = (res.customVoices || []).map((cv: any) => ({
+          voiceId: cv._id,
+          name: `${cv.voiceName || cv.name} (Custom)`,
+          gender: 'Male',
+          language: 'en-US (cloned)',
+          description: `Custom cloned voice profile (${cv.provider}).`,
+          style: 'Custom Cloned',
+          premium: true,
+          isPremium: true
+        }));
+        
+        setSystemVoices(sysVoices);
+        setCustomVoices(custVoices);
       }
+    } catch (err) {
+      console.warn('Failed to load voice library:', err);
     }
   };
 
-  const allVoices = [...VOICE_OPTIONS, ...customVoices];
+  const handlePreviewVoice = async (v: VoiceOption) => {
+    if (previewingVoice) return;
+    setPreviewingVoice(v.voiceId);
+    try {
+      const demoText = `Hi, I am ${v.name}. This is a preview of my narration style.`;
+      const res = await previewSpeechApi(v.voiceId, demoText, speed, pitch, tone, depth);
+      if (res.audioUrl && audioRef.current) {
+        let fullUrl = res.audioUrl;
+        if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+          const baseUrl = BACKEND_URL.replace(/\/+$/, '');
+          const cleanPath = fullUrl.startsWith('/') ? fullUrl : `/${fullUrl}`;
+          fullUrl = `${baseUrl}${cleanPath}`;
+        }
+        audioRef.current.src = fullUrl;
+        audioRef.current.load();
+        audioRef.current.play().catch((playErr) => {
+          console.error('Browser playback error:', playErr);
+        });
+      }
+    } catch (err) {
+      console.error('Preview failed:', err);
+      showToast('Voice preview failed.', 'error');
+    } finally {
+      setPreviewingVoice(null);
+    }
+  };
+
+  const allVoices = [...systemVoices, ...customVoices];
 
   useEffect(() => {
     if (user && !user.premiumAccess) {
@@ -333,31 +346,14 @@ export default function DashboardAISceneGenerator() {
               <span className="text-[10px] text-[var(--text-muted)] font-mono">{allVoices.length} Available</span>
             </div>
 
-            <div className="flex flex-col gap-2.5 max-h-[180px] overflow-y-auto pr-1">
-              {allVoices.map((v) => {
-                const isSelected = voiceId === v.voiceId;
-                return (
-                  <div
-                    key={v.voiceId}
-                    onClick={() => {
-                      setVoiceId(v.voiceId);
-                      setError(null);
-                    }}
-                    className={`p-2.5 rounded-lg border transition-all duration-150 cursor-pointer flex flex-col gap-1.5 ${
-                      isSelected
-                        ? 'border-indigo-500 bg-indigo-500/10'
-                        : 'border-[var(--border-app)] bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)]'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-[var(--text-primary)]">{v.name}</span>
-                      {isSelected && <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />}
-                    </div>
-                    <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">{v.description}</p>
-                  </div>
-                );
-              })}
-            </div>
+            <VoiceSelector
+              selectedVoiceId={voiceId}
+              onChange={(newVoiceId) => setVoiceId(newVoiceId)}
+              systemVoices={systemVoices}
+              customVoices={customVoices}
+              previewingVoiceId={previewingVoice}
+              onPreviewVoice={(v) => handlePreviewVoice(v)}
+            />
           </div>
 
           {/* Voice Advanced Waveform Controls Card */}
@@ -376,8 +372,8 @@ export default function DashboardAISceneGenerator() {
                 </div>
                 <input 
                   type="range" 
-                  min="-20" 
-                  max="20" 
+                  min="-12" 
+                  max="12" 
                   value={pitch} 
                   onChange={(e) => setPitch(parseInt(e.target.value))} 
                   className="w-full h-1 bg-[var(--border-app)] rounded-lg appearance-none cursor-pointer accent-indigo-600"
@@ -408,12 +404,11 @@ export default function DashboardAISceneGenerator() {
                   onChange={(e) => setTone(e.target.value)}
                   className="bg-[var(--bg-input)] text-xs text-[var(--text-primary)] border border-[var(--border-app)] rounded-lg p-2 focus:outline-none focus:border-indigo-500"
                 >
-                  <option value="neutral">Neutral</option>
-                  <option value="deep">Deep & Bass</option>
-                  <option value="warm">Warm Narration</option>
-                  <option value="professional">Professional corporate</option>
-                  <option value="cinematic">Cinematic Wide</option>
-                  <option value="dramatic">Dramatic Studio</option>
+                  <option value="natural">Natural</option>
+                  <option value="documentary">Documentary</option>
+                  <option value="cinematic">Cinematic</option>
+                  <option value="podcast">Podcast</option>
+                  <option value="radio">Radio</option>
                 </select>
               </div>
 

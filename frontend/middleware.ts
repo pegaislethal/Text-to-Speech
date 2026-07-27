@@ -13,8 +13,17 @@ const decodeJwt = (token: string) => {
   }
 };
 
+const isTokenExpired = (token: string) => {
+  const decoded = decodeJwt(token);
+  if (!decoded) return true;
+  if (decoded.exp && decoded.exp * 1000 < Date.now()) return true;
+  return false;
+};
+
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get('token')?.value;
+  const rawToken = request.cookies.get('token')?.value;
+  const isExpired = rawToken ? isTokenExpired(rawToken) : false;
+  const token = rawToken && !isExpired ? rawToken : undefined;
   const { pathname } = request.nextUrl;
 
   const isAdminProtected = pathname.startsWith('/admin') && !pathname.startsWith('/admin/login') && !pathname.startsWith('/admin/signup');
@@ -31,17 +40,33 @@ export function middleware(request: NextRequest) {
 
   const isHomepage = pathname === '/';
 
-  // 1. Unauthenticated user accessing protected route -> Redirect to appropriate login
+  // 1. Unauthenticated or expired user accessing protected route -> Redirect to appropriate login
   if (isAdminProtected && !token) {
     const loginUrl = new URL('/admin/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
+    if (isExpired) {
+      loginUrl.searchParams.set('expired', 'true');
+    } else {
+      loginUrl.searchParams.set('redirect', pathname);
+    }
+    const response = NextResponse.redirect(loginUrl);
+    if (isExpired) {
+      response.cookies.delete('token');
+    }
+    return response;
   }
 
   if (isUserProtected && !token) {
     const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
+    if (isExpired) {
+      loginUrl.searchParams.set('expired', 'true');
+    } else {
+      loginUrl.searchParams.set('redirect', pathname);
+    }
+    const response = NextResponse.redirect(loginUrl);
+    if (isExpired) {
+      response.cookies.delete('token');
+    }
+    return response;
   }
 
   // 2. Decode JWT and run role-based check

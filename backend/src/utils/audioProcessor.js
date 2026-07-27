@@ -1,10 +1,10 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
-const path = require('fs');
 const os = require('os');
 const crypto = require('crypto');
 const fsPromises = require('fs').promises;
 const pathLib = require('path');
+const ffmpegPath = require('ffmpeg-static');
 
 let hasFfmpeg = null;
 
@@ -12,12 +12,17 @@ let hasFfmpeg = null;
 const checkFfmpegAvailability = () => {
   if (hasFfmpeg !== null) return hasFfmpeg;
   try {
-    execSync('ffmpeg -version', { stdio: 'ignore' });
-    hasFfmpeg = true;
-    console.log('[AudioProcessor] ffmpeg detected. Advanced voice controls are active.');
+    if (ffmpegPath) {
+      execSync(`"${ffmpegPath}" -version`, { stdio: 'ignore' });
+      hasFfmpeg = true;
+      console.log('[AudioProcessor] ffmpeg-static detected. Advanced voice controls are active.');
+    } else {
+      hasFfmpeg = false;
+      console.warn('[AudioProcessor] ffmpeg-static NOT available.');
+    }
   } catch (err) {
     hasFfmpeg = false;
-    console.warn('[AudioProcessor] ffmpeg NOT found. Running in simulation fallback mode.');
+    console.warn('[AudioProcessor] Error checking ffmpeg-static:', err.message);
   }
   return hasFfmpeg;
 };
@@ -25,11 +30,11 @@ const checkFfmpegAvailability = () => {
 /**
  * Apply pitch, tone, and depth adjustments to audio stream buffers.
  */
-const processAudio = async (audioBuffer, pitch = 0, tone = 'neutral', depth = 0) => {
+const processAudio = async (audioBuffer, pitch = 0, tone = 'natural', depth = 0) => {
   const isFfmpegAvailable = checkFfmpegAvailability();
   
   // If no adjustments are requested or ffmpeg is not available, bypass processing
-  const noAdjustments = pitch === 0 && tone === 'neutral' && depth === 0;
+  const noAdjustments = pitch === 0 && (tone === 'natural' || tone === 'neutral') && depth === 0;
   if (!isFfmpegAvailable || noAdjustments) {
     return audioBuffer;
   }
@@ -47,30 +52,40 @@ const processAudio = async (audioBuffer, pitch = 0, tone = 'neutral', depth = 0)
     // 2. Build ffmpeg audio filters list
     const filters = [];
 
-    // Apply Pitch (-20 to +20) -> shifts sampling rate and corrects tempo
+    // Apply Pitch Offset (-12 to +12 semitones)
     if (pitch !== 0) {
-      // map pitch scale from -20 => 0.6 to +20 => 1.4
-      const pitchFactor = 1.0 + (pitch / 50); 
-      filters.push(`asetrate=44100*${pitchFactor.toFixed(2)},atempo=${(1 / pitchFactor).toFixed(2)}`);
+      // Calculate frequency multiplier based on standard equal temperament formula
+      const pitchFactor = Math.pow(2, pitch / 12);
+      
+      // Chaining atempo filters if pitchFactor is out of bounds [0.5, 2.0]
+      let atempoFilter = `atempo=${(1 / pitchFactor).toFixed(2)}`;
+      if (1 / pitchFactor < 0.5) {
+        atempoFilter = 'atempo=0.5,atempo=' + ((1 / pitchFactor) / 0.5).toFixed(2);
+      } else if (1 / pitchFactor > 2.0) {
+        atempoFilter = 'atempo=2.0,atempo=' + ((1 / pitchFactor) / 2.0).toFixed(2);
+      }
+      filters.push(`asetrate=44100*${pitchFactor.toFixed(2)},${atempoFilter}`);
     }
 
-    // Apply Voice Depth (0 to 100) -> boosts bass response below 120Hz
+    // Apply Voice Depth (0 to 100) -> boosts bass response below 80Hz
     if (depth > 0) {
-      const bassGain = Math.round((depth / 100) * 14);
-      filters.push(`bass=g=${bassGain}:f=100`);
+      const bassGain = (depth / 100) * 15;
+      filters.push(`bass=g=${bassGain.toFixed(1)}:f=80`);
     }
 
     // Apply Equalizer Tone styles
-    if (tone === 'deep') {
-      filters.push('bass=g=8:f=120');
-    } else if (tone === 'warm') {
-      filters.push('bass=g=5:f=150,treble=g=-2');
-    } else if (tone === 'professional') {
-      filters.push('equalizer=f=3000:width_type=h:width=200:g=3,bass=g=2');
+    if (tone === 'documentary') {
+      // Narrative warmth + clarity boost
+      filters.push('bass=g=5:f=120,treble=g=3:f=3000');
     } else if (tone === 'cinematic') {
-      filters.push('bass=g=10:f=80,treble=g=3:f=8000');
-    } else if (tone === 'dramatic') {
-      filters.push('equalizer=f=1000:width_type=h:width=400:g=-3,bass=g=7');
+      // Deep bass + high presence + haas filter stereo widening
+      filters.push('bass=g=10:f=80,treble=g=2:f=8000,haas');
+    } else if (tone === 'podcast') {
+      // Warm, balanced podcast/speech tone
+      filters.push('equalizer=f=1000:width_type=q:width=1:g=2,equalizer=f=200:width_type=q:width=1:g=1.5');
+    } else if (tone === 'radio') {
+      // Compressed AM/FM broadcast EQ + dynamic range compression
+      filters.push('compand=attacks=0.01:decays=0.1:points=-60/-60|-24/-12|0/-3,equalizer=f=5000:width_type=q:width=1:g=3');
     }
 
     if (filters.length === 0) {
@@ -79,8 +94,8 @@ const processAudio = async (audioBuffer, pitch = 0, tone = 'neutral', depth = 0)
 
     const filterString = filters.join(',');
     
-    // 3. Execute ffmpeg process synchronously (fast execution on small temp files)
-    const cmd = `ffmpeg -y -i "${tempInputPath}" -af "${filterString}" "${tempOutputPath}"`;
+    // 3. Execute ffmpeg process using ffmpeg-static path
+    const cmd = `"${ffmpegPath}" -y -i "${tempInputPath}" -af "${filterString}" "${tempOutputPath}"`;
     execSync(cmd, { stdio: 'ignore' });
 
     // 4. Read processed output back into a buffer
@@ -88,7 +103,7 @@ const processAudio = async (audioBuffer, pitch = 0, tone = 'neutral', depth = 0)
     return processedBuffer;
 
   } catch (err) {
-    console.error('[AudioProcessor] ffmpeg processing failed:', err.message);
+    console.error('[AudioProcessor] ffmpeg-static processing failed:', err.message);
     // Graceful recovery: return original audio stream
     return audioBuffer;
   } finally {

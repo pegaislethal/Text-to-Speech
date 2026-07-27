@@ -85,9 +85,9 @@ exports.generateSpeech = async (req, res) => {
   const text = req.body.text || req.body.script;
   const voice = req.body.voice || req.body.voiceId;
   const speed = req.body.speed !== undefined ? req.body.speed : 1.0;
-  const pitch = req.body.pitch || 0;
-  const tone = req.body.tone || 'neutral';
-  const depth = req.body.depth || 0;
+  const pitch = req.body.pitchOffset !== undefined ? req.body.pitchOffset : (req.body.pitch || 0);
+  const depth = req.body.voiceDepth !== undefined ? req.body.voiceDepth : (req.body.depth || 0);
+  const tone = req.body.eqPreset || req.body.eq || req.body.tone || 'natural';
   const user = req.user;
 
   console.log('Generate speech request received:', { 
@@ -117,21 +117,41 @@ exports.generateSpeech = async (req, res) => {
   }
 
   try {
-    // 1. Resolve Voice Profile
+    // 1. Resolve Voice Profile and check permissions
     let baseVoiceId = voice;
     let voiceDisplayName = voice;
-    let customVoiceDoc = null;
+    let voiceDoc = null;
 
     if (mongoose.Types.ObjectId.isValid(voice)) {
-      // Custom voice cloning resolver
-      customVoiceDoc = await Voice.findOne({ _id: voice, userId: user._id });
-      if (customVoiceDoc) {
-        // Mapped default voice to generate raw speech before embedding style manipulation
-        baseVoiceId = 'en-US-ChristopherNeural'; 
-        voiceDisplayName = customVoiceDoc.voiceName;
-        console.log(`[TTS] Using custom cloned voice "${voiceDisplayName}" (Base: ${baseVoiceId})`);
-      } else {
+      // Custom cloned voice profile
+      voiceDoc = await Voice.findOne({ _id: voice, userId: user._id });
+      if (!voiceDoc) {
         return res.status(404).json({ success: false, message: 'Custom voice profile not found.' });
+      }
+      
+      // Enforce premium check for cloned voices
+      if (!user.premiumAccess) {
+        return res.status(403).json({ success: false, message: 'Upgrade to Premium to unlock this voice.' });
+      }
+
+      baseVoiceId = 'en-US-ChristopherNeural'; // fallback base for cloned voice
+      voiceDisplayName = voiceDoc.name || voiceDoc.voiceName;
+      console.log(`[TTS] Using custom cloned voice "${voiceDisplayName}" (Base: ${baseVoiceId})`);
+    } else {
+      // System default voice
+      voiceDoc = await Voice.findOne({ voiceId: voice, type: 'default' });
+      if (voiceDoc) {
+        // Enforce premium check for premium default voices
+        if (voiceDoc.isPremium && !user.premiumAccess) {
+          return res.status(403).json({ success: false, message: 'Upgrade to Premium to unlock this voice.' });
+        }
+        baseVoiceId = voiceDoc.voiceId;
+        voiceDisplayName = voiceDoc.name || voiceDoc.voiceName;
+        console.log(`[TTS] Using system default voice "${voiceDisplayName}" (${baseVoiceId})`);
+      } else {
+        baseVoiceId = voice;
+        voiceDisplayName = voice;
+        console.log(`[TTS] Voice doc not found for voiceId "${voice}", falling back to raw ID`);
       }
     }
 
@@ -218,10 +238,10 @@ exports.generateSpeech = async (req, res) => {
 exports.previewSpeech = async (req, res) => {
   const targetVoiceId = req.body.voiceId || req.body.voice;
   const previewText = req.body.text || 'Hi, I am your AI narrator from 21st Tech Company.';
-  const pitch = req.body.pitch || 0;
-  const tone = req.body.tone || 'neutral';
-  const depth = req.body.depth || 0;
-  const speed = req.body.speed || 1.0;
+  const speed = req.body.speed !== undefined ? req.body.speed : 1.0;
+  const pitch = req.body.pitchOffset !== undefined ? req.body.pitchOffset : (req.body.pitch || 0);
+  const depth = req.body.voiceDepth !== undefined ? req.body.voiceDepth : (req.body.depth || 0);
+  const tone = req.body.eqPreset || req.body.eq || req.body.tone || 'natural';
 
   console.log('Preview request params:', { targetVoiceId, pitch, tone, depth, speed });
 
@@ -230,21 +250,33 @@ exports.previewSpeech = async (req, res) => {
   }
 
   try {
-    // Resolve Voice Profile
+    // Resolve Voice Profile & check permissions
     let baseVoiceId = targetVoiceId;
-    let customVoiceDoc = null;
+    let voiceDoc = null;
 
     if (mongoose.Types.ObjectId.isValid(targetVoiceId)) {
-      // Custom voice preview resolver
-      customVoiceDoc = await Voice.findOne({ _id: targetVoiceId, userId: req.user?._id });
-      if (customVoiceDoc) {
-        baseVoiceId = 'en-US-ChristopherNeural'; 
+      voiceDoc = await Voice.findOne({ _id: targetVoiceId, userId: req.user?._id });
+      if (!voiceDoc) {
+        return res.status(404).json({ success: false, message: 'Custom voice profile not found.' });
+      }
+      
+      if (!req.user || !req.user.premiumAccess) {
+        return res.status(403).json({ success: false, message: 'Upgrade to Premium to unlock this voice.' });
+      }
+      baseVoiceId = 'en-US-ChristopherNeural';
+    } else {
+      voiceDoc = await Voice.findOne({ voiceId: targetVoiceId, type: 'default' });
+      if (voiceDoc) {
+        if (voiceDoc.isPremium && (!req.user || !req.user.premiumAccess)) {
+          return res.status(403).json({ success: false, message: 'Upgrade to Premium to unlock this voice.' });
+        }
+        baseVoiceId = voiceDoc.voiceId;
       }
     }
 
     const CommClass = await getCommunicateClass();
     const safeVoiceId = targetVoiceId.replace(/[^a-zA-Z0-9_-]/g, '_');
-    const filename = `preview-${safeVoiceId}-${Date.now()}.mp3`; // Fresh preview name on config change
+    const filename = `preview-${safeVoiceId}-${Date.now()}.mp3`;
 
     console.log('Starting preview speech generation');
     const rateStr = getRateString(speed);

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../context/authContext';
 import { useToast } from '../../../context/toastContext';
 import { 
-  cloneVoiceApi, getCustomVoicesApi, deleteCustomVoiceApi, 
+  cloneVoiceApi, getVoiceLibraryApi, deleteCustomVoiceApi, 
   previewSpeechApi, getApiUrl 
 } from '../../../services/api';
 import { 
@@ -23,133 +23,10 @@ interface VoiceOption {
   description: string;
   gender: 'Male' | 'Female' | 'Neutral';
   style: string;
+  isPremium?: boolean;
 }
 
-const DEFAULT_PLATFORM_VOICES: VoiceOption[] = [
-  // Documentary Voices
-  {
-    voiceId: 'en-US-ChristopherNeural',
-    name: 'Deep History Narrator',
-    category: 'documentary',
-    language: 'en-US',
-    description: 'Resonant, cinematic narrator tone designed for historical documentaries and epics.',
-    gender: 'Male',
-    style: 'Deep & Resonant'
-  },
-  {
-    voiceId: 'en-GB-RyanNeural',
-    name: 'Ancient Civilization Voice',
-    category: 'documentary',
-    language: 'en-GB',
-    description: 'Slow, dramatic British accent with weight suitable for ancient histories.',
-    gender: 'Male',
-    style: 'Ancient Narrator'
-  },
-  {
-    voiceId: 'en-US-SteffanNeural',
-    name: 'Wildlife Documentary Voice',
-    category: 'documentary',
-    language: 'en-US',
-    description: 'Clean, warm, narrative pitch ideal for scientific and wildlife features.',
-    gender: 'Male',
-    style: 'Clear Narrative'
-  },
-  {
-    voiceId: 'en-US-EricNeural',
-    name: 'Dark Mystery Narrator',
-    category: 'documentary',
-    language: 'en-US',
-    description: 'Moody, low cadence narrator for mysteries, thrillers, and crime dramas.',
-    gender: 'Male',
-    style: 'Dark Storyteller'
-  },
-  {
-    voiceId: 'en-US-GuyNeural',
-    name: 'Cinematic Storyteller',
-    category: 'documentary',
-    language: 'en-US',
-    description: 'Expressive, storytelling pacing for film trailers and audiobook narratives.',
-    gender: 'Male',
-    style: 'Cinematic Trailer'
-  },
-  
-  // Male Voices
-  {
-    voiceId: 'en-US-AndrewNeural',
-    name: 'Deep Male',
-    category: 'male',
-    language: 'en-US',
-    description: 'Low-pitched, warm commercial male voice for announcements and promos.',
-    gender: 'Male',
-    style: 'Deep & Cinematic'
-  },
-  {
-    voiceId: 'en-US-BrianNeural',
-    name: 'Calm Male',
-    category: 'male',
-    language: 'en-US',
-    description: 'Soft, steady pacing optimized for guided meditations and background essays.',
-    gender: 'Male',
-    style: 'Calm & Warm'
-  },
-  {
-    voiceId: 'en-GB-ThomasNeural',
-    name: 'Professional Male',
-    category: 'male',
-    language: 'en-GB',
-    description: 'Articulate British corporate cadence suited for business pitches and tutorials.',
-    gender: 'Male',
-    style: 'Professional business'
-  },
-  {
-    voiceId: 'en-US-AvaNeural', // Mapped placeholder name for anchor
-    name: 'News Anchor Male',
-    category: 'male',
-    language: 'en-US',
-    description: 'High energy, crisp broadcast voice for newscasts and news bulletins.',
-    gender: 'Male',
-    style: 'Broadcast News'
-  },
-  {
-    voiceId: 'en-AU-WilliamNeural',
-    name: 'Trailer Voice',
-    category: 'male',
-    language: 'en-AU',
-    description: 'Resonant, epic Australian accent for promo ads and dramatic introductions.',
-    gender: 'Male',
-    style: 'Epic Accent'
-  },
-
-  // Female Voices
-  {
-    voiceId: 'en-US-EmmaNeural',
-    name: 'Calm Female',
-    category: 'female',
-    language: 'en-US',
-    description: 'Warm, soothing, clear voice ideal for guides, tutorials, and relaxations.',
-    gender: 'Female',
-    style: 'Calm Narrative'
-  },
-  {
-    voiceId: 'en-US-MichelleNeural',
-    name: 'Educational Female',
-    category: 'female',
-    language: 'en-US',
-    description: 'Steady, articulate educator cadence optimized for e-learning and courses.',
-    gender: 'Female',
-    style: 'Articulate E-Learning'
-  },
-  {
-    voiceId: 'en-GB-SoniaNeural',
-    name: 'Storytelling Female',
-    category: 'female',
-    language: 'en-GB',
-    description: 'Engaging, expressive British narration for audiobooks and dramatic scripts.',
-    gender: 'Female',
-    style: 'Expressive Novelist'
-  }
-];
-
+// Platform default voices loaded dynamically from DB business
 export default function VoiceStudio() {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -159,7 +36,8 @@ export default function VoiceStudio() {
   const [activeTab, setActiveTab] = useState<'library' | 'clone'>('clone');
   const [libraryCategory, setLibraryCategory] = useState<'all' | 'documentary' | 'male' | 'female' | 'custom'>('all');
 
-  // Custom Cloned Voices States
+  // Voice Library States
+  const [systemVoices, setSystemVoices] = useState<any[]>([]);
   const [customVoices, setCustomVoices] = useState<any[]>([]);
   const [loadingLibrary, setLoadingLibrary] = useState<boolean>(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -187,19 +65,19 @@ export default function VoiceStudio() {
   const BACKEND_URL = getApiUrl();
 
   useEffect(() => {
-    if (user?.premiumAccess) {
-      fetchCustomVoices();
-    }
+    fetchVoiceLibrary();
   }, [user]);
 
-  const fetchCustomVoices = async () => {
+  const fetchVoiceLibrary = async () => {
+    setLoadingLibrary(true);
     try {
-      const res = await getCustomVoicesApi();
+      const res = await getVoiceLibraryApi();
       if (res.success) {
+        setSystemVoices(res.systemVoices || []);
         setCustomVoices(res.customVoices || []);
       }
     } catch (err) {
-      console.error('Failed to load custom voice profiles:', err);
+      console.error('Failed to load voice profiles:', err);
     } finally {
       setLoadingLibrary(false);
     }
@@ -213,24 +91,39 @@ export default function VoiceStudio() {
     return `${baseUrl}${cleanPath}`;
   };
 
+  const validateAudioFile = (file: File): boolean => {
+    const validTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/x-m4a', 'audio/m4a', 'audio/mp4'];
+    const isAudio = validTypes.includes(file.type) || file.name.endsWith('.m4a') || file.name.endsWith('.mp3') || file.name.endsWith('.wav');
+    if (!isAudio) {
+      showToast('Please upload a valid MP3, WAV, or M4A audio file.', 'error');
+      return false;
+    }
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    if (file.size > maxSize) {
+      showToast('File size must be below 50MB.', 'error');
+      return false;
+    }
+    return true;
+  };
+
   // Drag & Drop Handlers
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
-      const validTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/x-m4a', 'audio/m4a'];
-      if (validTypes.includes(file.type) || file.name.endsWith('.m4a')) {
+      if (validateAudioFile(file)) {
         setAudioFile(file);
-      } else {
-        showToast('Please upload a valid MP3, WAV, or M4A audio file.', 'error');
       }
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setAudioFile(e.target.files[0]);
+      const file = e.target.files[0];
+      if (validateAudioFile(file)) {
+        setAudioFile(file);
+      }
     }
   };
 
@@ -269,7 +162,7 @@ export default function VoiceStudio() {
         setVoiceName('');
         setAudioFile(null);
         setConsent(false);
-        fetchCustomVoices();
+        fetchVoiceLibrary();
         setActiveTab('library');
         setLibraryCategory('custom');
       } else {
@@ -379,17 +272,32 @@ export default function VoiceStudio() {
   }
 
   // Combined Voice Library List (Default list + Custom cloned list)
-  const formattedCustomVoices: VoiceOption[] = customVoices.map((cv: any) => ({
-    voiceId: cv._id,
-    name: cv.voiceName,
-    category: 'custom',
-    language: 'en-US (cloned)',
-    description: `User-created custom AI voice cloned using the ${cv.provider} engine.`,
-    gender: 'Neutral',
-    style: cv.provider
+  const formattedSystemVoices = systemVoices.map((sv: any) => ({
+    voiceId: sv.voiceId,
+    name: sv.name,
+    category: sv.category || 'documentary',
+    language: 'en-US',
+    description: sv.description || '',
+    gender: sv.category === 'female' ? 'Female' : 'Male',
+    style: sv.category || 'Standard',
+    premium: sv.isPremium,
+    isPremium: sv.isPremium
   }));
 
-  const combinedLibrary = [...DEFAULT_PLATFORM_VOICES, ...formattedCustomVoices];
+  const formattedCustomVoices = customVoices.map((cv: any) => ({
+    _id: cv._id,
+    voiceId: cv._id,
+    name: cv.voiceName || cv.name,
+    category: 'custom' as const,
+    language: 'en-US (cloned)',
+    description: `Custom cloned voice profile (${cv.provider}).`,
+    gender: 'Neutral' as const,
+    style: 'Custom Cloned',
+    premium: true,
+    isPremium: true
+  }));
+
+  const combinedLibrary = [...formattedSystemVoices, ...formattedCustomVoices];
 
   const filteredLibrary = combinedLibrary.filter((voice) => {
     if (libraryCategory === 'all') return true;
@@ -527,7 +435,7 @@ export default function VoiceStudio() {
                   : 'bg-[var(--bg-input)] border border-[var(--border-app)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
-              Documentary ({DEFAULT_PLATFORM_VOICES.filter(v => v.category === 'documentary').length})
+              Documentary ({formattedSystemVoices.filter(v => v.category === 'documentary').length})
             </button>
             <button
               onClick={() => setLibraryCategory('male')}
@@ -537,7 +445,7 @@ export default function VoiceStudio() {
                   : 'bg-[var(--bg-input)] border border-[var(--border-app)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
-              Male ({DEFAULT_PLATFORM_VOICES.filter(v => v.category === 'male').length})
+              Male ({formattedSystemVoices.filter(v => v.category === 'male').length})
             </button>
             <button
               onClick={() => setLibraryCategory('female')}
@@ -547,7 +455,7 @@ export default function VoiceStudio() {
                   : 'bg-[var(--bg-input)] border border-[var(--border-app)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
-              Female ({DEFAULT_PLATFORM_VOICES.filter(v => v.category === 'female').length})
+              Female ({formattedSystemVoices.filter(v => v.category === 'female').length})
             </button>
             <button
               onClick={() => setLibraryCategory('custom')}
@@ -694,7 +602,7 @@ export default function VoiceStudio() {
                     {audioFile ? audioFile.name : 'Select or drag & drop audio file'}
                   </span>
                   <span className="text-[10px] text-[var(--text-secondary)]">
-                    MP3, WAV, or M4A format (10-60 seconds recommended, max 10MB)
+                    MP3, WAV, or M4A format (max 5 minutes, max 50MB)
                   </span>
                 </div>
               </div>

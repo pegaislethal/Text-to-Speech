@@ -33,7 +33,7 @@ interface AuthContextType {
   adminSignup: (name: string, email: string, password: string) => Promise<void>;
   adminLogin: (email: string, password: string) => Promise<void>;
   loginBypass: (role: 'user' | 'admin') => Promise<void>;
-  logout: () => void;
+  logout: (expired?: boolean) => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (typeof document === 'undefined') return;
     if (tokenVal) {
       const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
-      document.cookie = `token=${tokenVal}; path=/; max-age=604800; SameSite=Lax${isHttps ? '; Secure' : ''}`;
+      document.cookie = `token=${tokenVal}; path=/; max-age=1500; SameSite=Lax${isHttps ? '; Secure' : ''}`;
     } else {
       document.cookie = 'token=; path=/; max-age=0; SameSite=Lax';
     }
@@ -117,6 +117,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     verifySession();
+  }, []);
+
+  useEffect(() => {
+    const handleRefreshed = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const newToken = customEvent.detail;
+      if (newToken) {
+        setToken(newToken);
+        syncAuthCookie(newToken);
+      }
+    };
+    window.addEventListener('auth-token-refreshed', handleRefreshed);
+    return () => {
+      window.removeEventListener('auth-token-refreshed', handleRefreshed);
+    };
   }, []);
 
   const loginWithGoogle = async (credential: string) => {
@@ -280,9 +295,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = async () => {
+  const logout = async (expired: boolean = false) => {
     setIsLoggingOut(true);
-    showToast('Logging out...', 'loading');
+    showToast(expired ? 'Session expired' : 'Logging out...', expired ? 'error' : 'loading');
     try {
       const apiUrl = getApiUrl();
       await fetch(`${apiUrl}/api/auth/logout`, {
@@ -300,9 +315,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setIsLoggingOut(false);
     clearToasts();
-    showToast('Logged out successfully', 'success');
-    const isAdmin = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
-    router.push(isAdmin ? '/admin/login?logout=success' : '/login?logout=success');
+    if (expired) {
+      showToast('Session expired due to inactivity.', 'error');
+      const isAdmin = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+      router.push(isAdmin ? '/admin/login?expired=true' : '/login?expired=true');
+    } else {
+      showToast('Logged out successfully', 'success');
+      const isAdmin = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+      router.push(isAdmin ? '/admin/login?logout=success' : '/login?logout=success');
+    }
   };
 
   const refreshUser = async () => {

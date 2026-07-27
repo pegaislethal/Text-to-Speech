@@ -23,7 +23,17 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
       credentials: 'include',
     });
 
+    // Check for updated token in response headers
+    const newToken = res.headers.get('x-new-token');
+    if (newToken && typeof window !== 'undefined') {
+      localStorage.setItem('token', newToken);
+      window.dispatchEvent(new CustomEvent('auth-token-refreshed', { detail: newToken }));
+    }
+
     if (!res.ok) {
+      if (res.status === 401 && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('auth-session-expired'));
+      }
       let errorMsg = 'API request failed';
       try {
         const text = await res.text();
@@ -219,6 +229,13 @@ export const logoutApi = async () => {
   return res.json();
 };
 
+export const refreshSessionApi = async () => {
+  const res = await apiFetch('/api/auth/refresh', {
+    method: 'POST',
+  });
+  return res.json();
+};
+
 /**
  * Helper to download an audio file directly without opening a new tab or redirecting.
  */
@@ -329,6 +346,13 @@ export const cloneVoiceApi = async (voiceName: string, audioData: string, consen
 };
 
 export const getCustomVoicesApi = async () => {
+  const res = await apiFetch('/api/voice/library', {
+    method: 'GET',
+  });
+  return res.json();
+};
+
+export const getVoiceLibraryApi = async () => {
   const res = await apiFetch('/api/voice/library', {
     method: 'GET',
   });

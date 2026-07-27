@@ -6,69 +6,12 @@ import { useToast } from '../../../context/toastContext';
 import ThemeToggle from '../../../components/ThemeToggle';
 import VoiceSpeedControl from '../../../components/VoiceSpeedControl';
 import DownloadButton from '../../../components/DownloadButton';
-import { generateSpeech, previewSpeechApi, getPresets, createPreset, deletePreset, getApiUrl, downloadAudioFile, getCustomVoicesApi } from '../../../services/api';
+import { generateSpeech, previewSpeechApi, getPresets, createPreset, deletePreset, getApiUrl, downloadAudioFile, getVoiceLibraryApi } from '../../../services/api';
 import { 
   Play, Pause, Volume2, AlertCircle, RefreshCw, 
   CheckCircle, Save, Trash2, Bookmark, Mic, FileText, Check, Sliders
 } from 'lucide-react';
-
-interface VoiceOption {
-  voiceId: string;
-  name: string;
-  gender: 'Male';
-  language: string;
-  description: string;
-  style: string;
-  premium: boolean;
-}
-
-const DEEP_MALE_VOICES: VoiceOption[] = [
-  {
-    voiceId: 'en-US-ChristopherNeural',
-    name: 'Deep Documentary Male',
-    gender: 'Male',
-    language: 'en-US',
-    description: 'Deep, cinematic, and calm tone modeled for National Geographic & nature documentaries.',
-    style: 'Deep & Cinematic',
-    premium: false,
-  },
-  {
-    voiceId: 'en-US-EricNeural',
-    name: 'Dark Storyteller Male',
-    gender: 'Male',
-    language: 'en-US',
-    description: 'Low pitch, dramatic, and moody cadence tailored for mystery and thriller narration.',
-    style: 'Dramatic Mystery',
-    premium: false,
-  },
-  {
-    voiceId: 'en-US-AndrewNeural',
-    name: 'Professional Podcast Male',
-    gender: 'Male',
-    language: 'en-US',
-    description: 'Clear, warm, articulate tone optimized for technical podcasts and interviews.',
-    style: 'Warm & Professional',
-    premium: false,
-  },
-  {
-    voiceId: 'en-GB-RyanNeural',
-    name: 'Ancient History Narrator',
-    gender: 'Male',
-    language: 'en-GB',
-    description: 'Slow, resonant British accent with emotional weight for historical & epic audiobooks.',
-    style: 'Resonant & Emotional',
-    premium: true,
-  },
-  {
-    voiceId: 'en-US-SteffanNeural',
-    name: 'News Documentary Male',
-    gender: 'Male',
-    language: 'en-US',
-    description: 'Serious, clean, powerful voice ideal for investigative journalism and video essays.',
-    style: 'Serious & Powerful',
-    premium: true,
-  },
-];
+import { VoiceSelector, VoiceOption } from '../../../components/VoiceSelector';
 
 interface PresetItem {
   _id: string;
@@ -86,7 +29,8 @@ export default function SpeechStudio() {
   const [speed, setSpeed] = useState<number>(1.0);
   const [pitch, setPitch] = useState<number>(0);
   const [depth, setDepth] = useState<number>(0);
-  const [tone, setTone] = useState<string>('neutral');
+  const [tone, setTone] = useState<string>('natural');
+  const [systemVoices, setSystemVoices] = useState<VoiceOption[]>([]);
   const [customVoices, setCustomVoices] = useState<VoiceOption[]>([]);
   const [generating, setGenerating] = useState<boolean>(false);
   const [downloadingMp3, setDownloadingMp3] = useState<boolean>(false);
@@ -104,32 +48,44 @@ export default function SpeechStudio() {
   const BACKEND_URL = getApiUrl();
 
   useEffect(() => {
-    loadCustomVoices();
+    loadVoiceLibrary();
   }, [user]);
 
-  const loadCustomVoices = async () => {
-    if (user?.premiumAccess) {
-      try {
-        const res = await getCustomVoicesApi();
-        if (res.success && res.customVoices) {
-          const cvs = res.customVoices.map((cv: any) => ({
-            voiceId: cv._id,
-            name: `${cv.voiceName} (Custom)`,
-            gender: 'Male',
-            language: 'en-US (cloned)',
-            description: `Custom cloned voice profile (${cv.provider}).`,
-            style: 'Custom Cloned',
-            premium: true,
-          }));
-          setCustomVoices(cvs);
-        }
-      } catch (err) {
-        console.warn('Failed to load custom cloned voices:', err);
+  const loadVoiceLibrary = async () => {
+    try {
+      const res = await getVoiceLibraryApi();
+      if (res.success) {
+        const sysVoices = (res.systemVoices || []).map((sv: any) => ({
+          voiceId: sv.voiceId,
+          name: sv.name,
+          gender: sv.category === 'female' ? 'Female' : 'Male',
+          language: 'en-US',
+          description: sv.description,
+          style: sv.category,
+          premium: sv.isPremium,
+          isPremium: sv.isPremium
+        }));
+        
+        const custVoices = (res.customVoices || []).map((cv: any) => ({
+          voiceId: cv._id,
+          name: `${cv.voiceName || cv.name} (Custom)`,
+          gender: 'Male',
+          language: 'en-US (cloned)',
+          description: `Custom cloned voice profile (${cv.provider}).`,
+          style: 'Custom Cloned',
+          premium: true,
+          isPremium: true
+        }));
+        
+        setSystemVoices(sysVoices);
+        setCustomVoices(custVoices);
       }
+    } catch (err) {
+      console.warn('Failed to load voice library:', err);
     }
   };
 
-  const allVoices = [...DEEP_MALE_VOICES, ...customVoices];
+  const allVoices = [...systemVoices, ...customVoices];
 
   const getFullAudioUrl = (urlPath: string | null) => {
     if (!urlPath) return '';
@@ -176,9 +132,10 @@ export default function SpeechStudio() {
     setIsPlaying(false);
 
     try {
-      const selectedVoiceObj = DEEP_MALE_VOICES.find(v => v.voiceId === voiceId);
-      if (selectedVoiceObj?.premium && user && !user.premiumAccess) {
-        throw new Error('This is a Premium Voice. Upgrade your account or select a free voice.');
+      const selectedVoiceObj = allVoices.find((v: VoiceOption) => v.voiceId === voiceId);
+      const isLocked = selectedVoiceObj && (selectedVoiceObj.premium || selectedVoiceObj.isPremium) && user && !user.premiumAccess;
+      if (isLocked) {
+        throw new Error('Upgrade to Premium to unlock this voice.');
       }
 
       console.log('Selected voice for generation:', voiceId);
@@ -374,62 +331,14 @@ export default function SpeechStudio() {
               <span className="text-[10px] font-bold text-neutral-400 uppercase">{allVoices.length} Available</span>
             </div>
 
-            <div className="flex flex-col gap-3 max-h-[260px] overflow-y-auto pr-1">
-              {allVoices.map((v) => {
-                const isSelected = voiceId === v.voiceId;
-                const isLocked = v.premium && user && !user.premiumAccess;
-                const isPreviewing = previewingVoice === v.voiceId;
-
-                return (
-                  <div
-                    key={v.voiceId}
-                    onClick={() => {
-                      setVoiceId(v.voiceId);
-                      setError(null);
-                    }}
-                    className={`p-3.5 sm:p-4 rounded-xl border transition-all duration-200 cursor-pointer flex flex-col gap-2.5 ${
-                      isSelected
-                        ? 'border-indigo-500/60 bg-indigo-500/10 shadow-md'
-                        : 'border-input bg-background/50 hover:bg-background/80'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs font-bold text-foreground truncate">{v.name}</span>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-indigo-500 shrink-0" />}
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handlePreviewVoice(v);
-                          }}
-                          disabled={isPreviewing}
-                          className="px-2 py-0.5 rounded bg-background border border-input text-[9px] font-bold text-indigo-500 flex items-center gap-1 transition disabled:opacity-50 cursor-pointer"
-                        >
-                          {isPreviewing ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3 fill-indigo-500" />}
-                          <span>Preview</span>
-                        </button>
-
-                        {v.premium && (
-                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                            isLocked
-                              ? 'bg-neutral-200 dark:bg-neutral-800 text-neutral-500 border border-input'
-                              : 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20'
-                          }`}>
-                            {isLocked ? 'Locked' : 'Premium'}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <p className="text-[11px] text-neutral-500 dark:text-neutral-400 leading-normal font-medium">{v.description}</p>
-                  </div>
-                );
-              })}
-            </div>
+            <VoiceSelector
+              selectedVoiceId={voiceId}
+              onChange={(newVoiceId) => setVoiceId(newVoiceId)}
+              systemVoices={systemVoices}
+              customVoices={customVoices}
+              previewingVoiceId={previewingVoice}
+              onPreviewVoice={(v) => handlePreviewVoice(v)}
+            />
           </div>
 
           {/* Voice Advanced Waveform Controls Card */}
@@ -448,8 +357,8 @@ export default function SpeechStudio() {
                 </div>
                 <input 
                   type="range" 
-                  min="-20" 
-                  max="20" 
+                  min="-12" 
+                  max="12" 
                   value={pitch} 
                   onChange={(e) => setPitch(parseInt(e.target.value))} 
                   className="w-full h-1.5 bg-background rounded-lg appearance-none cursor-pointer accent-indigo-600"
@@ -480,12 +389,11 @@ export default function SpeechStudio() {
                   onChange={(e) => setTone(e.target.value)}
                   className="bg-background text-xs text-foreground border border-input rounded-lg p-2 focus:outline-none focus:border-indigo-500"
                 >
-                  <option value="neutral">Neutral</option>
-                  <option value="deep">Deep & Bass</option>
-                  <option value="warm">Warm Narration</option>
-                  <option value="professional">Professional corporate</option>
-                  <option value="cinematic">Cinematic Wide</option>
-                  <option value="dramatic">Dramatic Studio</option>
+                  <option value="natural">Natural</option>
+                  <option value="documentary">Documentary</option>
+                  <option value="cinematic">Cinematic</option>
+                  <option value="podcast">Podcast</option>
+                  <option value="radio">Radio</option>
                 </select>
               </div>
 
@@ -529,7 +437,7 @@ export default function SpeechStudio() {
                     <div className="flex flex-col min-w-0">
                       <span className="text-xs font-bold text-foreground truncate">{p.presetName}</span>
                       <span className="text-[10px] text-neutral-400 truncate">
-                        {DEEP_MALE_VOICES.find((v) => v.voiceId === p.voiceId)?.name || allVoices.find((v) => v.voiceId === p.voiceId)?.name || p.voiceId} ({p.speed}x)
+                        {allVoices.find((v: VoiceOption) => v.voiceId === p.voiceId)?.name || p.voiceId} ({p.speed}x)
                       </span>
                     </div>
 

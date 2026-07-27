@@ -26,6 +26,9 @@ export default function UserLogin() {
       if (params.get('logout') === 'success') {
         setSuccessMsg('Logged out successfully.');
       }
+      if (params.get('expired') === 'true') {
+        setErrorMsg('Your session has expired. Please log in again.');
+      }
     }
   }, []);
 

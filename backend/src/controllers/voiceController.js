@@ -49,12 +49,12 @@ exports.cloneVoice = async (req, res) => {
     const base64Data = audioData.replace(/^data:audio\/\w+;base64,/, '');
     const audioBuffer = Buffer.from(base64Data, 'base64');
 
-    // Size limit (10MB max)
-    const MAX_SIZE_BYTES = 10 * 1024 * 1024;
+    // Size limit (50MB max)
+    const MAX_SIZE_BYTES = 50 * 1024 * 1024;
     if (audioBuffer.length > MAX_SIZE_BYTES) {
       return res.status(400).json({
         success: false,
-        message: 'Voice sample file size must be below 10MB.'
+        message: 'Voice sample file size must be below 50MB.'
       });
     }
 
@@ -76,12 +76,16 @@ exports.cloneVoice = async (req, res) => {
     // Save Voice Profile to DB
     const voiceProfile = new Voice({
       userId: user._id,
+      name: voiceName.trim(),
       voiceName: voiceName.trim(),
       type: 'custom',
       provider: cloneResult.provider,
       sampleUrl: cloneResult.sampleUrl,
       embeddingUrl: cloneResult.embeddingUrl,
-      settings: cloneResult.settings
+      settings: cloneResult.settings,
+      modelProvider: cloneResult.provider,
+      voiceEmbedding: cloneResult.embeddingUrl,
+      sampleFiles: [cloneResult.sampleUrl]
     });
 
     await voiceProfile.save();
@@ -109,11 +113,15 @@ exports.getVoiceLibrary = async (req, res) => {
   try {
     const user = req.user;
 
+    // Fetch active system default voices
+    const systemVoices = await Voice.find({ type: 'default', isActive: true });
+
     // Fetch custom voices owned by the current user
     const customVoices = await Voice.find({ userId: user._id, type: 'custom' });
 
     res.status(200).json({
       success: true,
+      systemVoices,
       customVoices
     });
   } catch (error) {

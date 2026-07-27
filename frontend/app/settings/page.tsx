@@ -174,7 +174,7 @@ export default function SettingsPage() {
 
               <button
                 type="button"
-                onClick={logout}
+                onClick={() => logout()}
                 className="px-4 py-2 rounded-xl bg-red-950/30 border border-red-900/50 hover:bg-red-900/40 text-red-400 text-xs font-semibold flex items-center gap-1.5 transition shrink-0"
               >
                 <LogOut className="w-4 h-4" /> End Session

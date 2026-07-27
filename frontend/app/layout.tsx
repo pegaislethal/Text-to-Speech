@@ -5,6 +5,7 @@ import { AuthProvider } from '../context/authContext';
 import { ThemeProvider } from '../context/themeContext';
 import { ToastProvider } from '../context/toastContext';
 import GoogleAuthProvider from '../components/GoogleAuthProvider';
+import { SessionTimeoutProvider } from '../components/SessionTimeoutProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -25,7 +26,9 @@ export default function RootLayout({
           <ToastProvider>
             <GoogleAuthProvider>
               <AuthProvider>
-                {children}
+                <SessionTimeoutProvider>
+                  {children}
+                </SessionTimeoutProvider>
               </AuthProvider>
             </GoogleAuthProvider>
           </ToastProvider>

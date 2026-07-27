@@ -33,6 +33,7 @@ router.post('/auth/login', authController.userLogin);
 router.post('/auth/admin/signup', authController.adminSignup);
 router.post('/auth/admin/login', authController.adminLogin);
 router.post('/auth/logout', authController.logout);
+router.post('/auth/refresh', authMiddleware, authController.refreshSession);
 router.get('/auth/me', authMiddleware, (req, res) => {
   res.status(200).json({
     success: true,

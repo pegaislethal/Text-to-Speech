@@ -59,14 +59,14 @@ exports.googleLogin = async (req, res) => {
     const token = jwt.sign(
       { id: user._id, userId: user._id, email: user.email, role: user.role, premiumAccess: user.premiumAccess },
       process.env.JWT_SECRET || 'fallback_secret_key_123',
-      { expiresIn: '7d' }
+      { expiresIn: '25m' }
     );
 
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      maxAge: 25 * 60 * 1000
     });
 
     res.status(200).json({
@@ -127,14 +127,14 @@ exports.userSignup = async (req, res) => {
     const token = jwt.sign(
       { id: newUser._id, userId: newUser._id, email: newUser.email, role: newUser.role, premiumAccess: newUser.premiumAccess },
       process.env.JWT_SECRET || 'fallback_secret_key_123',
-      { expiresIn: '7d' }
+      { expiresIn: '25m' }
     );
 
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      maxAge: 25 * 60 * 1000
     });
 
     res.status(201).json({
@@ -188,14 +188,14 @@ exports.userLogin = async (req, res) => {
     const token = jwt.sign(
       { id: user._id, userId: user._id, email: user.email, role: user.role, premiumAccess: user.premiumAccess },
       process.env.JWT_SECRET || 'fallback_secret_key_123',
-      { expiresIn: '7d' }
+      { expiresIn: '25m' }
     );
 
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      maxAge: 25 * 60 * 1000
     });
 
     res.status(200).json({
@@ -250,14 +250,14 @@ exports.adminSignup = async (req, res) => {
     const token = jwt.sign(
       { id: newAdmin._id, userId: newAdmin._id, email: newAdmin.email, role: newAdmin.role, premiumAccess: newAdmin.premiumAccess },
       process.env.JWT_SECRET || 'fallback_secret_key_123',
-      { expiresIn: '7d' }
+      { expiresIn: '25m' }
     );
 
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      maxAge: 25 * 60 * 1000
     });
 
     res.status(201).json({
@@ -312,14 +312,14 @@ exports.adminLogin = async (req, res) => {
     const token = jwt.sign(
       { id: user._id, userId: user._id, email: user.email, role: user.role, premiumAccess: user.premiumAccess },
       process.env.JWT_SECRET || 'fallback_secret_key_123',
-      { expiresIn: '7d' }
+      { expiresIn: '25m' }
     );
 
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000
+      maxAge: 25 * 60 * 1000
     });
 
     res.status(200).json({
@@ -350,5 +350,45 @@ exports.logout = async (req, res) => {
   } catch (error) {
     console.error('Logout error:', error);
     res.status(500).json({ success: false, message: 'Logout failed: ' + error.message });
+  }
+};
+
+// Session Refresh Handler
+exports.refreshSession = async (req, res) => {
+  try {
+    const user = req.user;
+    const token = jwt.sign(
+      { id: user._id, userId: user._id, email: user.email, role: user.role, premiumAccess: user.premiumAccess },
+      process.env.JWT_SECRET || 'fallback_secret_key_123',
+      { expiresIn: '25m' }
+    );
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 25 * 60 * 1000
+    });
+
+    res.setHeader('x-new-token', token);
+    res.setHeader('Access-Control-Expose-Headers', 'x-new-token');
+
+    res.status(200).json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        profileImage: user.profileImageUrl || user.profileImage,
+        role: user.role,
+        premiumAccess: user.premiumAccess,
+        freeCredits: user.freeCredits,
+        usedCredits: user.usedCredits
+      }
+    });
+  } catch (error) {
+    console.error('Session refresh error:', error);
+    res.status(500).json({ success: false, message: 'Failed to refresh session: ' + error.message });
   }
 };
