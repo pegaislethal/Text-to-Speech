@@ -58,14 +58,14 @@ export const VoiceSelector: React.FC<VoiceSelectorProps> = ({
   return (
     <div className="flex flex-col gap-4 w-full">
       {/* Category Filter Tabs */}
-      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-background border border-input w-fit select-none">
+      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[var(--bg-input)] border border-[var(--border-app)] w-fit select-none">
         <button
           type="button"
           onClick={() => setActiveTab('all')}
           className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
             activeTab === 'all'
-              ? 'bg-card text-foreground shadow-sm border border-input'
-              : 'text-neutral-500 hover:text-foreground'
+              ? 'bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm border border-[var(--border-app)]'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
           All Voices ({allVoices.length})
@@ -75,8 +75,8 @@ export const VoiceSelector: React.FC<VoiceSelectorProps> = ({
           onClick={() => setActiveTab('system')}
           className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
             activeTab === 'system'
-              ? 'bg-card text-foreground shadow-sm border border-input'
-              : 'text-neutral-500 hover:text-foreground'
+              ? 'bg-[var(--bg-card)] text-[var(--text-primary)] shadow-sm border border-[var(--border-app)]'
+              : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
           System Default ({systemVoices.length})
@@ -87,11 +87,11 @@ export const VoiceSelector: React.FC<VoiceSelectorProps> = ({
             onClick={() => setActiveTab('custom')}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
               activeTab === 'custom'
-                ? 'bg-card text-indigo-400 shadow-sm border border-input'
-                : 'text-neutral-500 hover:text-foreground'
+                ? 'bg-[var(--bg-card)] text-indigo-500 shadow-sm border border-[var(--border-app)]'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
             }`}
           >
-            <Sparkles className="w-3 h-3 text-indigo-400" />
+            <Sparkles className="w-3 h-3 text-indigo-500" />
             Custom Cloned ({customVoices.length})
           </button>
         )}
@@ -99,9 +99,9 @@ export const VoiceSelector: React.FC<VoiceSelectorProps> = ({
 
       {/* Interactive Voice Cards Grid */}
       {filteredVoices.length === 0 ? (
-        <div className="p-8 text-center border border-dashed border-input rounded-2xl bg-card/50 flex flex-col items-center gap-2">
-          <Mic className="w-6 h-6 text-neutral-400" />
-          <p className="text-xs text-neutral-500 font-medium">No voice profiles found in this category.</p>
+        <div className="p-8 text-center border border-dashed border-[var(--border-app)] rounded-2xl bg-[var(--bg-card)]/50 flex flex-col items-center gap-2">
+          <Mic className="w-6 h-6 text-[var(--text-muted)]" />
+          <p className="text-xs text-[var(--text-secondary)] font-medium">No voice profiles found in this category.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 max-h-[380px] overflow-y-auto pr-1">
@@ -118,7 +118,7 @@ export const VoiceSelector: React.FC<VoiceSelectorProps> = ({
                 className={`group p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between gap-3 relative overflow-hidden ${
                   isSelected
                     ? 'border-indigo-500 bg-indigo-500/10 shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-500/50'
-                    : 'border-input bg-card hover:bg-card-hover hover:border-neutral-700'
+                    : 'border-[var(--border-app)] bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] hover:border-indigo-500/30'
                 }`}
               >
                 {/* Accent selection indicator */}
@@ -130,7 +130,7 @@ export const VoiceSelector: React.FC<VoiceSelectorProps> = ({
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className={`text-sm font-bold truncate ${isSelected ? 'text-indigo-400' : 'text-foreground'}`}>
+                      <span className={`text-sm font-bold truncate ${isSelected ? 'text-indigo-500' : 'text-[var(--text-primary)]'}`}>
                         {v.name}
                       </span>
                     </div>
@@ -140,15 +140,15 @@ export const VoiceSelector: React.FC<VoiceSelectorProps> = ({
                         <span
                           className={`text-[9px] px-2 py-0.5 rounded-full font-extrabold uppercase flex items-center gap-1 ${
                             isLocked
-                              ? 'bg-neutral-800 text-neutral-400 border border-neutral-700'
-                              : 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
+                              ? 'bg-[var(--bg-muted)] text-[var(--text-muted)] border border-[var(--border-app)]'
+                              : 'bg-indigo-500/15 text-indigo-500 border border-indigo-500/30'
                           }`}
                         >
                           {isLocked && <Lock className="w-2.5 h-2.5" />}
                           {isLocked ? 'Locked' : 'Premium'}
                         </span>
                       ) : (
-                        <span className="text-[9px] px-2 py-0.5 rounded-full font-extrabold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <span className="text-[9px] px-2 py-0.5 rounded-full font-extrabold uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
                           Free
                         </span>
                       )}
@@ -156,9 +156,9 @@ export const VoiceSelector: React.FC<VoiceSelectorProps> = ({
                   </div>
 
                   {/* Category / Gender Badge */}
-                  <div className="flex items-center gap-2 text-[10px] text-neutral-400 font-medium">
+                  <div className="flex items-center gap-2 text-[10px] text-[var(--text-secondary)] font-medium">
                     {v.category && (
-                      <span className="px-2 py-0.5 rounded-md bg-background border border-input text-neutral-400 uppercase tracking-wider font-semibold">
+                      <span className="px-2 py-0.5 rounded-md bg-[var(--bg-input)] border border-[var(--border-app)] text-[var(--text-secondary)] uppercase tracking-wider font-semibold">
                         {v.category}
                       </span>
                     )}
@@ -167,14 +167,14 @@ export const VoiceSelector: React.FC<VoiceSelectorProps> = ({
 
                   {/* Description */}
                   {v.description && (
-                    <p className="text-xs text-neutral-400 leading-relaxed line-clamp-2 mt-0.5 font-normal">
+                    <p className="text-xs text-[var(--text-secondary)] leading-relaxed line-clamp-2 mt-0.5 font-normal">
                       {v.description}
                     </p>
                   )}
                 </div>
 
                 {/* Bottom Row: Actions (Preview & Select) */}
-                <div className="flex items-center justify-between gap-2 pt-2 border-t border-input/60 mt-1">
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--border-app)] mt-1">
                   <button
                     type="button"
                     onClick={(e) => {
@@ -182,12 +182,12 @@ export const VoiceSelector: React.FC<VoiceSelectorProps> = ({
                       onPreviewVoice(v);
                     }}
                     disabled={isPreviewing}
-                    className="px-3 py-1.5 rounded-xl bg-background hover:bg-neutral-800 border border-input text-xs font-bold text-indigo-400 flex items-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
+                    className="px-3 py-1.5 rounded-xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-app)] text-xs font-bold text-indigo-500 flex items-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
                   >
                     {isPreviewing ? (
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-500" />
                     ) : (
-                      <Play className="w-3.5 h-3.5 fill-indigo-400 text-indigo-400" />
+                      <Play className="w-3.5 h-3.5 fill-indigo-500 text-indigo-500" />
                     )}
                     <span>{isPreviewing ? 'Loading...' : 'Preview'}</span>
                   </button>
@@ -202,8 +202,8 @@ export const VoiceSelector: React.FC<VoiceSelectorProps> = ({
                       isSelected
                         ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
                         : isLocked
-                        ? 'bg-neutral-800 text-neutral-400 border border-neutral-700'
-                        : 'bg-background hover:bg-indigo-600/10 text-neutral-300 border border-input hover:border-indigo-500/40'
+                        ? 'bg-[var(--bg-muted)] text-[var(--text-muted)] border border-[var(--border-app)]'
+                        : 'bg-[var(--bg-input)] hover:bg-indigo-500/10 text-[var(--text-primary)] border border-[var(--border-app)] hover:border-indigo-500/40'
                     }`}
                   >
                     {isSelected ? (

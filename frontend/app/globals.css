@@ -3,13 +3,26 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --color-background: var(--bg-app);
+  --color-foreground: var(--text-primary);
+  --color-card: var(--bg-card);
+  --color-card-foreground: var(--text-primary);
+  --color-sidebar: var(--bg-sidebar);
+  --color-input: var(--bg-input);
+  --color-border: var(--border-app);
+  --color-muted: var(--bg-muted);
+  --color-muted-foreground: var(--text-muted);
+  --color-secondary-foreground: var(--text-secondary);
+}
+
 :root, html.dark {
   --background: var(--bg-app);
   --foreground: var(--text-primary);
   --card: var(--bg-card);
   --card-foreground: var(--text-primary);
   --border: var(--border-app);
-  --input: var(--border-app);
+  --input: var(--bg-input);
   --primary: var(--accent-primary);
   --primary-foreground: #ffffff;
   color-scheme: dark;
@@ -21,7 +34,7 @@ html.light {
   --card: var(--bg-card);
   --card-foreground: var(--text-primary);
   --border: var(--border-app);
-  --input: var(--border-app);
+  --input: var(--bg-input);
   --primary: var(--accent-primary);
   --primary-foreground: #ffffff;
   color-scheme: light;

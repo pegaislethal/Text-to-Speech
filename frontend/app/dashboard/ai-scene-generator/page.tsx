@@ -382,7 +382,7 @@ export default function DashboardAISceneGenerator() {
                   max="12" 
                   value={pitch} 
                   onChange={(e) => setPitch(parseInt(e.target.value))} 
-                  className="w-full h-1 bg-[var(--border-app)] rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                  className="w-full focus:outline-none"
                 />
               </div>
 
@@ -398,7 +398,7 @@ export default function DashboardAISceneGenerator() {
                   max="100" 
                   value={depth} 
                   onChange={(e) => setDepth(parseInt(e.target.value))} 
-                  className="w-full h-1 bg-[var(--border-app)] rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                  className="w-full focus:outline-none"
                 />
               </div>
 

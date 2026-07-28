@@ -279,12 +279,12 @@ export default function SpeechStudio() {
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-6 pb-16 animate-in fade-in duration-300">
       {/* Studio Header */}
-      <div className="border-b border-input pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="border-b border-[var(--border-app)] pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-foreground via-neutral-200 to-indigo-400 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-[var(--text-primary)] via-indigo-400 to-indigo-500 bg-clip-text text-transparent">
             Speech Studio
           </h1>
-          <p className="text-neutral-400 text-sm mt-1">
+          <p className="text-[var(--text-secondary)] text-sm mt-1">
             Write your script and synthesize natural AI voice narration.
           </p>
         </div>
@@ -292,9 +292,9 @@ export default function SpeechStudio() {
         <div className="flex items-center gap-3">
           <ThemeToggle />
           {user && !user.premiumAccess && (
-            <div className="px-4 py-2 rounded-xl bg-card border border-input flex items-center gap-3 shadow-sm">
-              <span className="text-xs text-neutral-400 font-medium">Quota:</span>
-              <span className="text-sm font-bold text-indigo-400">{user.freeCredits - user.usedCredits} credits</span>
+            <div className="px-4 py-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-app)] flex items-center gap-3 shadow-sm">
+              <span className="text-xs text-[var(--text-secondary)] font-medium">Quota:</span>
+              <span className="text-sm font-bold text-indigo-500">{user.freeCredits - user.usedCredits} credits</span>
             </div>
           )}
         </div>
@@ -305,12 +305,12 @@ export default function SpeechStudio() {
         
         {/* LEFT COLUMN: Script Creation Area (60% Width - lg:col-span-7) */}
         <div className="lg:col-span-7 flex flex-col gap-6">
-          <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-6 shadow-xl flex flex-col gap-4">
-            <div className="flex items-center justify-between border-b border-input pb-3">
-              <h2 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase tracking-wider">
-                <FileText className="w-4 h-4 text-indigo-400" /> Write Your Script
+          <div className="rounded-2xl border bg-[var(--bg-card)] border-[var(--border-app)] backdrop-blur-xl p-6 shadow-xl flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b border-[var(--border-app)] pb-3">
+              <h2 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2 uppercase tracking-wider">
+                <FileText className="w-4 h-4 text-indigo-500" /> Write Your Script
               </h2>
-              <span className="text-xs font-mono font-semibold text-neutral-400">
+              <span className="text-xs font-mono font-semibold text-[var(--text-secondary)]">
                 {characterCount} / 2000 chars
               </span>
             </div>
@@ -323,12 +323,12 @@ export default function SpeechStudio() {
               }}
               placeholder="Write your narration script here..."
               maxLength={2000}
-              className="w-full min-h-[380px] lg:min-h-[480px] bg-transparent text-foreground placeholder-neutral-500 focus:outline-none resize-y text-sm sm:text-base leading-relaxed font-sans"
+              className="w-full min-h-[380px] lg:min-h-[480px] bg-transparent text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none resize-y text-sm sm:text-base leading-relaxed font-sans"
             />
 
-            <div className="flex flex-wrap items-center justify-between border-t border-input pt-4 text-xs text-neutral-400 gap-3">
-              <span>Characters: <strong className="text-foreground">{characterCount}</strong></span>
-              <span>Credits required: <strong className="text-indigo-400">{creditsRequired} credits</strong></span>
+            <div className="flex flex-wrap items-center justify-between border-t border-[var(--border-app)] pt-4 text-xs text-[var(--text-secondary)] gap-3">
+              <span>Characters: <strong className="text-[var(--text-primary)]">{characterCount}</strong></span>
+              <span>Credits required: <strong className="text-indigo-500">{creditsRequired} credits</strong></span>
             </div>
           </div>
 
@@ -352,9 +352,9 @@ export default function SpeechStudio() {
 
             {/* Error Banner */}
             {error && (
-              <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/10 flex gap-3 text-red-400 animate-in fade-in">
+              <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/10 flex gap-3 text-red-500 text-xs font-semibold animate-in fade-in">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <div className="flex flex-col gap-0.5 text-xs">
+                <div className="flex flex-col gap-0.5">
                   <span className="font-bold">Generation Error</span>
                   <p className="opacity-90">{error}</p>
                 </div>
@@ -374,8 +374,8 @@ export default function SpeechStudio() {
                     {isPlaying ? <Pause className="w-4 h-4 fill-white" /> : <Play className="w-4 h-4 fill-white ml-0.5" />}
                   </button>
                   <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-bold text-foreground truncate">Synthesized Output</span>
-                    <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
+                    <span className="text-xs font-bold text-[var(--text-primary)] truncate">Synthesized Output</span>
+                    <span className="text-[10px] text-emerald-500 font-semibold flex items-center gap-1 mt-0.5">
                       <CheckCircle className="w-3.5 h-3.5 shrink-0" /> Audio ready
                     </span>
                   </div>
@@ -387,7 +387,7 @@ export default function SpeechStudio() {
                   ref={audioRef}
                   controls
                   src={getFullAudioUrl(audioUrl)}
-                  className="h-9 text-xs rounded-xl w-full border border-input bg-card"
+                  className="h-9 text-xs rounded-xl w-full border border-[var(--border-app)] bg-[var(--bg-input)]"
                   onPlay={() => setIsPlaying(true)}
                   onPause={() => setIsPlaying(false)}
                   onEnded={() => setIsPlaying(false)}
@@ -415,14 +415,14 @@ export default function SpeechStudio() {
         <div className="lg:col-span-5 flex flex-col gap-6">
           
           {/* SECTION 1: CHOOSE YOUR VOICE */}
-          <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-5 shadow-xl flex flex-col gap-4">
-            <div className="flex items-center justify-between border-b border-input pb-3">
-              <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
-                <Mic className="w-4 h-4 text-indigo-400" /> Choose Your Voice
+          <div className="rounded-2xl border bg-[var(--bg-card)] border-[var(--border-app)] backdrop-blur-xl p-5 shadow-xl flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b border-[var(--border-app)] pb-3">
+              <h3 className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
+                <Mic className="w-4 h-4 text-indigo-500" /> Choose Your Voice
               </h3>
               {selectedVoiceObj && (
-                <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1">
-                  Selected: <strong className="text-foreground truncate max-w-[120px]">{selectedVoiceObj.name}</strong> <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span className="text-[11px] font-semibold text-emerald-500 flex items-center gap-1">
+                  Selected: <strong className="text-[var(--text-primary)] truncate max-w-[120px]">{selectedVoiceObj.name}</strong> <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                 </span>
               )}
             </div>
@@ -438,10 +438,10 @@ export default function SpeechStudio() {
           </div>
 
           {/* SECTION 2: VOICE CONTROLS */}
-          <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-5 shadow-xl flex flex-col gap-4">
-            <div className="flex items-center gap-2 border-b border-input pb-3">
-              <Sliders className="w-4 h-4 text-indigo-400" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Voice Controls</h3>
+          <div className="rounded-2xl border bg-[var(--bg-card)] border-[var(--border-app)] backdrop-blur-xl p-5 shadow-xl flex flex-col gap-4">
+            <div className="flex items-center gap-2 border-b border-[var(--border-app)] pb-3">
+              <Sliders className="w-4 h-4 text-indigo-500" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">Voice Controls</h3>
             </div>
 
             <div className="flex flex-col gap-4">
@@ -450,9 +450,9 @@ export default function SpeechStudio() {
 
               {/* Pitch Offset */}
               <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between text-[11px] font-semibold text-neutral-400">
+                <div className="flex justify-between text-[11px] font-semibold text-[var(--text-secondary)]">
                   <span>Pitch Offset</span>
-                  <span className="font-mono text-indigo-400">{pitch > 0 ? `+${pitch}` : pitch}</span>
+                  <span className="font-mono text-indigo-500">{pitch > 0 ? `+${pitch}` : pitch}</span>
                 </div>
                 <input 
                   type="range" 
@@ -460,9 +460,9 @@ export default function SpeechStudio() {
                   max="12" 
                   value={pitch} 
                   onChange={(e) => setPitch(parseInt(e.target.value))} 
-                  className="w-full h-1.5 bg-background rounded-lg appearance-none cursor-pointer accent-indigo-600 focus:outline-none"
+                  className="w-full focus:outline-none"
                 />
-                <div className="flex justify-between text-[9px] text-neutral-500">
+                <div className="flex justify-between text-[9px] text-[var(--text-muted)]">
                   <span>-12</span>
                   <span>0</span>
                   <span>+12</span>
@@ -471,9 +471,9 @@ export default function SpeechStudio() {
 
               {/* Voice Depth */}
               <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between text-[11px] font-semibold text-neutral-400">
+                <div className="flex justify-between text-[11px] font-semibold text-[var(--text-secondary)]">
                   <span>Voice Depth</span>
-                  <span className="font-mono text-indigo-400">{depth}%</span>
+                  <span className="font-mono text-indigo-500">{depth}%</span>
                 </div>
                 <input 
                   type="range" 
@@ -481,9 +481,9 @@ export default function SpeechStudio() {
                   max="100" 
                   value={depth} 
                   onChange={(e) => setDepth(parseInt(e.target.value))} 
-                  className="w-full h-1.5 bg-background rounded-lg appearance-none cursor-pointer accent-indigo-600 focus:outline-none"
+                  className="w-full focus:outline-none"
                 />
-                <div className="flex justify-between text-[9px] text-neutral-500">
+                <div className="flex justify-between text-[9px] text-[var(--text-muted)]">
                   <span>0</span>
                   <span>100</span>
                 </div>
@@ -491,11 +491,11 @@ export default function SpeechStudio() {
 
               {/* EQ Tone Preset */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-semibold text-neutral-400">EQ Tone</label>
+                <label className="text-[11px] font-semibold text-[var(--text-secondary)]">EQ Tone</label>
                 <select
                   value={tone}
                   onChange={(e) => setTone(e.target.value)}
-                  className="bg-background text-xs text-foreground border border-input rounded-xl p-2.5 focus:outline-none focus:border-indigo-500 cursor-pointer font-medium"
+                  className="bg-[var(--bg-input)] text-xs text-[var(--text-primary)] border border-[var(--border-app)] rounded-xl p-2.5 focus:outline-none focus:border-indigo-500 cursor-pointer font-medium"
                 >
                   <option value="natural">Natural</option>
                   <option value="documentary">Documentary</option>
@@ -508,10 +508,10 @@ export default function SpeechStudio() {
           </div>
 
           {/* SECTION 3: VOICE PRESETS */}
-          <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-5 shadow-xl flex flex-col gap-4">
-            <div className="flex items-center gap-2 border-b border-input pb-3">
-              <Bookmark className="w-4 h-4 text-indigo-400" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Voice Presets</h3>
+          <div className="rounded-2xl border bg-[var(--bg-card)] border-[var(--border-app)] backdrop-blur-xl p-5 shadow-xl flex flex-col gap-4">
+            <div className="flex items-center gap-2 border-b border-[var(--border-app)] pb-3">
+              <Bookmark className="w-4 h-4 text-indigo-500" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">Voice Presets</h3>
             </div>
 
             <div className="flex items-center gap-2">
@@ -520,7 +520,7 @@ export default function SpeechStudio() {
                 placeholder="Save current settings..."
                 value={presetNameInput}
                 onChange={(e) => setPresetNameInput(e.target.value)}
-                className="flex-1 min-w-0 bg-background border border-input rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500"
+                className="flex-1 min-w-0 bg-[var(--bg-input)] border border-[var(--border-app)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
               />
               <button
                 onClick={handleSavePreset}
@@ -535,18 +535,18 @@ export default function SpeechStudio() {
             {presets.length > 0 && (
               <div className="flex flex-col gap-2 max-h-[140px] overflow-y-auto pr-1">
                 {presets.map((p) => (
-                  <div key={p._id} className="p-2.5 rounded-xl border border-input bg-background flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold text-foreground truncate">{p.presetName}</span>
+                  <div key={p._id} className="p-2.5 rounded-xl border border-[var(--border-app)] bg-[var(--bg-input)] flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-[var(--text-primary)] truncate">{p.presetName}</span>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         onClick={() => handleApplyPreset(p)}
-                        className="px-2 py-1 rounded bg-card text-[10px] font-bold text-indigo-400 border border-input hover:bg-neutral-800 transition"
+                        className="px-2.5 py-1 rounded-lg bg-[var(--bg-card)] text-[10px] font-bold text-indigo-500 border border-[var(--border-app)] hover:bg-[var(--bg-card-hover)] transition"
                       >
                         Load
                       </button>
                       <button
                         onClick={() => handleDeletePresetItem(p._id)}
-                        className="p-1 text-neutral-500 hover:text-red-400 transition"
+                        className="p-1 text-[var(--text-muted)] hover:text-red-500 transition"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
