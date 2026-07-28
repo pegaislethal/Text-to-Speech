@@ -331,6 +331,84 @@ export default function SpeechStudio() {
               <span>Credits required: <strong className="text-indigo-400">{creditsRequired} credits</strong></span>
             </div>
           </div>
+
+          {/* Primary Action: Generate Speech Button Directly Below Script */}
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={handleGenerate}
+              disabled={generating || !text.trim()}
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 transition-all duration-300 font-extrabold text-sm text-white shadow-xl shadow-indigo-600/25 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 active:scale-98 cursor-pointer"
+            >
+              {generating ? (
+                <>
+                  <RefreshCw className="w-4.5 h-4.5 animate-spin" /> Generating Audio...
+                </>
+              ) : (
+                <>
+                  <Volume2 className="w-4.5 h-4.5" /> Generate Speech
+                </>
+              )}
+            </button>
+
+            {/* Error Banner */}
+            {error && (
+              <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/10 flex gap-3 text-red-400 animate-in fade-in">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <div className="flex flex-col gap-0.5 text-xs">
+                  <span className="font-bold">Generation Error</span>
+                  <p className="opacity-90">{error}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Generated Result Card below left script panel */}
+          {audioUrl && (
+            <div ref={resultCardRef} className="p-5 rounded-2xl border border-indigo-500/30 bg-indigo-500/10 backdrop-blur-xl shadow-2xl flex flex-col gap-4 animate-in fade-in">
+              <div className="flex items-center justify-between border-b border-indigo-500/20 pb-3">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={togglePlay}
+                    className="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white transition active:scale-95 shadow-lg shadow-indigo-500/30 shrink-0 cursor-pointer"
+                  >
+                    {isPlaying ? <Pause className="w-4 h-4 fill-white" /> : <Play className="w-4 h-4 fill-white ml-0.5" />}
+                  </button>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold text-foreground truncate">Synthesized Output</span>
+                    <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
+                      <CheckCircle className="w-3.5 h-3.5 shrink-0" /> Audio ready
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <audio
+                  ref={audioRef}
+                  controls
+                  src={getFullAudioUrl(audioUrl)}
+                  className="h-9 text-xs rounded-xl w-full border border-input bg-card"
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                  onEnded={() => setIsPlaying(false)}
+                  onError={(e) => {
+                    console.error('Audio element error:', e);
+                    setError('Failed to play audio stream from backend server.');
+                  }}
+                />
+
+                <div className="flex justify-end">
+                  <DownloadButton
+                    onClick={handleExportMp3}
+                    loading={downloadingMp3}
+                    label="Export MP3"
+                    variant="primary"
+                    size="md"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* RIGHT COLUMN: Voice Workspace & Controls (40% Width - lg:col-span-5) */}
@@ -478,85 +556,6 @@ export default function SpeechStudio() {
               </div>
             )}
           </div>
-
-          {/* BOTTOM ACTION: GENERATE SPEECH BUTTON */}
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={handleGenerate}
-              disabled={generating || !text.trim()}
-              className="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 transition-all duration-300 font-extrabold text-sm text-white shadow-xl shadow-indigo-600/25 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 active:scale-98 cursor-pointer"
-            >
-              {generating ? (
-                <>
-                  <RefreshCw className="w-4.5 h-4.5 animate-spin" /> Generating Audio...
-                </>
-              ) : (
-                <>
-                  <Volume2 className="w-4.5 h-4.5" /> Generate Speech
-                </>
-              )}
-            </button>
-
-            {/* Error Banner */}
-            {error && (
-              <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/10 flex gap-3 text-red-400 animate-in fade-in">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <div className="flex flex-col gap-0.5 text-xs">
-                  <span className="font-bold">Generation Error</span>
-                  <p className="opacity-90">{error}</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Generated Result Card below right panel */}
-          {audioUrl && (
-            <div ref={resultCardRef} className="p-5 rounded-2xl border border-indigo-500/30 bg-indigo-500/10 backdrop-blur-xl shadow-2xl flex flex-col gap-4 animate-in fade-in">
-              <div className="flex items-center justify-between border-b border-indigo-500/20 pb-3">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={togglePlay}
-                    className="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white transition active:scale-95 shadow-lg shadow-indigo-500/30 shrink-0 cursor-pointer"
-                  >
-                    {isPlaying ? <Pause className="w-4 h-4 fill-white" /> : <Play className="w-4 h-4 fill-white ml-0.5" />}
-                  </button>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-bold text-foreground truncate">Synthesized Output</span>
-                    <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
-                      <CheckCircle className="w-3.5 h-3.5 shrink-0" /> Audio ready
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <audio
-                  ref={audioRef}
-                  controls
-                  src={getFullAudioUrl(audioUrl)}
-                  className="h-9 text-xs rounded-xl w-full border border-input bg-card"
-                  onPlay={() => setIsPlaying(true)}
-                  onPause={() => setIsPlaying(false)}
-                  onEnded={() => setIsPlaying(false)}
-                  onError={(e) => {
-                    console.error('Audio element error:', e);
-                    setError('Failed to play audio stream from backend server.');
-                  }}
-                />
-
-                <div className="flex justify-end">
-                  <DownloadButton
-                    onClick={handleExportMp3}
-                    loading={downloadingMp3}
-                    label="Export MP3"
-                    variant="primary"
-                    size="md"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
         </div>
       </div>
     </div>
