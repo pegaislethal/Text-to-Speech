@@ -173,8 +173,8 @@ export const VoiceSelector: React.FC<VoiceSelectorProps> = ({
                   )}
                 </div>
 
-                {/* Bottom Row: Actions (Preview & Select) */}
-                <div className="flex items-center justify-between gap-2 pt-2 border-t border-[var(--border-app)] mt-1">
+                {/* Bottom Row: Actions (Preview & Select Grid) */}
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[var(--border-app)] mt-1">
                   <button
                     type="button"
                     onClick={(e) => {
@@ -182,14 +182,14 @@ export const VoiceSelector: React.FC<VoiceSelectorProps> = ({
                       onPreviewVoice(v);
                     }}
                     disabled={isPreviewing}
-                    className="px-3 py-1.5 rounded-xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-app)] text-xs font-bold text-indigo-500 flex items-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
+                    className="w-full px-2 py-1.5 rounded-xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-app)] text-[11px] font-bold text-indigo-500 flex items-center justify-center gap-1 transition disabled:opacity-50 cursor-pointer whitespace-nowrap"
                   >
                     {isPreviewing ? (
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-500" />
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-500 shrink-0" />
                     ) : (
-                      <Play className="w-3.5 h-3.5 fill-indigo-500 text-indigo-500" />
+                      <Play className="w-3.5 h-3.5 fill-indigo-500 text-indigo-500 shrink-0" />
                     )}
-                    <span>{isPreviewing ? 'Loading...' : 'Preview'}</span>
+                    <span className="truncate">{isPreviewing ? 'Loading...' : 'Preview'}</span>
                   </button>
 
                   <button
@@ -198,17 +198,17 @@ export const VoiceSelector: React.FC<VoiceSelectorProps> = ({
                       e.stopPropagation();
                       handleVoiceSelect(v);
                     }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+                    className={`w-full px-2 py-1.5 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap ${
                       isSelected
                         ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
                         : isLocked
                         ? 'bg-[var(--bg-muted)] text-[var(--text-muted)] border border-[var(--border-app)]'
-                        : 'bg-[var(--bg-input)] hover:bg-indigo-500/10 text-[var(--text-primary)] border border-[var(--border-app)] hover:border-indigo-500/40'
+                        : 'bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 hover:border-indigo-500/40'
                     }`}
                   >
                     {isSelected ? (
                       <>
-                        <Check className="w-3.5 h-3.5" />
+                        <Check className="w-3.5 h-3.5 shrink-0" />
                         <span>Selected</span>
                       </>
                     ) : isLocked ? (
