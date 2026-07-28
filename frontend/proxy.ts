@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Pure JS JWT payload decoder for Next.js Edge Middleware
+// Pure JS JWT payload decoder for Next.js Edge Proxy
 const decodeJwt = (token: string) => {
   try {
     const parts = token.split('.');
@@ -20,7 +20,7 @@ const isTokenExpired = (token: string) => {
   return false;
 };
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const rawToken = request.cookies.get('token')?.value;
   const isExpired = rawToken ? isTokenExpired(rawToken) : false;
   const token = rawToken && !isExpired ? rawToken : undefined;

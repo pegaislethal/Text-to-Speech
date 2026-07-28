@@ -31,19 +31,30 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     }
 
     if (!res.ok) {
-      if (res.status === 401 && typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('auth-session-expired'));
-      }
       let errorMsg = 'API request failed';
+      let errorCode = '';
       try {
         const text = await res.text();
         try {
           const errorData = JSON.parse(text);
           errorMsg = errorData.message || errorMsg;
+          errorCode = errorData.code || '';
         } catch (_) {
           errorMsg = text || 'Server returned HTML or invalid response';
         }
       } catch (_) {}
+
+      // Only dispatch session expired event if status is 401 AND code/message explicitly confirms token expiration
+      if (res.status === 401 && typeof window !== 'undefined') {
+        const isExplicitSessionExpired = 
+          errorCode === 'SESSION_EXPIRED' ||
+          /session expired|jwt expired|invalid token|token expired|authentication required/i.test(errorMsg);
+
+        if (isExplicitSessionExpired) {
+          window.dispatchEvent(new CustomEvent('auth-session-expired'));
+        }
+      }
+
       throw new Error(errorMsg);
     }
 

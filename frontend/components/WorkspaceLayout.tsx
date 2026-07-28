@@ -4,22 +4,36 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../context/authContext';
+import { useToast } from '../context/toastContext';
 import { 
-  AudioLines, LogOut, History, User, Shield, Users, Settings, ArrowLeft, Menu, X, Star, Sparkles, ChevronUp, LayoutDashboard, Mic
+  AudioLines, LogOut, History, User, Shield, Users, Settings, ArrowLeft, Menu, X, Star, Sparkles, ChevronUp, LayoutDashboard, Mic, Lock
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import { UpgradeModal } from './UpgradeModal';
+import ProfileAvatar from './ProfileAvatar';
 
 interface WorkspaceLayoutProps {
   children: React.ReactNode;
   isAdminArea?: boolean;
 }
 
+interface NavItem {
+  name: string;
+  href: string;
+  exact?: boolean;
+  icon: any;
+  isPremiumOnly?: boolean;
+}
+
 export default function WorkspaceLayout({ children, isAdminArea = false }: WorkspaceLayoutProps) {
   const { user, logout } = useAuth();
+  const { showToast } = useToast();
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [lockedFeatureName, setLockedFeatureName] = useState('AI Feature');
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -34,19 +48,19 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
 
   if (!user) return null;
 
-  // Single canonical navigation definition for normal workspace (Linear / Vercel style)
-  const userNavItems = [
+  // Single canonical navigation definition for normal workspace
+  const userNavItems: NavItem[] = [
     { name: 'Dashboard', href: '/dashboard', exact: true, icon: LayoutDashboard },
     { name: 'Speech Studio', href: '/dashboard/speech-studio', exact: true, icon: Mic },
-    ...(user.premiumAccess ? [{ name: 'AI Scene Generator', href: '/dashboard/ai-scene-generator', exact: true, icon: Sparkles }] : []),
-    { name: 'AI Voice Clone Generator', href: '/dashboard/voice-studio', exact: true, icon: Star },
+    { name: 'AI Scene Generator', href: '/dashboard/ai-scene-generator', exact: true, icon: Sparkles, isPremiumOnly: true },
+    { name: 'AI Voice Clone Generator', href: '/dashboard/voice-studio', exact: true, icon: Star, isPremiumOnly: true },
     { name: 'History', href: '/dashboard/history', exact: true, icon: History },
     { name: 'Profile', href: '/profile', exact: true, icon: User },
     { name: 'Settings', href: '/settings', exact: true, icon: Settings },
   ];
 
   // Navigation definition for Admin portal
-  const adminNavItems = [
+  const adminNavItems: NavItem[] = [
     { name: 'Control Dashboard', href: '/admin/dashboard', exact: true, icon: Shield }
   ];
 
@@ -59,10 +73,27 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
     return pathname.startsWith(item.href);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent, href: string) => {
+  const handleNavClick = (e: React.MouseEvent, item: { name: string; href: string; isPremiumOnly?: boolean }) => {
+    const isLocked = item.isPremiumOnly && !user.premiumAccess;
+    if (isLocked) {
+      e.preventDefault();
+      showToast('Premium access required to use this feature.', 'error');
+      setLockedFeatureName(item.name);
+      setUpgradeModalOpen(true);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, item: { name: string; href: string; isPremiumOnly?: boolean }) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      router.push(href);
+      const isLocked = item.isPremiumOnly && !user.premiumAccess;
+      if (isLocked) {
+        showToast('Premium access required to use this feature.', 'error');
+        setLockedFeatureName(item.name);
+        setUpgradeModalOpen(true);
+      } else {
+        router.push(item.href);
+      }
     }
   };
 
@@ -95,14 +126,17 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
             {currentNavItems.map((item) => {
               const active = isActive(item);
               const Icon = item.icon;
+              const isLocked = item.isPremiumOnly && !user.premiumAccess;
+
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   tabIndex={0}
-                  onKeyDown={(e) => handleKeyDown(e, item.href)}
+                  onClick={(e) => handleNavClick(e, item)}
+                  onKeyDown={(e) => handleKeyDown(e, item)}
                   aria-current={active ? 'page' : undefined}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-150 relative outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                  className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-150 relative outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                     active 
                       ? 'bg-[var(--accent-light)] text-[var(--accent-text)] font-semibold shadow-sm'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)]'
@@ -113,8 +147,17 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
                     <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-indigo-500 rounded-r" />
                   )}
 
-                  <Icon className={`w-4 h-4 transition-colors ${active ? 'text-indigo-500' : 'text-[var(--text-muted)]'}`} />
-                  <span className="truncate">{item.name}</span>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Icon className={`w-4 h-4 shrink-0 transition-colors ${active ? 'text-indigo-500' : 'text-[var(--text-muted)]'}`} />
+                    <span className="truncate">{item.name}</span>
+                  </div>
+
+                  {isLocked && (
+                    <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
+                      <Lock className="w-2.5 h-2.5" />
+                      <span>Premium</span>
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -148,42 +191,26 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
         </div>
 
         {/* Footer: User & Controls */}
-        <div className="flex flex-col gap-3 pt-4 border-t border-[var(--border-app)] shrink-0" ref={dropdownRef}>
-          {/* User Credits Bar (Non-premium user) */}
-          {!isAdminArea && !user.premiumAccess && (
-            <div className="p-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border-app)] flex flex-col gap-2">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-[var(--text-muted)] font-medium">Credits</span>
-                <span className="text-[var(--text-primary)] font-semibold">
-                  {user.usedCredits} / {user.freeCredits}
-                </span>
-              </div>
-              <div className="w-full bg-[var(--bg-input)] h-1 rounded-full overflow-hidden">
-                <div 
-                  className="bg-indigo-500 h-full rounded-full transition-all duration-300"
-                  style={{ width: `${Math.min(100, (user.usedCredits / user.freeCredits) * 100)}%` }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* User Profile Bar */}
-          <div className="flex items-center justify-between pt-2 border-t border-[var(--border-app)] gap-2">
+        <div className="pt-4 border-t border-[var(--border-app)] flex flex-col gap-2 relative" ref={dropdownRef}>
+          <div className="flex items-center justify-between gap-2">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] transition-colors min-w-0 text-left flex-1"
+              className="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-[var(--bg-card-hover)] transition-colors flex-1 min-w-0 text-left cursor-pointer"
             >
-              <img
-                src={user.profileImageUrl || user.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'}
-                alt={user.name}
-                className="w-7 h-7 rounded-full border border-[var(--border-app)] object-cover shrink-0"
+              <ProfileAvatar
+                name={user.name}
+                email={user.email}
+                imageUrl={user.profileImageUrl || user.profileImage}
+                role={user.role}
+                premiumAccess={user.premiumAccess}
+                size="sm"
               />
               <div className="flex flex-col min-w-0">
                 <span className="text-xs font-semibold text-[var(--text-primary)] truncate">
                   {user.name}
                 </span>
                 <span className="text-[10px] text-[var(--text-muted)] truncate">
-                  {user.role === 'admin' ? 'Administrator' : 'User'}
+                  {user.role === 'admin' ? 'Administrator' : (user.premiumAccess ? 'Premium Member' : 'Free Plan')}
                 </span>
               </div>
               <ChevronUp className={`w-3.5 h-3.5 text-[var(--text-muted)] transition-transform duration-200 ml-auto shrink-0 ${dropdownOpen ? 'rotate-180' : ''}`} />
@@ -251,19 +278,32 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
               {currentNavItems.map((item) => {
                 const active = isActive(item);
                 const Icon = item.icon;
+                const isLocked = item.isPremiumOnly && !user.premiumAccess;
+
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                    onClick={(e) => {
+                      setMobileMenuOpen(false);
+                      handleNavClick(e, item);
+                    }}
+                    className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                       active 
                         ? 'bg-[var(--accent-light)] text-[var(--accent-text)] font-semibold'
                         : 'text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)]'
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
-                    {item.name}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span className="truncate">{item.name}</span>
+                    </div>
+                    {isLocked && (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
+                        <Lock className="w-2.5 h-2.5" />
+                        <span>Premium</span>
+                      </span>
+                    )}
                   </Link>
                 );
               })}
@@ -288,6 +328,12 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
       <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto overflow-x-hidden relative w-full">
         {children}
       </main>
+
+      <UpgradeModal
+        isOpen={upgradeModalOpen}
+        onClose={() => setUpgradeModalOpen(false)}
+        featureName={lockedFeatureName}
+      />
     </div>
   );
 }

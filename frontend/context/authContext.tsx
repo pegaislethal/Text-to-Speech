@@ -52,11 +52,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const syncAuthCookie = (tokenVal: string | null) => {
     if (typeof document === 'undefined') return;
+    const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+    const sameSiteAttr = isHttps ? 'SameSite=None; Secure' : 'SameSite=Lax';
     if (tokenVal) {
-      const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
-      document.cookie = `token=${tokenVal}; path=/; max-age=1500; SameSite=Lax${isHttps ? '; Secure' : ''}`;
+      document.cookie = `token=${tokenVal}; path=/; max-age=1500; ${sameSiteAttr}`;
     } else {
-      document.cookie = 'token=; path=/; max-age=0; SameSite=Lax';
+      document.cookie = `token=; path=/; max-age=0; ${sameSiteAttr}`;
     }
   };
 

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import PremiumRouteGuard from '../../../components/PremiumRouteGuard';
 import WorkspaceLayout from '../../../components/WorkspaceLayout';
 import { useAuth } from '../../../context/authContext';
 import { useToast } from '../../../context/toastContext';
@@ -126,22 +127,6 @@ export default function DashboardAISceneGenerator() {
   };
 
   const allVoices = [...systemVoices, ...customVoices];
-
-  useEffect(() => {
-    if (user && !user.premiumAccess) {
-      alert('This feature is available only for premium users.');
-      router.push('/dashboard');
-    }
-  }, [user, router]);
-
-  if (!user || !user.premiumAccess) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3 text-center">
-        <RefreshCw className="w-6 h-6 text-indigo-500 animate-spin" />
-        <span className="text-xs text-[var(--text-muted)] font-medium">Verifying Premium Access...</span>
-      </div>
-    );
-  }
 
   const handleGenerate = async () => {
     if (!script.trim()) {
@@ -271,7 +256,11 @@ export default function DashboardAISceneGenerator() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-6 animate-in fade-in duration-200">
+    <PremiumRouteGuard
+      featureTitle="AI Scene Generator"
+      featureDescription="Generate multi-voice audio scripts scene-by-scene with realistic AI narrators."
+    >
+      <div className="max-w-6xl mx-auto flex flex-col gap-6 animate-in fade-in duration-200">
       {/* Workspace Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[var(--border-app)]">
         <div className="flex flex-col gap-1">
@@ -570,5 +559,6 @@ export default function DashboardAISceneGenerator() {
         </div>
       )}
     </div>
-  );
+  </PremiumRouteGuard>
+);
 }

@@ -12,6 +12,7 @@ import {
   Mic, Sparkles, Star, Play, Pause, Trash2, Sliders, Volume2, 
   Upload, Check, AlertCircle, RefreshCw, AudioWaveform, ShieldCheck, ShieldAlert, CheckCircle2, Zap
 } from 'lucide-react';
+import PremiumRouteGuard from '../../../components/PremiumRouteGuard';
 import ThemeToggle from '../../../components/ThemeToggle';
 import VoiceSpeedControl from '../../../components/VoiceSpeedControl';
 
@@ -456,7 +457,11 @@ export default function VoiceStudio() {
   });
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-8 animate-in fade-in duration-300">
+    <PremiumRouteGuard
+      featureTitle="AI Voice Clone Generator"
+      featureDescription="Clone custom voices from audio samples, extract speaker embeddings, and generate speech with AI models."
+    >
+      <div className="max-w-6xl mx-auto flex flex-col gap-8 animate-in fade-in duration-300">
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[var(--border-app)]">
         <div className="flex flex-col gap-1">
@@ -913,5 +918,6 @@ export default function VoiceStudio() {
         onEnded={() => setPreviewingVoiceId(null)}
       />
     </div>
-  );
+  </PremiumRouteGuard>
+);
 }

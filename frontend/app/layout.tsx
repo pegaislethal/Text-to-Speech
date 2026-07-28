@@ -12,6 +12,11 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: '21st Tech Company - Premium Text-to-Speech Platform',
   description: 'Convert text to natural, high-fidelity speech instantly. Built for modern teams and creators.',
+  icons: {
+    icon: '/logo.png',
+    shortcut: '/logo.png',
+    apple: '/logo.png',
+  },
 };
 
 export default function RootLayout({

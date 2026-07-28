@@ -2,6 +2,7 @@ const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/user');
+const { getCookieOptions, getClearCookieOptions } = require('../utils/cookieUtils');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -62,12 +63,7 @@ exports.googleLogin = async (req, res) => {
       { expiresIn: '25m' }
     );
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 25 * 60 * 1000
-    });
+    res.cookie('token', token, getCookieOptions());
 
     res.status(200).json({
       success: true,
@@ -130,12 +126,7 @@ exports.userSignup = async (req, res) => {
       { expiresIn: '25m' }
     );
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 25 * 60 * 1000
-    });
+    res.cookie('token', token, getCookieOptions());
 
     res.status(201).json({
       success: true,
@@ -191,12 +182,7 @@ exports.userLogin = async (req, res) => {
       { expiresIn: '25m' }
     );
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 25 * 60 * 1000
-    });
+    res.cookie('token', token, getCookieOptions());
 
     res.status(200).json({
       success: true,
@@ -253,12 +239,7 @@ exports.adminSignup = async (req, res) => {
       { expiresIn: '25m' }
     );
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 25 * 60 * 1000
-    });
+    res.cookie('token', token, getCookieOptions());
 
     res.status(201).json({
       success: true,
@@ -315,12 +296,7 @@ exports.adminLogin = async (req, res) => {
       { expiresIn: '25m' }
     );
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 25 * 60 * 1000
-    });
+    res.cookie('token', token, getCookieOptions());
 
     res.status(200).json({
       success: true,
@@ -341,8 +317,7 @@ exports.adminLogin = async (req, res) => {
 
 exports.logout = async (req, res) => {
   try {
-    // 1. Verify current session
-    let token = req.cookies.token;
+    let token = req.cookies?.token;
     if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
       token = req.headers.authorization.split(' ')[1];
     }
@@ -358,19 +333,10 @@ exports.logout = async (req, res) => {
       console.log('[Logout] No token found in request during logout.');
     }
 
-    // 2. Clear authentication cookies
-    res.clearCookie('token', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax'
-    });
-    res.clearCookie('accessToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax'
-    });
+    // Clear authentication cookies with appropriate cookie options
+    res.clearCookie('token', getClearCookieOptions());
+    res.clearCookie('accessToken', getClearCookieOptions());
 
-    // 3. Return success response
     return res.status(200).json({
       success: true,
       message: 'Logged out successfully'
@@ -391,12 +357,7 @@ exports.refreshSession = async (req, res) => {
       { expiresIn: '25m' }
     );
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 25 * 60 * 1000
-    });
+    res.cookie('token', token, getCookieOptions());
 
     res.setHeader('x-new-token', token);
     res.setHeader('Access-Control-Expose-Headers', 'x-new-token');
