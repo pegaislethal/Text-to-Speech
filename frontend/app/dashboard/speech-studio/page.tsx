@@ -18,7 +18,7 @@ import {
 } from '../../../services/api';
 import { 
   Play, Pause, Volume2, AlertCircle, RefreshCw, 
-  CheckCircle, Save, Trash2, Bookmark, Mic, FileText, Check, Sliders, Sparkles, Activity, Layers
+  CheckCircle, Save, Trash2, Bookmark, Mic, FileText, Check, Sliders
 } from 'lucide-react';
 import { VoiceSelector, VoiceOption } from '../../../components/VoiceSelector';
 
@@ -132,7 +132,7 @@ export default function SpeechStudio() {
 
   const handleGenerate = async () => {
     if (!text.trim()) {
-      setError('Please enter your script before generating speech.');
+      setError('Please write your script before generating speech.');
       return;
     }
 
@@ -147,7 +147,6 @@ export default function SpeechStudio() {
         throw new Error('Upgrade to Premium to unlock this voice.');
       }
 
-      console.log('Generating speech with settings:', { voiceId, speed, pitch, depth, tone });
       const res = await generateSpeech(text, voiceId, speed, pitch, tone, depth);
       
       if (!res.audioUrl) {
@@ -158,7 +157,6 @@ export default function SpeechStudio() {
       showToast('Speech generated successfully!', 'success');
       await refreshUser();
 
-      // Smooth scroll to generated audio card
       setTimeout(() => {
         resultCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }, 100);
@@ -259,7 +257,7 @@ export default function SpeechStudio() {
       if (p.settings.depth !== undefined) setDepth(p.settings.depth);
       if (p.settings.tone) setTone(p.settings.tone);
     }
-    showToast(`Preset "${p.presetName}" applied`, 'info');
+    showToast(`Preset "${p.presetName}" loaded`, 'info');
   };
 
   const togglePlay = () => {
@@ -279,15 +277,15 @@ export default function SpeechStudio() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col gap-8 pb-16 animate-in fade-in duration-300">
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 pb-16 animate-in fade-in duration-300">
       {/* Studio Header */}
-      <div className="border-b border-input pb-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="border-b border-input pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-foreground via-neutral-200 to-indigo-400 bg-clip-text text-transparent">
             Speech Studio
           </h1>
           <p className="text-neutral-400 text-sm mt-1">
-            Convert scripts into high-fidelity, natural AI voiceovers.
+            Write your script and synthesize natural AI voice narration.
           </p>
         </div>
 
@@ -302,302 +300,264 @@ export default function SpeechStudio() {
         </div>
       </div>
 
-      {/* Single-Column Creation Workflow */}
-      <div className="flex flex-col gap-8">
+      {/* Two-Column Creator Layout (60% Left / 40% Right on Desktop, 50/50 Tablet, Stack Mobile) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 items-start">
         
-        {/* STEP 1: WRITE YOUR SCRIPT */}
-        <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-6 shadow-xl flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b border-input pb-3">
-            <div className="flex items-center gap-2.5">
-              <span className="px-2.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 text-xs font-extrabold border border-indigo-500/20 uppercase tracking-wider">
-                Step 1
-              </span>
+        {/* LEFT COLUMN: Script Creation Area (60% Width - lg:col-span-7) */}
+        <div className="lg:col-span-7 flex flex-col gap-6">
+          <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-6 shadow-xl flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b border-input pb-3">
               <h2 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase tracking-wider">
                 <FileText className="w-4 h-4 text-indigo-400" /> Write Your Script
               </h2>
-            </div>
-            <span className="text-xs font-mono font-semibold text-neutral-400">
-              {characterCount} / 2000 chars
-            </span>
-          </div>
-
-          <textarea
-            value={text}
-            onChange={(e) => {
-              setText(e.target.value);
-              setError(null);
-            }}
-            placeholder="Type or paste your script here to generate natural AI speech..."
-            maxLength={2000}
-            className="w-full min-h-[220px] bg-transparent text-foreground placeholder-neutral-500 focus:outline-none resize-none text-sm sm:text-base leading-relaxed"
-          />
-
-          <div className="flex flex-wrap items-center justify-between border-t border-input pt-3 text-xs text-neutral-400 gap-2">
-            <span>Required Cost: <strong className="text-indigo-400">{creditsRequired} credits</strong></span>
-            <span>Allocation Rate: 1 credit per 50 characters</span>
-          </div>
-        </div>
-
-        {/* STEP 2: CHOOSE YOUR VOICE */}
-        <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-6 shadow-xl flex flex-col gap-4">
-          <div className="flex items-center justify-between border-b border-input pb-3">
-            <div className="flex items-center gap-2.5">
-              <span className="px-2.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 text-xs font-extrabold border border-indigo-500/20 uppercase tracking-wider">
-                Step 2
+              <span className="text-xs font-mono font-semibold text-neutral-400">
+                {characterCount} / 2000 chars
               </span>
-              <h2 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase tracking-wider">
-                <Mic className="w-4 h-4 text-indigo-400" /> Choose Your Voice
-              </h2>
-            </div>
-            <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
-              {allVoices.length} Voices Available
-            </span>
-          </div>
-
-          <VoiceSelector
-            selectedVoiceId={voiceId}
-            onChange={(newVoiceId) => setVoiceId(newVoiceId)}
-            systemVoices={systemVoices}
-            customVoices={customVoices}
-            previewingVoiceId={previewingVoice}
-            onPreviewVoice={(v) => handlePreviewVoice(v)}
-          />
-        </div>
-
-        {/* STEP 3: CUSTOMIZE VOICE & CONTROLS */}
-        <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-6 shadow-xl flex flex-col gap-5">
-          <div className="flex items-center gap-2.5 border-b border-input pb-3">
-            <span className="px-2.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 text-xs font-extrabold border border-indigo-500/20 uppercase tracking-wider">
-              Step 3
-            </span>
-            <h2 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase tracking-wider">
-              <Sliders className="w-4 h-4 text-indigo-400" /> Customize Voice
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-            {/* Speed Control */}
-            <VoiceSpeedControl speed={speed} onChange={setSpeed} />
-
-            {/* Pitch Offset */}
-            <div className="flex flex-col gap-2.5">
-              <div className="flex justify-between items-center text-xs font-bold text-neutral-400">
-                <span className="uppercase tracking-wider text-[11px]">Pitch Offset</span>
-                <span className="font-mono text-xs text-indigo-400 font-bold bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
-                  {pitch > 0 ? `+${pitch}` : pitch} semitones
-                </span>
-              </div>
-              <input 
-                type="range" 
-                min="-12" 
-                max="12" 
-                value={pitch} 
-                onChange={(e) => setPitch(parseInt(e.target.value))} 
-                className="w-full h-1.5 bg-background rounded-lg appearance-none cursor-pointer accent-indigo-600 focus:outline-none"
-              />
-              <div className="flex justify-between text-[10px] text-neutral-500 font-medium">
-                <span>-12 (Deep Male)</span>
-                <span>0 (Natural)</span>
-                <span>+12 (High Pitch)</span>
-              </div>
             </div>
 
-            {/* Voice Depth */}
-            <div className="flex flex-col gap-2.5">
-              <div className="flex justify-between items-center text-xs font-bold text-neutral-400">
-                <span className="uppercase tracking-wider text-[11px]">Voice Depth</span>
-                <span className="font-mono text-xs text-indigo-400 font-bold bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
-                  {depth}%
-                </span>
-              </div>
-              <input 
-                type="range" 
-                min="0" 
-                max="100" 
-                value={depth} 
-                onChange={(e) => setDepth(parseInt(e.target.value))} 
-                className="w-full h-1.5 bg-background rounded-lg appearance-none cursor-pointer accent-indigo-600 focus:outline-none"
-              />
-              <div className="flex justify-between text-[10px] text-neutral-500 font-medium">
-                <span>0% (Natural)</span>
-                <span>50% (Warm)</span>
-                <span>100% (Deep Cinematic Bass)</span>
-              </div>
-            </div>
-
-            {/* EQ Tone Preset */}
-            <div className="flex flex-col gap-2.5">
-              <label className="text-xs font-bold text-neutral-400 uppercase tracking-wider text-[11px]">
-                EQ Tone Preset
-              </label>
-              <select
-                value={tone}
-                onChange={(e) => setTone(e.target.value)}
-                className="bg-background text-xs font-semibold text-foreground border border-input rounded-xl p-3 focus:outline-none focus:border-indigo-500 cursor-pointer"
-              >
-                <option value="natural">Natural (Original Signal)</option>
-                <option value="documentary">Documentary (Narrative Warmth + Clarity)</option>
-                <option value="cinematic">Cinematic (Deep Bass & Presence)</option>
-                <option value="podcast">Podcast (Balanced Speech EQ)</option>
-                <option value="radio">Radio (Broadcast Compressor EQ)</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* STEP 4: VOICE PRESETS */}
-        <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-6 shadow-xl flex flex-col gap-4">
-          <div className="flex items-center gap-2.5 border-b border-input pb-3">
-            <span className="px-2.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 text-xs font-extrabold border border-indigo-500/20 uppercase tracking-wider">
-              Step 4
-            </span>
-            <h2 className="text-sm font-bold text-foreground flex items-center gap-2 uppercase tracking-wider">
-              <Bookmark className="w-4 h-4 text-indigo-400" /> Saved Voice Presets
-            </h2>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-            <input
-              type="text"
-              placeholder="Preset Name (e.g. Documentary Male 1.2x)..."
-              value={presetNameInput}
-              onChange={(e) => setPresetNameInput(e.target.value)}
-              className="w-full sm:flex-1 bg-background border border-input rounded-xl px-3.5 py-2.5 text-xs text-foreground focus:outline-none focus:border-indigo-500"
+            <textarea
+              value={text}
+              onChange={(e) => {
+                setText(e.target.value);
+                setError(null);
+              }}
+              placeholder="Write your narration script here..."
+              maxLength={2000}
+              className="w-full min-h-[380px] lg:min-h-[480px] bg-transparent text-foreground placeholder-neutral-500 focus:outline-none resize-y text-sm sm:text-base leading-relaxed font-sans"
             />
-            <button
-              onClick={handleSavePreset}
-              disabled={savingPreset || !presetNameInput.trim()}
-              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white transition disabled:opacity-40 flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
-            >
-              {savingPreset ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-              <span>Save Preset</span>
-            </button>
+
+            <div className="flex flex-wrap items-center justify-between border-t border-input pt-4 text-xs text-neutral-400 gap-3">
+              <span>Characters: <strong className="text-foreground">{characterCount}</strong></span>
+              <span>Credits required: <strong className="text-indigo-400">{creditsRequired} credits</strong></span>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: Voice Workspace & Controls (40% Width - lg:col-span-5) */}
+        <div className="lg:col-span-5 flex flex-col gap-6">
+          
+          {/* SECTION 1: CHOOSE YOUR VOICE */}
+          <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-5 shadow-xl flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b border-input pb-3">
+              <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+                <Mic className="w-4 h-4 text-indigo-400" /> Choose Your Voice
+              </h3>
+              {selectedVoiceObj && (
+                <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1">
+                  Selected: <strong className="text-foreground truncate max-w-[120px]">{selectedVoiceObj.name}</strong> <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                </span>
+              )}
+            </div>
+
+            <VoiceSelector
+              selectedVoiceId={voiceId}
+              onChange={(newVoiceId) => setVoiceId(newVoiceId)}
+              systemVoices={systemVoices}
+              customVoices={customVoices}
+              previewingVoiceId={previewingVoice}
+              onPreviewVoice={(v) => handlePreviewVoice(v)}
+            />
           </div>
 
-          {presets.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2">
-              {presets.map((p) => (
-                <div key={p._id} className="p-3.5 rounded-xl border border-input bg-background flex items-center justify-between gap-2">
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-bold text-foreground truncate">{p.presetName}</span>
-                    <span className="text-[10px] text-neutral-400 truncate">
-                      {allVoices.find((v: VoiceOption) => v.voiceId === p.voiceId)?.name || p.voiceId} ({p.speed}x)
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      onClick={() => handleApplyPreset(p)}
-                      className="px-2.5 py-1 rounded-lg bg-card border border-input text-[10px] font-bold text-indigo-400 hover:bg-neutral-800 transition cursor-pointer"
-                    >
-                      Apply
-                    </button>
-                    <button
-                      onClick={() => handleDeletePresetItem(p._id)}
-                      className="p-1 rounded-lg text-neutral-500 hover:text-red-400 transition cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* STEP 5: GENERATE SPEECH BUTTON */}
-        <div className="flex flex-col gap-3">
-          <button
-            onClick={handleGenerate}
-            disabled={generating || !text.trim()}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 transition-all duration-300 font-extrabold text-base text-white shadow-xl shadow-indigo-600/25 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-3 active:scale-98 cursor-pointer"
-          >
-            {generating ? (
-              <>
-                <RefreshCw className="w-5 h-5 animate-spin" />
-                <span>Generating Speech ({speed.toFixed(2)}x speed)...</span>
-              </>
-            ) : (
-              <>
-                <Volume2 className="w-5 h-5" />
-                <span>Generate Speech</span>
-              </>
-            )}
-          </button>
-
-          {/* Error Banner */}
-          {error && (
-            <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/10 flex gap-3 text-red-400 animate-in fade-in">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <div className="flex flex-col gap-0.5 text-xs">
-                <span className="font-bold">Generation Error</span>
-                <p className="opacity-90">{error}</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* STEP 6: GENERATED AUDIO RESULT CARD */}
-        {audioUrl && (
-          <div ref={resultCardRef} className="p-6 rounded-2xl border border-indigo-500/30 bg-indigo-500/10 backdrop-blur-xl shadow-2xl flex flex-col gap-5 animate-in fade-in duration-300">
-            <div className="flex items-center justify-between border-b border-indigo-500/20 pb-3">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={togglePlay}
-                  className="w-11 h-11 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white transition active:scale-95 shadow-lg shadow-indigo-500/30 shrink-0 cursor-pointer"
-                >
-                  {isPlaying ? <Pause className="w-5 h-5 fill-white" /> : <Play className="w-5 h-5 fill-white ml-0.5" />}
-                </button>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-sm font-extrabold text-foreground truncate">Generated Audio Output</span>
-                  <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1.5 mt-0.5">
-                    <CheckCircle className="w-4 h-4 shrink-0" /> Audio stream ready
-                  </span>
-                </div>
-              </div>
-
-              {/* Metadata Badges */}
-              <div className="hidden sm:flex items-center gap-2 text-[10px] font-bold">
-                <span className="px-2.5 py-1 rounded-md bg-background border border-input text-indigo-400">
-                  {selectedVoiceObj?.name || voiceId}
-                </span>
-                <span className="px-2.5 py-1 rounded-md bg-background border border-input text-neutral-300">
-                  {speed.toFixed(2)}x speed
-                </span>
-                <span className="px-2.5 py-1 rounded-md bg-background border border-input text-neutral-300 capitalize">
-                  {tone} tone
-                </span>
-              </div>
+          {/* SECTION 2: VOICE CONTROLS */}
+          <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-5 shadow-xl flex flex-col gap-4">
+            <div className="flex items-center gap-2 border-b border-input pb-3">
+              <Sliders className="w-4 h-4 text-indigo-400" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Voice Controls</h3>
             </div>
 
             <div className="flex flex-col gap-4">
-              <audio
-                ref={audioRef}
-                controls
-                src={getFullAudioUrl(audioUrl)}
-                className="h-10 text-xs rounded-xl w-full border border-input bg-card"
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                onEnded={() => setIsPlaying(false)}
-                onError={(e) => {
-                  console.error('Audio element playback error:', e);
-                  setError('Failed to play audio stream from backend server.');
-                }}
-              />
+              {/* Speed */}
+              <VoiceSpeedControl speed={speed} onChange={setSpeed} />
 
-              <div className="flex justify-end">
-                <DownloadButton
-                  onClick={handleExportMp3}
-                  loading={downloadingMp3}
-                  label="Export MP3"
-                  variant="primary"
-                  size="md"
+              {/* Pitch Offset */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between text-[11px] font-semibold text-neutral-400">
+                  <span>Pitch Offset</span>
+                  <span className="font-mono text-indigo-400">{pitch > 0 ? `+${pitch}` : pitch}</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="-12" 
+                  max="12" 
+                  value={pitch} 
+                  onChange={(e) => setPitch(parseInt(e.target.value))} 
+                  className="w-full h-1.5 bg-background rounded-lg appearance-none cursor-pointer accent-indigo-600 focus:outline-none"
                 />
+                <div className="flex justify-between text-[9px] text-neutral-500">
+                  <span>-12</span>
+                  <span>0</span>
+                  <span>+12</span>
+                </div>
+              </div>
+
+              {/* Voice Depth */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between text-[11px] font-semibold text-neutral-400">
+                  <span>Voice Depth</span>
+                  <span className="font-mono text-indigo-400">{depth}%</span>
+                </div>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="100" 
+                  value={depth} 
+                  onChange={(e) => setDepth(parseInt(e.target.value))} 
+                  className="w-full h-1.5 bg-background rounded-lg appearance-none cursor-pointer accent-indigo-600 focus:outline-none"
+                />
+                <div className="flex justify-between text-[9px] text-neutral-500">
+                  <span>0</span>
+                  <span>100</span>
+                </div>
+              </div>
+
+              {/* EQ Tone Preset */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-neutral-400">EQ Tone</label>
+                <select
+                  value={tone}
+                  onChange={(e) => setTone(e.target.value)}
+                  className="bg-background text-xs text-foreground border border-input rounded-xl p-2.5 focus:outline-none focus:border-indigo-500 cursor-pointer font-medium"
+                >
+                  <option value="natural">Natural</option>
+                  <option value="documentary">Documentary</option>
+                  <option value="cinematic">Cinematic</option>
+                  <option value="podcast">Podcast</option>
+                  <option value="radio">Radio</option>
+                </select>
               </div>
             </div>
           </div>
-        )}
 
+          {/* SECTION 3: VOICE PRESETS */}
+          <div className="rounded-2xl border bg-card text-card-foreground border-input backdrop-blur-xl p-5 shadow-xl flex flex-col gap-4">
+            <div className="flex items-center gap-2 border-b border-input pb-3">
+              <Bookmark className="w-4 h-4 text-indigo-400" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">Voice Presets</h3>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Save current settings..."
+                value={presetNameInput}
+                onChange={(e) => setPresetNameInput(e.target.value)}
+                className="flex-1 min-w-0 bg-background border border-input rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-indigo-500"
+              />
+              <button
+                onClick={handleSavePreset}
+                disabled={savingPreset || !presetNameInput.trim()}
+                className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white transition disabled:opacity-40 flex items-center gap-1 shrink-0 cursor-pointer"
+              >
+                {savingPreset ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                <span>Save</span>
+              </button>
+            </div>
+
+            {presets.length > 0 && (
+              <div className="flex flex-col gap-2 max-h-[140px] overflow-y-auto pr-1">
+                {presets.map((p) => (
+                  <div key={p._id} className="p-2.5 rounded-xl border border-input bg-background flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-foreground truncate">{p.presetName}</span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        onClick={() => handleApplyPreset(p)}
+                        className="px-2 py-1 rounded bg-card text-[10px] font-bold text-indigo-400 border border-input hover:bg-neutral-800 transition"
+                      >
+                        Load
+                      </button>
+                      <button
+                        onClick={() => handleDeletePresetItem(p._id)}
+                        className="p-1 text-neutral-500 hover:text-red-400 transition"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* BOTTOM ACTION: GENERATE SPEECH BUTTON */}
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={handleGenerate}
+              disabled={generating || !text.trim()}
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600 hover:from-indigo-500 hover:to-violet-500 transition-all duration-300 font-extrabold text-sm text-white shadow-xl shadow-indigo-600/25 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 active:scale-98 cursor-pointer"
+            >
+              {generating ? (
+                <>
+                  <RefreshCw className="w-4.5 h-4.5 animate-spin" /> Generating Audio...
+                </>
+              ) : (
+                <>
+                  <Volume2 className="w-4.5 h-4.5" /> Generate Speech
+                </>
+              )}
+            </button>
+
+            {/* Error Banner */}
+            {error && (
+              <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/10 flex gap-3 text-red-400 animate-in fade-in">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <div className="flex flex-col gap-0.5 text-xs">
+                  <span className="font-bold">Generation Error</span>
+                  <p className="opacity-90">{error}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Generated Result Card below right panel */}
+          {audioUrl && (
+            <div ref={resultCardRef} className="p-5 rounded-2xl border border-indigo-500/30 bg-indigo-500/10 backdrop-blur-xl shadow-2xl flex flex-col gap-4 animate-in fade-in">
+              <div className="flex items-center justify-between border-b border-indigo-500/20 pb-3">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={togglePlay}
+                    className="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white transition active:scale-95 shadow-lg shadow-indigo-500/30 shrink-0 cursor-pointer"
+                  >
+                    {isPlaying ? <Pause className="w-4 h-4 fill-white" /> : <Play className="w-4 h-4 fill-white ml-0.5" />}
+                  </button>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-bold text-foreground truncate">Synthesized Output</span>
+                    <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 mt-0.5">
+                      <CheckCircle className="w-3.5 h-3.5 shrink-0" /> Audio ready
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <audio
+                  ref={audioRef}
+                  controls
+                  src={getFullAudioUrl(audioUrl)}
+                  className="h-9 text-xs rounded-xl w-full border border-input bg-card"
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                  onEnded={() => setIsPlaying(false)}
+                  onError={(e) => {
+                    console.error('Audio element error:', e);
+                    setError('Failed to play audio stream from backend server.');
+                  }}
+                />
+
+                <div className="flex justify-end">
+                  <DownloadButton
+                    onClick={handleExportMp3}
+                    loading={downloadingMp3}
+                    label="Export MP3"
+                    variant="primary"
+                    size="md"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
       </div>
     </div>
   );

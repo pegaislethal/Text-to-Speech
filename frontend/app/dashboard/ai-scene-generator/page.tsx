@@ -323,6 +323,23 @@ export default function DashboardAISceneGenerator() {
               </span>
             </div>
           </div>
+
+          {/* Generate Voice Scenes Button - Directly Below Text Input Panel */}
+          <button
+            onClick={handleGenerate}
+            disabled={generating || !script.trim()}
+            className="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 transition-all duration-300 font-bold text-sm text-white shadow-xl shadow-indigo-600/25 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+          >
+            {generating ? (
+              <>
+                <RefreshCw className="w-4.5 h-4.5 animate-spin" /> Synthesizing voice stems...
+              </>
+            ) : (
+              <>
+                <Layers className="w-4.5 h-4.5" /> Generate Voice Scenes
+              </>
+            )}
+          </button>
         </div>
 
         {/* Right: Generation Settings Panel */}
@@ -405,23 +422,6 @@ export default function DashboardAISceneGenerator() {
               <VoiceSpeedControl speed={speed} onChange={setSpeed} />
             </div>
           </div>
-
-          {/* Generate Button */}
-          <button
-            onClick={handleGenerate}
-            disabled={generating || !script.trim()}
-            className="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 transition-all duration-300 font-bold text-sm text-white shadow-xl shadow-indigo-600/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer active:scale-98"
-          >
-            {generating ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin" /> Synthesizing waveform...
-              </>
-            ) : (
-              <>
-                <Layers className="w-4 h-4" /> Generate Voice Scenes
-              </>
-            )}
-          </button>
         </div>
       </div>
 
