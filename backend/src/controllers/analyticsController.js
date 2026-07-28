@@ -38,14 +38,18 @@ exports.invalidateAnalyticsCache = invalidateAnalyticsCache;
 
 exports.getOverview = async (req, res) => {
   try {
-    const isGlobal = req.user.role === 'admin' && req.query.global === 'true';
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Admin access required' });
+    }
+
+    const isGlobal = true;
     const cacheKey = getCacheKey('overview', req);
     const cached = getCachedData(cacheKey);
     if (cached) {
       return res.status(200).json({ success: true, ...cached });
     }
 
-    const match = isGlobal ? {} : { userId: req.user._id };
+    const match = {};
 
     // Get overall stats
     const statsResult = await VoiceAnalytics.aggregate([
@@ -114,14 +118,18 @@ exports.getOverview = async (req, res) => {
 
 exports.getVoices = async (req, res) => {
   try {
-    const isGlobal = req.user.role === 'admin' && req.query.global === 'true';
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Admin access required' });
+    }
+
+    const isGlobal = true;
     const cacheKey = getCacheKey('voices', req);
     const cached = getCachedData(cacheKey);
     if (cached) {
       return res.status(200).json({ success: true, voices: cached });
     }
 
-    const match = isGlobal ? {} : { userId: req.user._id };
+    const match = {};
 
     const voiceStats = await VoiceAnalytics.aggregate([
       { $match: match },
@@ -156,14 +164,18 @@ exports.getVoices = async (req, res) => {
 
 exports.getTimeline = async (req, res) => {
   try {
-    const isGlobal = req.user.role === 'admin' && req.query.global === 'true';
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Admin access required' });
+    }
+
+    const isGlobal = true;
     const cacheKey = getCacheKey('timeline', req);
     const cached = getCachedData(cacheKey);
     if (cached) {
       return res.status(200).json({ success: true, timeline: cached });
     }
 
-    const match = isGlobal ? {} : { userId: req.user._id };
+    const match = {};
 
     // Group by day of generation
     const timelineData = await VoiceAnalytics.aggregate([

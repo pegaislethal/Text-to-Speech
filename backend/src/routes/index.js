@@ -80,10 +80,10 @@ router.delete('/history', authMiddleware, ttsController.clearHistory);
 
 // Analytics Operations
 const analyticsController = require('../controllers/analyticsController');
-router.get('/analytics/seed', analyticsController.seedMockData);
-router.get('/analytics/overview', authMiddleware, analyticsController.getOverview);
-router.get('/analytics/voices', authMiddleware, analyticsController.getVoices);
-router.get('/analytics/timeline', authMiddleware, analyticsController.getTimeline);
+router.get('/analytics/seed', authMiddleware, adminMiddleware, analyticsController.seedMockData);
+router.get('/analytics/overview', authMiddleware, adminMiddleware, analyticsController.getOverview);
+router.get('/analytics/voices', authMiddleware, adminMiddleware, analyticsController.getVoices);
+router.get('/analytics/timeline', authMiddleware, adminMiddleware, analyticsController.getTimeline);
 
 // Upload Operations
 const uploadController = require('../controllers/uploadController');
