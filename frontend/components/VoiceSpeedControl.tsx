@@ -40,15 +40,17 @@ export const VoiceSpeedControl: React.FC<VoiceSpeedControlProps> = ({
       </div>
 
       {/* Slider */}
-      <input
-        type="range"
-        min="0.5"
-        max="1.5"
-        step="0.05"
-        value={clampedSpeed}
-        onChange={handleSliderChange}
-        className="w-full h-1.5 bg-background rounded-lg appearance-none cursor-pointer accent-indigo-600 focus:outline-none"
-      />
+      <div className="relative flex items-center w-full py-1">
+        <input
+          type="range"
+          min="0.5"
+          max="1.5"
+          step="0.05"
+          value={clampedSpeed}
+          onChange={handleSliderChange}
+          className="w-full cursor-pointer accent-indigo-600 focus:outline-none"
+        />
+      </div>
 
       {/* Preset Action Buttons */}
       <div className="grid grid-cols-3 gap-2 text-xs mt-0.5">
@@ -58,7 +60,7 @@ export const VoiceSpeedControl: React.FC<VoiceSpeedControlProps> = ({
           className={`py-2 rounded-xl border transition-all font-bold cursor-pointer text-center ${
             Math.abs(clampedSpeed - 0.5) < 0.03
               ? 'border-indigo-500 bg-indigo-500/15 text-indigo-400 shadow-md shadow-indigo-500/10'
-              : 'border-input bg-card text-neutral-400 hover:text-foreground hover:border-neutral-700'
+              : 'border-[var(--border-app)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-indigo-400'
           }`}
         >
           Slow (0.5x)
@@ -69,7 +71,7 @@ export const VoiceSpeedControl: React.FC<VoiceSpeedControlProps> = ({
           className={`py-2 rounded-xl border transition-all font-bold cursor-pointer text-center ${
             Math.abs(clampedSpeed - 1.0) < 0.03
               ? 'border-indigo-500 bg-indigo-500/15 text-indigo-400 shadow-md shadow-indigo-500/10'
-              : 'border-input bg-card text-neutral-400 hover:text-foreground hover:border-neutral-700'
+              : 'border-[var(--border-app)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-indigo-400'
           }`}
         >
           Normal (1.0x)
@@ -80,7 +82,7 @@ export const VoiceSpeedControl: React.FC<VoiceSpeedControlProps> = ({
           className={`py-2 rounded-xl border transition-all font-bold cursor-pointer text-center ${
             Math.abs(clampedSpeed - 1.5) < 0.03
               ? 'border-indigo-500 bg-indigo-500/15 text-indigo-400 shadow-md shadow-indigo-500/10'
-              : 'border-input bg-card text-neutral-400 hover:text-foreground hover:border-neutral-700'
+              : 'border-[var(--border-app)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-indigo-400'
           }`}
         >
           Fast (1.5x)
