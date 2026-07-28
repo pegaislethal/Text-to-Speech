@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Gauge } from 'lucide-react';
 
 interface VoiceSpeedControlProps {
   speed: number;
@@ -27,11 +28,15 @@ export const VoiceSpeedControl: React.FC<VoiceSpeedControlProps> = ({
   };
 
   return (
-    <div className={`flex flex-col gap-2 w-full ${className}`}>
+    <div className={`flex flex-col gap-2.5 w-full ${className}`}>
       {/* Label and Value */}
-      <div className="flex justify-between text-[11px] font-semibold text-neutral-500 dark:text-neutral-400">
-        <span>Voice Speed</span>
-        <span className="font-mono text-indigo-400">{clampedSpeed.toFixed(2)}x</span>
+      <div className="flex justify-between items-center text-xs font-bold text-neutral-400">
+        <span className="flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
+          <Gauge className="w-3.5 h-3.5 text-indigo-500" /> Voice Speed
+        </span>
+        <span className="font-mono text-xs text-indigo-400 font-bold bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+          {clampedSpeed.toFixed(2)}x
+        </span>
       </div>
 
       {/* Slider */}
@@ -42,18 +47,18 @@ export const VoiceSpeedControl: React.FC<VoiceSpeedControlProps> = ({
         step="0.05"
         value={clampedSpeed}
         onChange={handleSliderChange}
-        className="w-full h-1.5 bg-neutral-200 dark:bg-neutral-850 rounded-lg appearance-none cursor-pointer accent-indigo-600 focus:outline-none"
+        className="w-full h-1.5 bg-background rounded-lg appearance-none cursor-pointer accent-indigo-600 focus:outline-none"
       />
 
       {/* Preset Action Buttons */}
-      <div className="flex justify-between gap-1.5 text-[9px] mt-0.5">
+      <div className="grid grid-cols-3 gap-2 text-xs mt-0.5">
         <button
           type="button"
           onClick={() => setPresetSpeed(0.5)}
-          className={`flex-1 py-1.5 rounded-lg border transition font-bold cursor-pointer text-center ${
-            Math.abs(clampedSpeed - 0.5) < 0.02
-              ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400 shadow-sm shadow-indigo-500/5'
-              : 'border-[var(--border-app)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-indigo-500/30'
+          className={`py-2 rounded-xl border transition-all font-bold cursor-pointer text-center ${
+            Math.abs(clampedSpeed - 0.5) < 0.03
+              ? 'border-indigo-500 bg-indigo-500/15 text-indigo-400 shadow-md shadow-indigo-500/10'
+              : 'border-input bg-card text-neutral-400 hover:text-foreground hover:border-neutral-700'
           }`}
         >
           Slow (0.5x)
@@ -61,10 +66,10 @@ export const VoiceSpeedControl: React.FC<VoiceSpeedControlProps> = ({
         <button
           type="button"
           onClick={() => setPresetSpeed(1.0)}
-          className={`flex-1 py-1.5 rounded-lg border transition font-bold cursor-pointer text-center ${
-            Math.abs(clampedSpeed - 1.0) < 0.02
-              ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400 shadow-sm shadow-indigo-500/5'
-              : 'border-[var(--border-app)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-indigo-500/30'
+          className={`py-2 rounded-xl border transition-all font-bold cursor-pointer text-center ${
+            Math.abs(clampedSpeed - 1.0) < 0.03
+              ? 'border-indigo-500 bg-indigo-500/15 text-indigo-400 shadow-md shadow-indigo-500/10'
+              : 'border-input bg-card text-neutral-400 hover:text-foreground hover:border-neutral-700'
           }`}
         >
           Normal (1.0x)
@@ -72,10 +77,10 @@ export const VoiceSpeedControl: React.FC<VoiceSpeedControlProps> = ({
         <button
           type="button"
           onClick={() => setPresetSpeed(1.5)}
-          className={`flex-1 py-1.5 rounded-lg border transition font-bold cursor-pointer text-center ${
-            Math.abs(clampedSpeed - 1.5) < 0.02
-              ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400 shadow-sm shadow-indigo-500/5'
-              : 'border-[var(--border-app)] bg-[var(--bg-input)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-indigo-500/30'
+          className={`py-2 rounded-xl border transition-all font-bold cursor-pointer text-center ${
+            Math.abs(clampedSpeed - 1.5) < 0.03
+              ? 'border-indigo-500 bg-indigo-500/15 text-indigo-400 shadow-md shadow-indigo-500/10'
+              : 'border-input bg-card text-neutral-400 hover:text-foreground hover:border-neutral-700'
           }`}
         >
           Fast (1.5x)

@@ -22,6 +22,8 @@ export default function ProfileAvatar({
   size = 'lg',
   showBadge = true,
 }: ProfileAvatarProps) {
+  const [imgError, setImgError] = React.useState(false);
+
   const getInitials = (str: string) => {
     if (!str) return 'U';
     const parts = str.trim().split(' ');
@@ -46,30 +48,24 @@ export default function ProfileAvatar({
   }[size];
 
   const isAdmin = role === 'admin';
+  const showImage = Boolean(imageUrl) && !imgError;
 
   return (
     <div className="relative inline-block shrink-0">
-      {imageUrl ? (
+      {showImage ? (
         <img
-          src={imageUrl}
-          alt={name}
+          src={imageUrl!}
+          alt={name || 'User Profile'}
           className={`${sizeClasses} rounded-full object-cover border-2 border-neutral-800 shadow-xl bg-neutral-900`}
-          onError={(e) => {
-            // Fallback if image fails to load
-            (e.target as HTMLElement).style.display = 'none';
-            const fallback = (e.target as HTMLElement).nextElementSibling;
-            if (fallback) fallback.classList.remove('hidden');
-          }}
+          onError={() => setImgError(true)}
         />
-      ) : null}
-
-      <div
-        className={`${sizeClasses} ${
-          imageUrl ? 'hidden' : 'flex'
-        } rounded-full border-2 border-neutral-800 shadow-xl bg-gradient-to-tr from-indigo-900 via-neutral-900 to-violet-900 items-center justify-center font-bold text-white tracking-wider`}
-      >
-        {getInitials(name)}
-      </div>
+      ) : (
+        <div
+          className={`${sizeClasses} rounded-full border-2 border-neutral-800 shadow-xl bg-gradient-to-tr from-indigo-900 via-neutral-900 to-violet-900 flex items-center justify-center font-bold text-white tracking-wider`}
+        >
+          {getInitials(name)}
+        </div>
+      )}
 
       {showBadge && (
         <div className="absolute -bottom-1 -right-1 flex items-center justify-center">

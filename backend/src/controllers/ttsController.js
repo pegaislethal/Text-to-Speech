@@ -330,15 +330,16 @@ exports.previewSpeech = async (req, res) => {
       }
     }
 
-    // Voice Preview Handling
+    // Voice Preview Handling: return cached previewUrl only if default parameters are used
+    const isDefaultParams = pitch === 0 && speed === 1.0 && depth === 0 && (tone === 'natural' || tone === 'neutral');
     if (voiceDoc) {
       if (voiceDoc.previewAvailable === false) {
         return res.status(400).json({
           success: false,
-          message: 'Preview not available for this voice at the moment.'
+          message: 'Preview is currently unavailable for this voice at the moment.'
         });
       }
-      if (voiceDoc.previewUrl) {
+      if (voiceDoc.previewUrl && isDefaultParams && !req.body.text) {
         return res.status(200).json({
           success: true,
           audioUrl: voiceDoc.previewUrl,

@@ -43,6 +43,7 @@ exports.googleLogin = async (req, res) => {
         name,
         email,
         profileImage: picture,
+        profileImageUrl: picture,
         googleId,
         role: 'user',
         isActive: true,
@@ -51,6 +52,20 @@ exports.googleLogin = async (req, res) => {
         usedCredits: 0
       });
       await user.save();
+    } else {
+      let needsSave = false;
+      if (!user.googleId && googleId) {
+        user.googleId = googleId;
+        needsSave = true;
+      }
+      if (picture && (!user.profileImage || !user.profileImageUrl)) {
+        user.profileImage = user.profileImage || picture;
+        user.profileImageUrl = user.profileImageUrl || picture;
+        needsSave = true;
+      }
+      if (needsSave) {
+        await user.save();
+      }
     }
 
     if (!user.isActive) {
@@ -72,7 +87,8 @@ exports.googleLogin = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        profileImage: user.profileImage,
+        profileImage: user.profileImageUrl || user.profileImage,
+        profileImageUrl: user.profileImageUrl || user.profileImage,
         role: user.role,
         premiumAccess: user.premiumAccess,
         freeCredits: user.freeCredits,
