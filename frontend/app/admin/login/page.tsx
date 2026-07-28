@@ -28,6 +28,11 @@ export default function AdminLogin() {
       }
       if (params.get('expired') === 'true') {
         setErrorMsg('Your session has expired. Please log in again.');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        if (typeof document !== 'undefined') {
+          document.cookie = 'token=; path=/; max-age=0; SameSite=Lax';
+        }
       }
     }
   }, []);

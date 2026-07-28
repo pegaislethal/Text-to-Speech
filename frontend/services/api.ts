@@ -44,14 +44,30 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
         }
       } catch (_) {}
 
-      // Only dispatch session expired event if status is 401 AND code/message explicitly confirms token expiration
+      // Only dispatch session expired event if status is 401 AND not on an auth page or auth endpoint
       if (res.status === 401 && typeof window !== 'undefined') {
-        const isExplicitSessionExpired = 
-          errorCode === 'SESSION_EXPIRED' ||
-          /session expired|jwt expired|invalid token|token expired|authentication required/i.test(errorMsg);
+        const currentPath = window.location.pathname;
+        const isAuthRoute = 
+          currentPath.startsWith('/login') || 
+          currentPath.startsWith('/signup') || 
+          currentPath.startsWith('/admin/login') || 
+          currentPath.startsWith('/admin/signup');
+        const isAuthEndpoint = 
+          endpoint.includes('/api/auth/login') || 
+          endpoint.includes('/api/auth/user-login') || 
+          endpoint.includes('/api/auth/admin-login') || 
+          endpoint.includes('/api/auth/signup') || 
+          endpoint.includes('/api/auth/user-signup') || 
+          endpoint.includes('/api/auth/google');
 
-        if (isExplicitSessionExpired) {
-          window.dispatchEvent(new CustomEvent('auth-session-expired'));
+        if (!isAuthRoute && !isAuthEndpoint) {
+          const isExplicitSessionExpired = 
+            errorCode === 'SESSION_EXPIRED' ||
+            /session expired|jwt expired|invalid token|token expired/i.test(errorMsg);
+
+          if (isExplicitSessionExpired) {
+            window.dispatchEvent(new CustomEvent('auth-session-expired'));
+          }
         }
       }
 

@@ -9,6 +9,7 @@ const getCookieOptions = (overrideMaxAge) => {
     httpOnly: true,
     secure: isProd,
     sameSite: isProd ? 'none' : 'lax',
+    path: '/',
     maxAge: overrideMaxAge !== undefined ? overrideMaxAge : 25 * 60 * 1000 // 25 minutes
   };
 
@@ -24,7 +25,8 @@ const getClearCookieOptions = () => {
   const options = {
     httpOnly: true,
     secure: isProd,
-    sameSite: isProd ? 'none' : 'lax'
+    sameSite: isProd ? 'none' : 'lax',
+    path: '/'
   };
 
   if (process.env.COOKIE_DOMAIN) {

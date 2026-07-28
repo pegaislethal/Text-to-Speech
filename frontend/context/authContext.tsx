@@ -63,6 +63,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const verifySession = async () => {
+      if (typeof window !== 'undefined') {
+        const currentPath = window.location.pathname;
+        const isAuthRoute = 
+          currentPath === '/login' || 
+          currentPath === '/signup' || 
+          currentPath === '/admin/login' || 
+          currentPath === '/admin/signup';
+
+        if (isAuthRoute) {
+          setLoading(false);
+          return;
+        }
+      }
+
       const storedToken = localStorage.getItem('token');
       const storedUser = localStorage.getItem('user');
 
@@ -328,7 +342,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         method: 'POST',
         credentials: 'include'
       });
-      await new Promise((resolve) => setTimeout(resolve, 400));
+      await new Promise((resolve) => setTimeout(resolve, 300));
     } catch (err) {
       console.error('Backend logout call failed:', err);
     }
@@ -341,22 +355,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsAuthenticated(false);
     setIsLoggingOut(false);
     clearToasts();
-    if (expired) {
-      showToast('Session expired. Please login again.', 'error');
-      if (currentRole === 'admin') {
-        router.replace('/admin/login?expired=true');
-      } else {
-        router.replace('/login?expired=true');
-      }
-    } else {
-      showToast('Logged out successfully', 'success');
-      if (currentRole === 'admin') {
-        router.replace('/admin/login?logout=success');
-      } else {
-        router.replace('/login?logout=success');
+
+    const targetBasePath = currentRole === 'admin' ? '/admin/login' : '/login';
+    const targetUrl = expired ? `${targetBasePath}?expired=true` : `${targetBasePath}?logout=success`;
+
+    if (typeof window !== 'undefined') {
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/login' && currentPath !== '/admin/login' && currentPath !== '/signup' && currentPath !== '/admin/signup') {
+        router.replace(targetUrl);
       }
     }
-    router.refresh();
   };
 
   const refreshUser = async () => {
