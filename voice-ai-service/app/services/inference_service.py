@@ -19,11 +19,13 @@ class InferenceService:
         output_mp3_path: str,
         pitch_semitones: float = 0.0,
         depth: float = 0.0,
+        bass_enhancement: float = 0.0,
         tone: str = "Natural",
         speed: float = 1.0
     ) -> str:
         """
-        Applies signal processing effects on generated WAV and exports MP3.
+        Applies signal processing effects on generated WAV and exports high quality MP3.
+        Pipeline: Pitch Shift -> Speed Stretch -> Bass Enhancement -> Voice Depth -> EQ Presets -> Normalization.
         """
         # Load generated WAV
         y, sr = librosa.load(wav_path, sr=settings.TARGET_SAMPLE_RATE)
@@ -34,7 +36,7 @@ class InferenceService:
             y = librosa.effects.pitch_shift(y, sr=sr, n_steps=pitch_shift_n)
 
         # 2. Speed Control (0.5x - 1.5x)
-        if speed != 1.0 and speed > 0.4 and speed < 2.0:
+        if speed != 1.0 and speed >= 0.5 and speed <= 1.5:
             y = librosa.effects.time_stretch(y, rate=speed)
 
         # Write intermediate processed WAV
@@ -44,27 +46,34 @@ class InferenceService:
         # Load with pydub for EQ and tone shaping
         sound = AudioSegment.from_file(temp_proc_wav)
 
-        # 3. Voice Depth (0-100 bass & body boost)
-        if depth > 0:
-            gain_db = (depth / 100.0) * 4.0  # Up to +4dB bass boost
-            sound = sound.low_pass_filter(3000).apply_gain(gain_db).overlay(sound)
+        # 3. Bass Enhancement (0-100 sub-bass gain between 60Hz - 250Hz)
+        if bass_enhancement > 0:
+            bass_gain_db = (min(100.0, max(0.0, bass_enhancement)) / 100.0) * 5.0
+            sound = sound.low_pass_filter(250).apply_gain(bass_gain_db).overlay(sound)
 
-        # 4. Tone EQ Presets
-        tone_lower = (tone or "natural").lower()
-        if tone_lower == "deep":
-            sound = sound.low_pass_filter(4000).apply_gain(2.5)
+        # 4. Voice Depth (0-100 body resonance boost)
+        if depth > 0:
+            depth_gain_db = (min(100.0, max(0.0, depth)) / 100.0) * 4.0
+            sound = sound.low_pass_filter(2500).apply_gain(depth_gain_db).overlay(sound)
+
+        # 5. Tone EQ Presets (Documentary, Cinematic, Dark, Podcast, Natural)
+        tone_lower = (tone or "natural").strip().lower()
+        if tone_lower == "documentary":
+            sound = sound.high_pass_filter(80).low_pass_filter(10000).apply_gain(1.5)
+        elif tone_lower == "cinematic":
+            sound = sound.high_pass_filter(70).low_pass_filter(12000).apply_gain(3.5)
+        elif tone_lower == "dark":
+            sound = sound.low_pass_filter(4500).apply_gain(3.0)
+        elif tone_lower == "podcast":
+            sound = sound.high_pass_filter(100).apply_gain(2.0)
         elif tone_lower == "warm":
             sound = sound.low_pass_filter(6000).apply_gain(1.5)
-        elif tone_lower == "cinematic":
-            sound = sound.high_pass_filter(80).low_pass_filter(12000).apply_gain(3.0)
-        elif tone_lower == "documentary":
-            sound = sound.high_pass_filter(100).apply_gain(1.0)
 
-        # 5. Volume Normalization & Export as MP3
+        # 6. Peak Normalization & Export as High-Bitrate MP3 (192kbps)
         sound = sound.normalize(headroom=0.5)
         sound.export(output_mp3_path, format="mp3", bitrate="192k")
 
-        # Cleanup temporary file
+        # Cleanup temporary WAV file
         if os.path.exists(temp_proc_wav):
             try:
                 os.remove(temp_proc_wav)
@@ -79,6 +88,7 @@ class InferenceService:
         text: str,
         pitch: float = 0.0,
         depth: float = 0.0,
+        bass_enhancement: float = 0.0,
         tone: str = "Natural",
         speed: float = 1.0,
         provider_name: str = "XTTS"
@@ -101,6 +111,7 @@ class InferenceService:
             final_mp3_path, 
             pitch_semitones=pitch, 
             depth=depth, 
+            bass_enhancement=bass_enhancement,
             tone=tone, 
             speed=speed
         )

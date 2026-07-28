@@ -14,6 +14,7 @@ class GenerateRequest(BaseModel):
     pitch: Optional[float] = 0.0
     tone: Optional[str] = "Natural"
     depth: Optional[float] = 0.0
+    bassEnhancement: Optional[float] = 0.0
     provider: Optional[str] = "XTTS"
 
 @router.post("/generate")
@@ -27,6 +28,7 @@ async def generate_voice_speech(req: GenerateRequest):
             text=req.text.strip(),
             pitch=req.pitch or 0.0,
             depth=req.depth or 0.0,
+            bass_enhancement=req.bassEnhancement or 0.0,
             tone=req.tone or "Natural",
             speed=req.speed or 1.0,
             provider_name=req.provider or "XTTS"
