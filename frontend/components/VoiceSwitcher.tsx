@@ -75,9 +75,9 @@ export const VoiceSwitcher: React.FC<VoiceSwitcherProps> = ({
           <button
             type="button"
             onClick={onOpenLibrary}
-            className="text-xs sm:text-sm font-bold text-indigo-500 hover:underline flex items-center gap-1.5 cursor-pointer"
+            className="px-3 py-1.5 rounded-xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-app)] text-xs font-bold text-indigo-500 hover:text-indigo-400 flex items-center gap-1.5 transition-all shadow-sm cursor-pointer shrink-0"
           >
-            <Grid className="w-4 h-4" />
+            <Grid className="w-3.5 h-3.5" />
             <span>Browse Library</span>
           </button>
         )}
