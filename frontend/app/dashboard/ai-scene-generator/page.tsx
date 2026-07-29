@@ -1,18 +1,23 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import PremiumRouteGuard from '../../../components/PremiumRouteGuard';
-import WorkspaceLayout from '../../../components/WorkspaceLayout';
 import { useAuth } from '../../../context/authContext';
 import { useToast } from '../../../context/toastContext';
-import VoiceSpeedControl from '../../../components/VoiceSpeedControl';
 import DownloadButton from '../../../components/DownloadButton';
-import { generateSceneVoicesApi, getApiUrl, downloadAudioFile, downloadScenesZipApi, getVoiceLibraryApi, previewSpeechApi } from '../../../services/api';
 import { 
-  Sparkles, FileText, Mic, RefreshCw, AlertCircle, Play, Pause, Clapperboard, Layers, ShieldCheck, FolderArchive, RotateCcw, CheckCircle2, Music2, Sliders
+  generateSceneVoicesApi, getApiUrl, downloadAudioFile, 
+  downloadScenesZipApi, getVoiceLibraryApi, previewSpeechApi 
+} from '../../../services/api';
+import { 
+  Sparkles, FileText, Mic, RefreshCw, AlertCircle, Play, Pause, 
+  Clapperboard, Layers, FolderArchive, RotateCcw, CheckCircle2, 
+  SlidersHorizontal, ChevronRight, Zap, Download, X 
 } from 'lucide-react';
-import { VoiceSelector, VoiceOption } from '../../../components/VoiceSelector';
+import VoiceLibrary from '../../../components/VoiceLibrary';
+import { VoiceOption } from '../../../components/VoiceCard';
+import VoiceSwitcher from '../../../components/VoiceSwitcher';
 
 interface GeneratedScene {
   sceneNumber: number;
@@ -23,74 +28,91 @@ interface GeneratedScene {
 }
 
 const DEFAULT_SCRIPT_PLACEHOLDER = `Scene1:
-Enter narration for the first scene of your script...
+Before humans discovered fire, night was dominated by total silence and cold darkness.
 
 Scene2:
-Continue narration for the second scene here...`;
+With the first sparked ember, storytelling was born around the central hearth.`;
 
 export default function DashboardAISceneGenerator() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { showToast } = useToast();
   const router = useRouter();
 
+  // Core Scene Editor States
   const [script, setScript] = useState<string>(DEFAULT_SCRIPT_PLACEHOLDER);
   const [voiceId, setVoiceId] = useState<string>('en-US-ChristopherNeural');
-  const [speed, setSpeed] = useState<number>(0.75);
+
+  // Voice Control States
+  const [speed, setSpeed] = useState<number>(1.0);
   const [pitch, setPitch] = useState<number>(0);
   const [depth, setDepth] = useState<number>(0);
   const [tone, setTone] = useState<string>('natural');
+
+  // Voices & Modal
+  const [systemVoices, setSystemVoices] = useState<VoiceOption[]>([]);
+  const [customVoices, setCustomVoices] = useState<VoiceOption[]>([]);
+  const [voiceModalOpen, setVoiceModalOpen] = useState<boolean>(false);
+
+  // Execution States
   const [generating, setGenerating] = useState<boolean>(false);
   const [downloadingZip, setDownloadingZip] = useState<boolean>(false);
   const [downloadingSceneIndex, setDownloadingSceneIndex] = useState<number | null>(null);
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(null);
+  const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
+  const [playingPreviewId, setPlayingPreviewId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [generatedScenes, setGeneratedScenes] = useState<GeneratedScene[]>([]);
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
-  const [systemVoices, setSystemVoices] = useState<VoiceOption[]>([]);
-  const [customVoices, setCustomVoices] = useState<VoiceOption[]>([]);
-  const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
-  
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioRefs = useRef<{ [key: number]: HTMLAudioElement | null }>({});
   const BACKEND_URL = getApiUrl();
 
   useEffect(() => {
     loadVoiceLibrary();
     audioRef.current = new Audio();
+    
+    const prevAudio = audioRef.current;
+    prevAudio.onended = () => setPlayingPreviewId(null);
+    prevAudio.onpause = () => setPlayingPreviewId(null);
+
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
+      if (prevAudio) prevAudio.pause();
     };
   }, [user]);
 
   const loadVoiceLibrary = async () => {
     try {
       const res = await getVoiceLibraryApi();
-      if (res.success) {
-        const sysVoices = (res.systemVoices || []).map((sv: any) => ({
+      if (res && res.success) {
+        const sysVoices: VoiceOption[] = (res.systemVoices || []).map((sv: any) => ({
           voiceId: sv.voiceId,
           name: sv.name,
           gender: sv.category === 'female' ? 'Female' : 'Male',
           language: 'en-US',
+          accent: sv.category === 'female' ? 'American Female' : 'American Male',
           description: sv.description,
+          category: sv.category || 'Documentary',
           style: sv.category,
           premium: sv.isPremium,
-          isPremium: sv.isPremium
+          isPremium: sv.isPremium,
         }));
-        
-        const custVoices = (res.customVoices || []).map((cv: any) => ({
-          voiceId: cv._id,
-          name: `${cv.voiceName || cv.name} (Custom)`,
+
+        const custVoices: VoiceOption[] = (res.customVoices || []).map((cv: any) => ({
+          voiceId: cv._id || cv.voiceId,
+          name: `${cv.voiceName || cv.name}`,
           gender: 'Male',
-          language: 'en-US (cloned)',
-          description: `Custom cloned voice profile (${cv.provider}).`,
+          language: 'en-US (Cloned)',
+          accent: 'Custom Cloned',
+          description: `Custom neural cloned voice profile (${cv.provider || 'XTTS v2'}).`,
+          category: 'custom',
           style: 'Custom Cloned',
           premium: true,
-          isPremium: true
+          isPremium: true,
+          isCustom: true,
+          provider: cv.provider || 'XTTS',
         }));
-        
+
         setSystemVoices(sysVoices);
         setCustomVoices(custVoices);
       }
@@ -99,38 +121,39 @@ export default function DashboardAISceneGenerator() {
     }
   };
 
-  const handlePreviewVoice = async (v: VoiceOption) => {
-    if (previewingVoice) return;
-    setPreviewingVoice(v.voiceId);
-    try {
-      const demoText = `Hi, I am ${v.name}. This is a preview of my narration style.`;
-      const res = await previewSpeechApi(v.voiceId, demoText, speed, pitch, tone, depth);
-      if (res.audioUrl && audioRef.current) {
-        let fullUrl = res.audioUrl;
-        if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
-          const baseUrl = BACKEND_URL.replace(/\/+$/, '');
-          const cleanPath = fullUrl.startsWith('/') ? fullUrl : `/${fullUrl}`;
-          fullUrl = `${baseUrl}${cleanPath}`;
-        }
-        audioRef.current.src = fullUrl;
-        audioRef.current.load();
-        audioRef.current.play().catch((playErr) => {
-          console.error('Browser playback error:', playErr);
-        });
-      }
-    } catch (err) {
-      console.error('Preview failed:', err);
-      showToast('Preview not available for this voice at the moment.', 'error');
-    } finally {
-      setPreviewingVoice(null);
-    }
-  };
+  const allVoices = useMemo(() => [...systemVoices, ...customVoices], [systemVoices, customVoices]);
 
-  const allVoices = [...systemVoices, ...customVoices];
+  const selectedVoiceObj = useMemo(() => {
+    return allVoices.find((v) => v.voiceId === voiceId) || {
+      voiceId,
+      name: 'Christopher (Default)',
+      accent: 'American Male',
+      style: 'Documentary',
+      description: 'Clear, authoritative male narration voice.',
+      category: 'documentary',
+      premium: false,
+    };
+  }, [allVoices, voiceId]);
+
+  const detectedScenesCount = useMemo(() => {
+    const matches = script.match(/Scene\s*\d+\s*:/gi);
+    return matches ? Math.max(1, matches.length) : 1;
+  }, [script]);
+
+  const characterCount = script.length;
+  const creditsRequired = Math.max(1, Math.ceil(characterCount / 50));
+
+  const getFullAudioUrl = (urlPath: string) => {
+    if (!urlPath) return '';
+    if (urlPath.startsWith('http://') || urlPath.startsWith('https://')) return urlPath;
+    const baseUrl = BACKEND_URL.replace(/\/+$/, '');
+    const cleanPath = urlPath.startsWith('/') ? urlPath : `/${urlPath}`;
+    return `${baseUrl}${cleanPath}`;
+  };
 
   const handleGenerate = async () => {
     if (!script.trim()) {
-      setError('Please enter a script before generating scene voices.');
+      setError('Please enter your script with scene delimiters before generating.');
       return;
     }
 
@@ -140,6 +163,11 @@ export default function DashboardAISceneGenerator() {
     setPlayingIndex(null);
 
     try {
+      const isLocked = selectedVoiceObj && (selectedVoiceObj.premium || selectedVoiceObj.isPremium) && user && !user.premiumAccess;
+      if (isLocked) {
+        throw new Error('Upgrade to Premium to unlock this voice profile.');
+      }
+
       const res = await generateSceneVoicesApi(script, voiceId, speed, pitch, tone, depth);
 
       if (!res.success || !res.scenes || res.scenes.length === 0) {
@@ -148,11 +176,12 @@ export default function DashboardAISceneGenerator() {
 
       const formattedScenes: GeneratedScene[] = res.scenes.map((sc: any) => ({
         ...sc,
-        status: 'completed'
+        status: 'completed',
       }));
 
       setGeneratedScenes(formattedScenes);
-      showToast('Scene voices generated successfully!', 'success');
+      showToast('All scene voices generated successfully!', 'success');
+      await refreshUser();
     } catch (err: any) {
       console.error('AI Scene Generation Error:', err);
       setError(err.message || 'Unable to generate scene audio.');
@@ -177,7 +206,7 @@ export default function DashboardAISceneGenerator() {
           ...targetScene,
           audioUrl: res.scenes[0].audioUrl,
           filename: res.scenes[0].filename,
-          status: 'completed'
+          status: 'completed',
         };
         setGeneratedScenes(updated);
         showToast(`Scene ${String(targetScene.sceneNumber).padStart(2, '0')} regenerated!`, 'success');
@@ -189,14 +218,6 @@ export default function DashboardAISceneGenerator() {
     } finally {
       setRegeneratingIndex(null);
     }
-  };
-
-  const getFullAudioUrl = (urlPath: string) => {
-    if (!urlPath) return '';
-    if (urlPath.startsWith('http://') || urlPath.startsWith('https://')) return urlPath;
-    const baseUrl = BACKEND_URL.replace(/\/+$/, '');
-    const cleanPath = urlPath.startsWith('/') ? urlPath : `/${urlPath}`;
-    return `${baseUrl}${cleanPath}`;
   };
 
   const handleDownloadScene = async (scene: GeneratedScene, index: number) => {
@@ -218,7 +239,7 @@ export default function DashboardAISceneGenerator() {
   const handleDownloadAllZip = async () => {
     if (!generatedScenes || generatedScenes.length === 0) return;
     setDownloadingZip(true);
-    showToast('Preparing scene audio ZIP...', 'info');
+    showToast('Preparing scene audio ZIP package...', 'info');
 
     try {
       await downloadScenesZipApi(generatedScenes);
@@ -227,6 +248,34 @@ export default function DashboardAISceneGenerator() {
       showToast(err.message || 'Unable to create ZIP file.', 'error');
     } finally {
       setDownloadingZip(false);
+    }
+  };
+
+  const handlePreviewVoice = async (v: VoiceOption) => {
+    if (previewingVoiceId) return;
+
+    if (playingPreviewId === v.voiceId && audioRef.current) {
+      audioRef.current.pause();
+      setPlayingPreviewId(null);
+      return;
+    }
+
+    setPreviewingVoiceId(v.voiceId);
+    try {
+      const demoText = `Hi, I am ${v.name}. This is a preview of my narration style.`;
+      const res = await previewSpeechApi(v.voiceId, demoText, speed, pitch, tone, depth);
+      if (res.audioUrl && audioRef.current) {
+        const fullUrl = getFullAudioUrl(res.audioUrl);
+        audioRef.current.src = fullUrl;
+        audioRef.current.load();
+        await audioRef.current.play();
+        setPlayingPreviewId(v.voiceId);
+      }
+    } catch (err) {
+      console.error('Preview failed:', err);
+      showToast('Preview not available for this voice at the moment.', 'error');
+    } finally {
+      setPreviewingVoiceId(null);
     }
   };
 
@@ -243,12 +292,11 @@ export default function DashboardAISceneGenerator() {
       }
       try {
         currentAudio.load();
-        const playPromise = currentAudio.play();
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => setPlayingIndex(index))
-            .catch(() => setError('Browser blocked audio playback. Use player directly.'));
-        }
+        currentAudio.play().then(() => {
+          setPlayingIndex(index);
+        }).catch(() => {
+          setError('Browser blocked audio playback. Use audio player controls.');
+        });
       } catch (err) {
         console.error('Audio play error:', err);
       }
@@ -260,305 +308,346 @@ export default function DashboardAISceneGenerator() {
       featureTitle="AI Scene Generator"
       featureDescription="Generate multi-voice audio scripts scene-by-scene with realistic AI narrators."
     >
-      <div className="max-w-6xl mx-auto flex flex-col gap-6 animate-in fade-in duration-200">
-      {/* Workspace Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[var(--border-app)]">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
-              AI Scene Generator
-            </h1>
-            <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-semibold text-indigo-400 uppercase tracking-wider flex items-center gap-1">
-              <Sparkles className="w-3 h-3" /> Production Workspace
-            </span>
-          </div>
-          <p className="text-xs text-[var(--text-secondary)]">
-            Convert your scripts into organized scene-by-scene voice narration.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="px-3 py-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-app)] flex items-center gap-2 text-xs text-indigo-400 font-medium">
-            <ShieldCheck className="w-3.5 h-3.5" /> Premium Unlimited Stems
-          </div>
-        </div>
-      </div>
-
-      {/* Main Workspace Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Left: Script Input Panel */}
-        <div className="lg:col-span-2 flex flex-col gap-5">
-          <div className="rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] p-5 flex flex-col gap-3 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-[var(--text-secondary)] flex items-center gap-2 uppercase tracking-wider">
-                <FileText className="w-4 h-4 text-indigo-400" /> Script Input Panel
-              </span>
-              <button
-                type="button"
-                onClick={() => setScript(DEFAULT_SCRIPT_PLACEHOLDER)}
-                className="text-xs text-indigo-400 hover:underline font-medium cursor-pointer"
-              >
-                Reset Template
-              </button>
+      <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
+        {/* Header Banner */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950/60 to-purple-950/60 border border-indigo-500/20 shadow-xl backdrop-blur-xl">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/30">
+              <Clapperboard className="w-6 h-6" />
             </div>
-
-            <textarea
-              value={script}
-              onChange={(e) => {
-                setScript(e.target.value);
-                setError(null);
-              }}
-              placeholder={DEFAULT_SCRIPT_PLACEHOLDER}
-              rows={11}
-              className="w-full bg-[var(--bg-input)] border border-[var(--border-app)] rounded-lg p-4 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-indigo-500 text-xs font-mono leading-relaxed resize-y min-h-[360px] transition-colors"
-            />
-
-            <div className="p-3 rounded-lg bg-[var(--bg-muted)] border border-[var(--border-app)] flex items-center justify-between text-xs text-[var(--text-secondary)]">
-              <span className="flex items-center gap-2">
-                <Clapperboard className="w-4 h-4 text-indigo-400 shrink-0" />
-                Auto-detects <code className="text-indigo-400 font-mono">Scene1:</code>, <code className="text-indigo-400 font-mono">Scene 2:</code> headings into clean scene stems.
-              </span>
-              <span className="font-mono text-[10px] text-[var(--text-muted)]">
-                {script.length} characters
-              </span>
+            <div className="flex flex-col">
+              <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                AI Scene Generator
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 font-bold uppercase tracking-wider">
+                  Scene-by-Scene
+                </span>
+              </h1>
+              <p className="text-xs text-slate-300 font-medium mt-0.5">
+                Generate distinct scene audio stems from your script with automatic scene parsing.
+              </p>
             </div>
           </div>
 
-          {/* Generate Voice Scenes Button - Directly Below Text Input Panel */}
-          <button
-            onClick={handleGenerate}
-            disabled={generating || !script.trim()}
-            className="w-full py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 transition-all duration-300 font-bold text-sm text-white shadow-xl shadow-indigo-600/25 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer active:scale-98"
-          >
-            {generating ? (
-              <>
-                <RefreshCw className="w-4.5 h-4.5 animate-spin" /> Synthesizing voice stems...
-              </>
-            ) : (
-              <>
-                <Layers className="w-4.5 h-4.5" /> Generate Voice Scenes
-              </>
+          <div className="flex items-center gap-3 text-xs font-semibold text-slate-300">
+            <div className="px-3.5 py-1.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-app)] flex items-center gap-2">
+              <Zap className="w-4 h-4 text-indigo-400" />
+              <span>Credits: <strong className="text-[var(--text-primary)]">{(user?.freeCredits ?? 1000) - (user?.usedCredits ?? 0)}</strong></span>
+            </div>
+          </div>
+        </div>
+
+        {/* TWO PANEL PROFESSIONAL WORKSPACE */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* LEFT PANEL: Scene Script Workspace (Col-8) */}
+          <div className="lg:col-span-8 flex flex-col gap-5">
+            <div className="p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-app)] shadow-lg flex flex-col gap-4">
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--border-app)]">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-indigo-500" />
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--text-primary)]">
+                    Scene Script Input
+                  </h2>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] font-medium">
+                  <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-bold">
+                    {detectedScenesCount} {detectedScenesCount === 1 ? 'Scene' : 'Scenes'} Detected
+                  </span>
+                </div>
+              </div>
+
+              {/* Distraction-Free Textarea Editor */}
+              <textarea
+                value={script}
+                onChange={(e) => {
+                  setScript(e.target.value);
+                  setError(null);
+                }}
+                placeholder="Enter your script with scene headers (e.g. Scene1:, Scene2:)..."
+                rows={11}
+                className="w-full bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] focus:bg-[var(--bg-card)] text-[var(--text-primary)] text-sm rounded-2xl p-5 border border-[var(--border-app)] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all placeholder:text-[var(--text-muted)] font-sans leading-relaxed resize-y min-h-[300px]"
+              />
+
+              {/* Bottom Bar: Character Count, Credit Cost, Primary Action */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-3 border-t border-[var(--border-app)]">
+                <div className="flex items-center gap-4 text-xs font-semibold text-[var(--text-secondary)]">
+                  <span>Characters: <strong className="text-[var(--text-primary)]">{characterCount}</strong></span>
+                  <span>&bull;</span>
+                  <span>Credit Cost: <strong className="text-indigo-400">{creditsRequired}</strong></span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleGenerate}
+                  disabled={generating || !script.trim()}
+                  className="w-full sm:w-auto px-8 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-extrabold text-xs shadow-xl shadow-indigo-600/30 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {generating ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Generating Scene Voices...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Clapperboard className="w-4 h-4" />
+                      <span>Generate Scene Audio</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* ERROR ALERT */}
+            {error && (
+              <div className="p-4 rounded-2xl border border-red-500/30 bg-red-500/10 text-red-500 text-xs font-medium flex items-center gap-3">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
             )}
-          </button>
-        </div>
 
-        {/* Right: Generation Settings Panel */}
-        <div className="flex flex-col gap-5">
-          <div className="rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] p-5 flex flex-col gap-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
-                <Mic className="w-4 h-4 text-indigo-400" /> Neural Voice characters
-              </h3>
-              <span className="text-[10px] text-[var(--text-muted)] font-mono">{allVoices.length} Available</span>
-            </div>
+            {/* GENERATED SCENES OUTPUT SECTION */}
+            {generatedScenes.length > 0 && (
+              <div className="p-6 rounded-3xl bg-[var(--bg-card)] border border-indigo-500/30 shadow-xl flex flex-col gap-4 animate-in slide-in-from-bottom-3 duration-300">
+                <div className="flex items-center justify-between pb-3 border-b border-[var(--border-app)]">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                      Generated Scene Audio Stems ({generatedScenes.length})
+                    </h3>
+                  </div>
 
-            <VoiceSelector
+                  <button
+                    type="button"
+                    onClick={handleDownloadAllZip}
+                    disabled={downloadingZip}
+                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-600/20 transition cursor-pointer disabled:opacity-50"
+                  >
+                    {downloadingZip ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <FolderArchive className="w-3.5 h-3.5" />
+                    )}
+                    <span>{downloadingZip ? 'Packaging ZIP...' : 'Download All ZIP'}</span>
+                  </button>
+                </div>
+
+                {/* List of Scene Audio Stems */}
+                <div className="flex flex-col gap-3">
+                  {generatedScenes.map((scene, idx) => {
+                    const sceneNumDisplay = String(scene.sceneNumber !== undefined ? scene.sceneNumber : idx).padStart(2, '0');
+                    return (
+                      <div
+                        key={idx}
+                        className="p-4 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-app)] flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => toggleSceneAudio(idx)}
+                            className="w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-md shadow-indigo-600/20 transition shrink-0 cursor-pointer"
+                          >
+                            {playingIndex === idx ? (
+                              <Pause className="w-4 h-4 fill-white" />
+                            ) : (
+                              <Play className="w-4 h-4 fill-white ml-0.5" />
+                            )}
+                          </button>
+
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-xs font-bold text-[var(--text-primary)] truncate">
+                              Scene {sceneNumDisplay}
+                            </span>
+                            <span className="text-[10px] text-[var(--text-muted)] truncate max-w-sm">
+                              {scene.text}
+                            </span>
+                          </div>
+
+                          <audio
+                            ref={(el) => { audioRefs.current[idx] = el; }}
+                            src={getFullAudioUrl(scene.audioUrl)}
+                            onEnded={() => setPlayingIndex(null)}
+                            onPause={() => setPlayingIndex(null)}
+                            className="hidden"
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleRegenerateScene(idx)}
+                            disabled={regeneratingIndex === idx}
+                            className="p-2 rounded-xl bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-app)] text-[var(--text-secondary)] text-xs font-bold transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                            title="Regenerate scene voice"
+                          >
+                            <RotateCcw className={`w-3.5 h-3.5 ${regeneratingIndex === idx ? 'animate-spin' : ''}`} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadScene(scene, idx)}
+                            disabled={downloadingSceneIndex === idx}
+                            className="px-3 py-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 text-xs font-bold transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Download</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* RIGHT PANEL: Voice Configuration Panel (Col-4) */}
+          <div className="lg:col-span-4 flex flex-col gap-5">
+            {/* CARD 1: VOICE SWITCHER */}
+            <VoiceSwitcher
+              voices={allVoices}
               selectedVoiceId={voiceId}
-              onChange={(newVoiceId) => setVoiceId(newVoiceId)}
-              systemVoices={systemVoices}
-              customVoices={customVoices}
-              previewingVoiceId={previewingVoice}
-              onPreviewVoice={(v) => handlePreviewVoice(v)}
+              onSelectVoice={(v) => setVoiceId(v.voiceId)}
+              onPreviewVoice={handlePreviewVoice}
+              previewingVoiceId={previewingVoiceId}
+              playingVoiceId={playingPreviewId}
+              isUserPremium={Boolean(user?.premiumAccess)}
+              onOpenLibrary={() => setVoiceModalOpen(true)}
+              label="Selected Narration Voice"
             />
-          </div>
 
-          {/* Voice Advanced Waveform Controls Card */}
-          <div className="rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] p-5 flex flex-col gap-4 shadow-sm">
-            <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-app)]">
-              <Sliders className="w-4 h-4 text-indigo-400" />
-              <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">Voice Settings</span>
+            {/* CARD 2: VOICE CONTROLS */}
+            <div className="p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-app)] shadow-lg flex flex-col gap-4">
+              <div className="flex items-center gap-2 pb-3 border-b border-[var(--border-app)]">
+                <SlidersHorizontal className="w-4 h-4 text-indigo-500" />
+                <h3 className="text-xs font-extrabold uppercase tracking-wider text-[var(--text-secondary)]">
+                  Voice Controls
+                </h3>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                {/* Speed Slider (0.5x - 1.5x) */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <span className="text-[var(--text-primary)]">Speech Speed</span>
+                    <span className="font-mono text-indigo-400">{speed}x</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="1.5"
+                    step="0.05"
+                    value={speed}
+                    onChange={(e) => setSpeed(parseFloat(e.target.value))}
+                    className="w-full h-1.5 bg-[var(--bg-input)] rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                  />
+                  <div className="flex justify-between text-[10px] text-[var(--text-muted)] font-mono">
+                    <span>0.5x (Slow)</span>
+                    <span>1.0x (Normal)</span>
+                    <span>1.5x (Fast)</span>
+                  </div>
+                </div>
+
+                {/* Voice Depth Slider (0 - 100) */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <span className="text-[var(--text-primary)]">Voice Depth</span>
+                    <span className="font-mono text-indigo-400">{depth}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={depth}
+                    onChange={(e) => setDepth(parseInt(e.target.value))}
+                    className="w-full h-1.5 bg-[var(--bg-input)] rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                  />
+                </div>
+
+                {/* Pitch Offset Slider (-12 to +12) */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between text-xs font-semibold">
+                    <span className="text-[var(--text-primary)]">Pitch Offset</span>
+                    <span className="font-mono text-indigo-400">{pitch > 0 ? `+${pitch}` : pitch}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="-12"
+                    max="12"
+                    step="1"
+                    value={pitch}
+                    onChange={(e) => setPitch(parseInt(e.target.value))}
+                    className="w-full h-1.5 bg-[var(--bg-input)] rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="flex flex-col gap-4">
-              {/* Pitch */}
-              <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between text-[10px]">
-                  <span className="font-semibold text-[var(--text-secondary)]">Pitch Offset</span>
-                  <span className="font-mono text-indigo-400">{pitch > 0 ? `+${pitch}` : pitch}</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="-12" 
-                  max="12" 
-                  value={pitch} 
-                  onChange={(e) => setPitch(parseInt(e.target.value))} 
-                  className="w-full focus:outline-none"
-                />
+            {/* CARD 3: EQ TONE PRESET */}
+            <div className="p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-app)] shadow-lg flex flex-col gap-4">
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--border-app)]">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-[var(--text-secondary)]">
+                  EQ Tone Preset
+                </span>
               </div>
 
-              {/* Depth */}
-              <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between text-[10px]">
-                  <span className="font-semibold text-[var(--text-secondary)]">Voice Depth</span>
-                  <span className="font-mono text-indigo-400">{depth}%</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="100" 
-                  value={depth} 
-                  onChange={(e) => setDepth(parseInt(e.target.value))} 
-                  className="w-full focus:outline-none"
-                />
-              </div>
-
-              {/* Tone preset */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-semibold text-[var(--text-secondary)]">EQ Tone Preset</label>
-                <select
-                  value={tone}
-                  onChange={(e) => setTone(e.target.value)}
-                  className="bg-[var(--bg-input)] text-xs text-[var(--text-primary)] border border-[var(--border-app)] rounded-lg p-2 focus:outline-none focus:border-indigo-500"
-                >
-                  <option value="natural">Natural</option>
-                  <option value="documentary">Documentary</option>
-                  <option value="cinematic">Cinematic</option>
-                  <option value="podcast">Podcast</option>
-                  <option value="radio">Radio</option>
-                </select>
-              </div>
-
-              {/* Speed */}
-              <VoiceSpeedControl speed={speed} onChange={setSpeed} />
+              <select
+                value={tone}
+                onChange={(e) => setTone(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-[var(--bg-input)] text-[var(--text-primary)] text-xs rounded-xl border border-[var(--border-app)] outline-none font-bold cursor-pointer"
+              >
+                <option value="natural">Natural (Default)</option>
+                <option value="documentary">Documentary (Warm & Clear)</option>
+                <option value="cinematic">Cinematic (Rich Sub-Bass)</option>
+                <option value="podcast">Podcast (Broadcast Clarity)</option>
+                <option value="radio">Radio (Crisp Treble)</option>
+              </select>
             </div>
           </div>
         </div>
+
+        {/* VOICE SELECTION MODAL */}
+        {voiceModalOpen && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-[var(--bg-card)] border border-[var(--border-app)] rounded-3xl p-6 max-w-4xl w-full max-h-[85vh] flex flex-col gap-4 shadow-2xl overflow-hidden relative">
+              <div className="flex items-center justify-between pb-3 border-b border-[var(--border-app)]">
+                <div className="flex items-center gap-2">
+                  <Mic className="w-5 h-5 text-indigo-500" />
+                  <h3 className="text-base font-extrabold text-[var(--text-primary)]">
+                    Select Narration Voice
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setVoiceModalOpen(false)}
+                  className="p-1.5 rounded-xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] text-[var(--text-secondary)] transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto pr-1">
+                <VoiceLibrary
+                  systemVoices={systemVoices}
+                  customVoices={customVoices}
+                  selectedVoiceId={voiceId}
+                  onSelectVoice={(v) => {
+                    setVoiceId(v.voiceId);
+                    setVoiceModalOpen(false);
+                    showToast(`Selected voice: ${v.name}`, 'success');
+                  }}
+                  onPreviewVoice={handlePreviewVoice}
+                  previewingVoiceId={previewingVoiceId}
+                  playingVoiceId={playingPreviewId}
+                  actionLabel="Select Voice"
+                  maxHeight="460px"
+                  gridCols="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                  showFilters={true}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Error Alert State */}
-      {error && (
-        <div className="p-4 rounded-lg border border-red-500/30 bg-red-500/10 flex items-start gap-3 text-red-500 text-xs">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <div className="flex flex-col gap-0.5">
-            <span className="font-semibold">Scene Generation Failed</span>
-            <p className="opacity-90">{error}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Loading State Skeleton */}
-      {generating && (
-        <div className="rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] p-8 flex flex-col items-center justify-center gap-3 text-center">
-          <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin" />
-          <span className="text-xs font-semibold text-[var(--text-primary)]">Parsing scenes & synthesizing voice stems...</span>
-          <span className="text-[11px] text-[var(--text-muted)]">This usually takes a few seconds per scene stem.</span>
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!generating && generatedScenes.length === 0 && !error && (
-        <div className="rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] p-10 flex flex-col items-center justify-center gap-3 text-center my-4">
-          <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-            <Music2 className="w-6 h-6" />
-          </div>
-          <div className="flex flex-col gap-1 max-w-sm">
-            <h3 className="text-sm font-semibold text-[var(--text-primary)]">No Scenes Generated Yet</h3>
-            <p className="text-xs text-[var(--text-secondary)]">
-              Write or paste your script in the editor above and click <strong>Generate Voice Scenes</strong> to create audio stems.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Generated Scene Cards Results */}
-      {!generating && generatedScenes.length > 0 && (
-        <div className="mt-4 flex flex-col gap-5 animate-in slide-in-from-bottom-2 duration-200">
-          <div className="flex items-center justify-between pb-2 border-b border-[var(--border-app)]">
-            <h2 className="text-sm font-semibold text-[var(--text-primary)] flex items-center gap-2">
-              <Clapperboard className="w-4 h-4 text-indigo-400" /> Generated Scenes ({generatedScenes.length})
-            </h2>
-
-            <DownloadButton
-              onClick={handleDownloadAllZip}
-              loading={downloadingZip}
-              label="Download All (ZIP)"
-              variant="secondary"
-              size="sm"
-              icon={<FolderArchive className="w-3.5 h-3.5" />}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {generatedScenes.map((scene, idx) => {
-              const isPlaying = playingIndex === idx;
-              const isDownloading = downloadingSceneIndex === idx;
-              const isRegenerating = regeneratingIndex === idx;
-
-              return (
-                <div
-                  key={scene.sceneNumber}
-                  className="p-5 rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] flex flex-col justify-between gap-4 relative shadow-sm"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-md bg-indigo-600 text-white font-bold text-xs">
-                        Scene {String(scene.sceneNumber).padStart(2, '0')}
-                      </span>
-                      <span className="text-[11px] font-mono text-[var(--text-muted)] bg-[var(--bg-input)] px-2 py-0.5 rounded border border-[var(--border-app)]">
-                        {scene.filename}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> Completed
-                      </span>
-                      <button
-                        onClick={() => toggleSceneAudio(idx)}
-                        className="w-8 h-8 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white transition active:scale-95 shrink-0"
-                        title={isPlaying ? 'Pause' : 'Play'}
-                      >
-                        {isPlaying ? <Pause className="w-3.5 h-3.5 fill-white" /> : <Play className="w-3.5 h-3.5 fill-white ml-0.5" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Text Preview */}
-                  <div className="p-3 rounded-lg bg-[var(--bg-input)] border border-[var(--border-app)]">
-                    <p className="text-xs text-[var(--text-secondary)] italic leading-relaxed">
-                      "{scene.text}"
-                    </p>
-                  </div>
-
-                  {/* Audio Player & Controls */}
-                  <div className="flex items-center justify-between pt-2 border-t border-[var(--border-app)] gap-3">
-                    <audio
-                      ref={(el) => { audioRefs.current[idx] = el; }}
-                      controls
-                      src={getFullAudioUrl(scene.audioUrl)}
-                      className="h-8 w-full text-xs rounded border border-[var(--border-app)] bg-[var(--bg-card)] max-w-[200px]"
-                      onPlay={() => setPlayingIndex(idx)}
-                      onPause={() => setPlayingIndex(null)}
-                      onEnded={() => setPlayingIndex(null)}
-                    />
-
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => handleRegenerateScene(idx)}
-                        disabled={isRegenerating}
-                        className="p-1.5 rounded-lg border border-[var(--border-app)] bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-xs flex items-center gap-1"
-                        title="Regenerate scene voice"
-                      >
-                        <RotateCcw className={`w-3.5 h-3.5 ${isRegenerating ? 'animate-spin' : ''}`} />
-                        <span className="hidden sm:inline text-[11px]">Regenerate</span>
-                      </button>
-
-                      <DownloadButton
-                        onClick={() => handleDownloadScene(scene, idx)}
-                        loading={isDownloading}
-                        label="Download"
-                        variant="outline"
-                        size="sm"
-                      />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  </PremiumRouteGuard>
-);
+    </PremiumRouteGuard>
+  );
 }

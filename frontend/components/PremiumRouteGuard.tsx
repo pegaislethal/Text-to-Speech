@@ -45,7 +45,7 @@ export default function PremiumRouteGuard({
 
   if (!user.premiumAccess) {
     return (
-      <WorkspaceLayout>
+      <>
         <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[70vh] py-12 px-4 text-center">
           <div className="bg-[var(--bg-card)] border border-indigo-500/30 rounded-3xl p-8 sm:p-12 max-w-xl w-full flex flex-col items-center gap-6 shadow-2xl relative overflow-hidden">
             {/* Background Glow */}
@@ -117,7 +117,7 @@ export default function PremiumRouteGuard({
           onClose={() => setModalOpen(false)}
           featureName={featureTitle}
         />
-      </WorkspaceLayout>
+      </>
     );
   }
 

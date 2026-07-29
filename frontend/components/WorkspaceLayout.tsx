@@ -54,6 +54,7 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
     { name: 'Speech Studio', href: '/dashboard/speech-studio', exact: true, icon: Mic },
     { name: 'AI Scene Generator', href: '/dashboard/ai-scene-generator', exact: true, icon: Sparkles, isPremiumOnly: true },
     { name: 'AI Voice Clone Generator', href: '/dashboard/voice-studio', exact: true, icon: Star, isPremiumOnly: true },
+    { name: 'Voice Library', href: '/dashboard/voice-library', exact: true, icon: AudioLines },
     { name: 'History', href: '/dashboard/history', exact: true, icon: History },
     { name: 'Profile', href: '/profile', exact: true, icon: User },
     { name: 'Settings', href: '/settings', exact: true, icon: Settings },
@@ -67,6 +68,15 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
   const currentNavItems = isAdminArea ? adminNavItems : userNavItems;
 
   const isActive = (item: { href: string; exact?: boolean }) => {
+    if (item.href === '/dashboard' || item.href === '/admin/dashboard') {
+      return pathname === item.href;
+    }
+    if (item.href === '/dashboard/voice-studio' || item.href === '/dashboard/voice-clone') {
+      return pathname === '/dashboard/voice-studio' || pathname === '/dashboard/voice-clone';
+    }
+    if (item.href === '/dashboard/ai-scene-generator' || item.href === '/dashboard/scene-generator') {
+      return pathname === '/dashboard/ai-scene-generator' || pathname === '/dashboard/scene-generator';
+    }
     if (item.exact) {
       return pathname === item.href;
     }

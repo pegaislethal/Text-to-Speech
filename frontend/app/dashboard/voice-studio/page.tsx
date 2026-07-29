@@ -10,36 +10,20 @@ import {
 } from '../../../services/api';
 import { 
   Mic, Sparkles, Star, Play, Pause, Trash2, Sliders, Volume2, 
-  Upload, Check, AlertCircle, RefreshCw, AudioWaveform, ShieldCheck, ShieldAlert, CheckCircle2, Zap
+  Upload, Check, AlertCircle, RefreshCw, AudioWaveform, ShieldCheck, CheckCircle2, Zap, ArrowRight, User
 } from 'lucide-react';
 import PremiumRouteGuard from '../../../components/PremiumRouteGuard';
-import ThemeToggle from '../../../components/ThemeToggle';
-import VoiceSpeedControl from '../../../components/VoiceSpeedControl';
+import VoiceCard, { VoiceOption } from '../../../components/VoiceCard';
+import VoiceSwitcher from '../../../components/VoiceSwitcher';
 
-interface VoiceOption {
-  voiceId: string;
-  name: string;
-  category: 'documentary' | 'male' | 'female' | 'custom';
-  language: string;
-  description: string;
-  gender: 'Male' | 'Female' | 'Neutral';
-  style: string;
-  isPremium?: boolean;
-}
-
-// Platform default voices loaded dynamically from DB business
 export default function VoiceStudio() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const router = useRouter();
 
-  // Tab State
-  const [activeTab, setActiveTab] = useState<'library' | 'clone'>('clone');
-  const [libraryCategory, setLibraryCategory] = useState<'all' | 'documentary' | 'male' | 'female' | 'custom'>('all');
-
-  // Voice Library States
-  const [systemVoices, setSystemVoices] = useState<any[]>([]);
-  const [customVoices, setCustomVoices] = useState<any[]>([]);
+  // Custom Cloned Voices State
+  const [customVoices, setCustomVoices] = useState<VoiceOption[]>([]);
+  const [selectedClonedVoiceId, setSelectedClonedVoiceId] = useState<string>('');
   const [loadingLibrary, setLoadingLibrary] = useState<boolean>(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -55,57 +39,71 @@ export default function VoiceStudio() {
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [trainingStatusText, setTrainingStatusText] = useState<string>('Analyzing audio & learning speaker characteristics...');
 
-  // Advanced Audio Control States (For previews)
-  const [pitch, setPitch] = useState<number>(0);
-  const [depth, setDepth] = useState<number>(0);
-  const [tone, setTone] = useState<string>('neutral');
-  const [speed, setSpeed] = useState<number>(1.0);
-
   // Preview States
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
-  const [playingPreviewUrl, setPlayingPreviewUrl] = useState<string | null>(null);
-  const [previewLoading, setPreviewLoading] = useState<boolean>(false);
+  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
 
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const BACKEND_URL = getApiUrl();
 
   useEffect(() => {
-    fetchVoiceLibrary();
+    fetchClonedVoices();
+    audioPlayerRef.current = new Audio();
+
+    const currentAudio = audioPlayerRef.current;
+    currentAudio.onended = () => setPlayingVoiceId(null);
+    currentAudio.onpause = () => setPlayingVoiceId(null);
+
+    return () => {
+      if (currentAudio) {
+        currentAudio.pause();
+      }
+    };
   }, [user]);
 
-  const fetchVoiceLibrary = async () => {
+  const fetchClonedVoices = async () => {
     setLoadingLibrary(true);
     try {
       const res = await getVoiceLibraryApi();
-      if (res.success) {
-        setSystemVoices(res.systemVoices || []);
-        setCustomVoices(res.customVoices || []);
+      if (res && res.success) {
+        const custVoices: VoiceOption[] = (res.customVoices || []).map((cv: any) => ({
+          voiceId: cv._id || cv.voiceId,
+          name: `${cv.voiceName || cv.name}`,
+          gender: 'Male',
+          language: 'en-US (Cloned)',
+          accent: 'Custom Cloned',
+          description: `Custom neural cloned voice profile (${cv.provider || 'XTTS v2'}).`,
+          style: 'Custom Cloned',
+          category: 'custom',
+          premium: true,
+          isPremium: true,
+          isCustom: true,
+          provider: cv.provider || 'XTTS',
+          createdAt: cv.createdAt ? new Date(cv.createdAt).toLocaleDateString() : 'Recent',
+        }));
+
+        setCustomVoices(custVoices);
+        if (custVoices.length > 0 && !selectedClonedVoiceId) {
+          setSelectedClonedVoiceId(custVoices[0].voiceId);
+        }
       }
     } catch (err) {
-      console.error('Failed to load voice profiles:', err);
+      console.error('Failed to load cloned voices:', err);
     } finally {
       setLoadingLibrary(false);
     }
   };
 
-  const getFullAudioUrl = (urlPath: string) => {
-    if (!urlPath) return '';
-    if (urlPath.startsWith('http://') || urlPath.startsWith('https://')) return urlPath;
-    const baseUrl = BACKEND_URL.replace(/\/+$/, '');
-    const cleanPath = urlPath.startsWith('/') ? urlPath : `/${urlPath}`;
-    return `${baseUrl}${cleanPath}`;
-  };
-
   const validateAudioFile = (file: File): boolean => {
     const validExtensions = ['.mp3', '.wav', '.m4a'];
     const fileNameLower = file.name.toLowerCase();
-    const isValidExt = validExtensions.some(ext => fileNameLower.endsWith(ext));
+    const isValidExt = validExtensions.some((ext) => fileNameLower.endsWith(ext));
     const validMimes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/m4a', 'audio/x-m4a', 'audio/mp4', 'audio/aac'];
     const isValidMime = validMimes.includes(file.type.toLowerCase()) || file.type.startsWith('audio/');
 
     if (!isValidExt && !isValidMime) {
-      showToast('Please upload MP3, WAV, or M4A.', 'error');
+      showToast('Please upload MP3, WAV, or M4A sample file.', 'error');
       return false;
     }
 
@@ -122,7 +120,6 @@ export default function VoiceStudio() {
     if (!validateAudioFile(file)) return;
     setAudioFile(file);
 
-    // Parse audio duration
     try {
       const url = URL.createObjectURL(file);
       const audio = new Audio(url);
@@ -139,7 +136,6 @@ export default function VoiceStudio() {
     }
   };
 
-  // Drag & Drop Handlers
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -161,7 +157,6 @@ export default function VoiceStudio() {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  // Client-Side Audio Optimization (Resamples to Mono 22.05kHz PCM WAV)
   const optimizeAudioFile = async () => {
     if (!audioFile) return;
     setIsCompressing(true);
@@ -181,14 +176,12 @@ export default function VoiceStudio() {
       source.start(0);
 
       const renderedBuffer = await offlineCtx.startRendering();
-
-      // WAV Encoder
       const wavBlob = audioBufferToWavBlob(renderedBuffer);
       const optimizedFile = new File([wavBlob], audioFile.name.replace(/\.[^/.]+$/, '_optimized.wav'), { type: 'audio/wav' });
 
       setAudioFile(optimizedFile);
       setAudioDuration(renderedBuffer.duration);
-      showToast(`Audio optimized! New size: ${(optimizedFile.size / (1024 * 1024)).toFixed(2)} MB`, 'success');
+      showToast(`Audio optimized! Size: ${(optimizedFile.size / (1024 * 1024)).toFixed(2)} MB`, 'success');
     } catch (err: any) {
       console.error('Optimization error:', err);
       showToast('Optimization failed. Using original file.', 'error');
@@ -210,18 +203,18 @@ export default function VoiceStudio() {
     function setUint16(data: number) { view.setUint16(offset, data, true); offset += 2; }
     function setUint32(data: number) { view.setUint32(offset, data, true); offset += 4; }
 
-    setUint32(0x46464952); // "RIFF"
+    setUint32(0x46464952);
     setUint32(length - 8);
-    setUint32(0x45564157); // "WAVE"
-    setUint32(0x20746d66); // "fmt "
+    setUint32(0x45564157);
+    setUint32(0x20746d66);
     setUint32(16);
-    setUint16(1); // PCM
+    setUint16(1);
     setUint16(numOfChan);
     setUint32(buffer.sampleRate);
     setUint32(buffer.sampleRate * 2 * numOfChan);
     setUint16(numOfChan * 2);
     setUint16(16);
-    setUint32(0x61746164); // "data"
+    setUint32(0x61746164);
     setUint32(length - offset - 4);
 
     for (let i = 0; i < buffer.numberOfChannels; i++) {
@@ -244,7 +237,7 @@ export default function VoiceStudio() {
   const handleCloneVoice = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!voiceName.trim()) {
-      showToast('Voice name is required.', 'error');
+      showToast('Voice profile name is required.', 'error');
       return;
     }
     if (!audioFile) {
@@ -252,16 +245,15 @@ export default function VoiceStudio() {
       return;
     }
     if (!consent) {
-      showToast('You must check the authorization consent checkbox.', 'error');
+      showToast('You must confirm ownership/authorization consent.', 'error');
       return;
     }
 
     setCloning(true);
-    setUploadStep(2); // Step 2: Uploading
+    setUploadStep(2);
     setUploadProgress(0);
 
     try {
-      // Step 2: Fetch upload signature & upload directly to Cloudinary
       const sigRes = await getUploadSignatureApi('voice-clones/samples');
       if (!sigRes.success) {
         throw new Error(sigRes.message || 'Unable to upload voice sample.');
@@ -273,11 +265,10 @@ export default function VoiceStudio() {
         (percent) => setUploadProgress(percent)
       );
 
-      // Step 3: Send audio URL to backend for AI voice adaptation pipeline
-      setUploadStep(3); // Step 3: Analyzing voice...
-      setTrainingStatusText('Analyzing audio...');
+      setUploadStep(3);
+      setTrainingStatusText('Analyzing audio & learning voice characteristics...');
       const res = await cloneVoiceApi(voiceName.trim(), audioUrl, consent);
-      
+
       if (res.success) {
         const dbVoiceId = res.voice?._id;
         if (dbVoiceId) {
@@ -285,7 +276,7 @@ export default function VoiceStudio() {
           let attempts = 0;
           while (!isDone && attempts < 15) {
             attempts++;
-            await new Promise(r => setTimeout(r, 600));
+            await new Promise((r) => setTimeout(r, 600));
             try {
               const statusData = await getTrainingStatusApi(dbVoiceId);
               if (statusData?.trainingStatus) {
@@ -300,18 +291,16 @@ export default function VoiceStudio() {
           }
         }
 
-        setUploadStep(4); // Step 4: Success
+        setUploadStep(4);
         showToast('AI Voice model created successfully!', 'success');
-        
+
         setTimeout(() => {
           setVoiceName('');
           setAudioFile(null);
           setAudioDuration(null);
           setConsent(false);
           setUploadStep(1);
-          fetchVoiceLibrary();
-          setActiveTab('library');
-          setLibraryCategory('custom');
+          fetchClonedVoices();
         }, 1500);
       } else {
         throw new Error(res.message || 'Voice cloning failed. Please try another sample.');
@@ -325,15 +314,14 @@ export default function VoiceStudio() {
     }
   };
 
-  const handleDeleteVoice = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!confirm('Are you sure you want to delete this custom cloned voice?')) return;
+  const handleDeleteVoice = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this custom voice profile?')) return;
     setDeletingId(id);
     try {
       const res = await deleteCustomVoiceApi(id);
       if (res.success) {
         showToast('Custom voice profile deleted.', 'success');
-        setCustomVoices(customVoices.filter(v => v._id !== id));
+        fetchClonedVoices();
       } else {
         throw new Error(res.message);
       }
@@ -344,580 +332,327 @@ export default function VoiceStudio() {
     }
   };
 
-  const handlePlayPreview = async (voiceId: string) => {
-    // If already playing this preview, pause it
-    if (previewingVoiceId === voiceId && playingPreviewUrl) {
-      if (audioPlayerRef.current) {
-        if (audioPlayerRef.current.paused) {
-          audioPlayerRef.current.play().catch(e => console.error(e));
-          setPreviewingVoiceId(voiceId);
-        } else {
-          audioPlayerRef.current.pause();
-          setPreviewingVoiceId(null);
-        }
-      }
+  const handlePreviewVoice = async (v: VoiceOption) => {
+    if (previewingVoiceId) return;
+
+    if (playingVoiceId === v.voiceId && audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      setPlayingVoiceId(null);
       return;
     }
 
-    setPreviewLoading(true);
-    setPreviewingVoiceId(voiceId);
-    showToast('Synthesizing narrator preview clip...', 'info');
-
+    setPreviewingVoiceId(v.voiceId);
     try {
-      const text = 'Hi, I am your AI narrator from 21st Tech Company.';
-      const res = await previewSpeechApi(voiceId, text, speed, pitch, tone, depth);
-      
-      if (res.success && res.audioUrl) {
-        const fullUrl = getFullAudioUrl(res.audioUrl);
-        setPlayingPreviewUrl(fullUrl);
+      const demoText = `Hi, I am ${v.name}. This is a preview of my cloned voice profile.`;
+      const res = await previewSpeechApi(v.voiceId, demoText, 1.0, 0, 'natural', 0);
 
-        if (audioPlayerRef.current) {
-          audioPlayerRef.current.src = fullUrl;
-          audioPlayerRef.current.load();
-          audioPlayerRef.current.play()
-            .then(() => setPreviewLoading(false))
-            .catch(err => {
-              console.error(err);
-              setPreviewLoading(false);
-              showToast('Browser blocked autoplay. Press play again.', 'error');
-            });
+      if (res.audioUrl && audioPlayerRef.current) {
+        let fullUrl = res.audioUrl;
+        if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+          const baseUrl = BACKEND_URL.replace(/\/+$/, '');
+          const cleanPath = fullUrl.startsWith('/') ? fullUrl : `/${fullUrl}`;
+          fullUrl = `${baseUrl}${cleanPath}`;
         }
-      } else {
-        throw new Error(res.message);
+        audioPlayerRef.current.src = fullUrl;
+        audioPlayerRef.current.load();
+        await audioPlayerRef.current.play();
+        setPlayingVoiceId(v.voiceId);
       }
-    } catch (err: any) {
-      console.error('Preview failed:', err);
-      showToast('Preview not available for this voice at the moment.', 'error');
-      setPreviewingVoiceId(null);
+    } catch (err) {
+      console.error('Preview error:', err);
+      showToast('Voice preview unavailable at the moment.', 'error');
     } finally {
-      setPreviewLoading(false);
+      setPreviewingVoiceId(null);
     }
   };
 
-  // Upgrade Gateway View for non-premium accounts
-  if (user && !user.premiumAccess) {
-    return (
-      <div className="max-w-4xl mx-auto flex items-center justify-center min-h-[75vh] px-6">
-        <div className="rounded-2xl border border-amber-500/20 bg-[var(--bg-card)] backdrop-blur-xl p-8 sm:p-12 shadow-2xl text-center flex flex-col items-center gap-6 max-w-lg">
-          <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400 shrink-0">
-            <ShieldAlert className="w-8 h-8" />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <h1 className="text-xl sm:text-2xl font-black text-[var(--text-primary)] tracking-tight uppercase">AI Voice Studio Locked</h1>
-            <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed font-medium">
-              This feature is available for premium users. Upgrade your subscription package to unlock voice cloning, infinite voice library custom uploads, and high-fidelity narrators.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-3 w-full mt-2">
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 transition font-bold text-xs text-black shadow-lg shadow-amber-500/10 active:scale-95 cursor-pointer"
-            >
-              Back to Dashboard
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Combined Voice Library List (Default list + Custom cloned list)
-  const formattedSystemVoices = systemVoices.map((sv: any) => ({
-    voiceId: sv.voiceId,
-    name: sv.name,
-    category: sv.category || 'documentary',
-    language: 'en-US',
-    description: sv.description || '',
-    gender: sv.category === 'female' ? 'Female' : 'Male',
-    style: sv.category || 'Standard',
-    premium: sv.isPremium,
-    isPremium: sv.isPremium
-  }));
-
-  const formattedCustomVoices = customVoices.map((cv: any) => ({
-    _id: cv._id,
-    voiceId: cv._id,
-    name: cv.voiceName || cv.name,
-    category: 'custom' as const,
-    language: 'en-US (cloned)',
-    description: `Custom cloned voice profile (${cv.provider}).`,
-    gender: 'Neutral' as const,
-    style: 'Custom Cloned',
-    premium: true,
-    isPremium: true
-  }));
-
-  const combinedLibrary = [...formattedSystemVoices, ...formattedCustomVoices];
-
-  const filteredLibrary = combinedLibrary.filter((voice) => {
-    if (libraryCategory === 'all') return true;
-    return voice.category === libraryCategory;
-  });
+  const handleUseVoiceInStudio = (v: VoiceOption) => {
+    router.push(`/dashboard/speech-studio?voiceId=${encodeURIComponent(v.voiceId)}`);
+  };
 
   return (
-    <PremiumRouteGuard
-      featureTitle="AI Voice Clone Generator"
-      featureDescription="Clone custom voices from audio samples, extract speaker embeddings, and generate speech with AI models."
-    >
-      <div className="max-w-6xl mx-auto flex flex-col gap-8 animate-in fade-in duration-300">
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-[var(--border-app)]">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">
-              AI Voice Studio
-            </h1>
-            <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
-              <Star className="w-3 h-3 fill-amber-400" /> Premium Workspace
-            </span>
+    <PremiumRouteGuard featureTitle="AI Voice Clone Generator" featureDescription="Clone any voice from a short audio sample and save it to your custom voice profile library.">
+      <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
+        {/* Header Banner */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-3xl bg-gradient-to-r from-purple-950/60 via-slate-900/60 to-indigo-950/60 border border-purple-500/20 shadow-xl relative overflow-hidden backdrop-blur-xl">
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="w-12 h-12 rounded-2xl bg-purple-600 flex items-center justify-center text-white shadow-lg shadow-purple-600/30">
+              <Star className="w-6 h-6 fill-white" />
+            </div>
+            <div className="flex flex-col">
+              <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                AI Voice Clone Generator
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-bold uppercase tracking-wider">
+                  Zero-Shot Cloning
+                </span>
+              </h1>
+              <p className="text-xs text-slate-300 font-medium mt-0.5">
+                Upload a short audio sample to train and create your custom neural voice profile.
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-[var(--text-secondary)]">
-            Clone custom voices from audio samples, test different pitches, and manage voice libraries.
-          </p>
         </div>
 
-        {/* Tab Controllers */}
-        <div className="flex bg-[var(--bg-input)] border border-[var(--border-app)] p-1 rounded-lg self-start">
-          <button
-            onClick={() => setActiveTab('library')}
-            className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
-              activeTab === 'library'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
-          >
-            Voice Library
-          </button>
-          <button
-            onClick={() => setActiveTab('clone')}
-            className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
-              activeTab === 'clone'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
-          >
-            Clone New Voice
-          </button>
-        </div>
-      </div>
-
-      {/* Voice Preview Audio Controls Bar */}
-      {activeTab === 'library' && (
-        <div className="rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] p-4 flex flex-col gap-4 shadow-sm">
-          <div className="flex items-center gap-2 pb-2 border-b border-[var(--border-app)]">
-            <Sliders className="w-4 h-4 text-indigo-400" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">Voice Synthesis Controls</h3>
-            <span className="text-[10px] text-[var(--text-muted)] font-medium ml-1">Configure options before playing a card preview</span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-5 items-center">
-            {/* Pitch */}
-            <div className="flex flex-col gap-1.5">
-              <div className="flex justify-between text-[11px]">
-                <span className="font-semibold text-[var(--text-secondary)]">Pitch Offset</span>
-                <span className="font-mono text-indigo-400">{pitch > 0 ? `+${pitch}` : pitch}</span>
+        {/* TWO COLUMN WORKSPACE LAYOUT (50% / 50% Balanced Grid) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* LEFT COLUMN: Clone New Voice Form (Col-6: 50% Desktop Width) */}
+          <div className="lg:col-span-6 flex flex-col gap-5 p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-app)] shadow-lg relative min-w-0">
+            <div className="flex items-center justify-between pb-4 border-b border-[var(--border-app)]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col">
+                  <h2 className="text-base font-extrabold text-[var(--text-primary)]">Clone New Voice</h2>
+                  <p className="text-[11px] text-[var(--text-muted)] font-medium">Create custom voice profile</p>
+                </div>
               </div>
-              <input 
-                type="range" 
-                min="-20" 
-                max="20" 
-                value={pitch} 
-                onChange={(e) => setPitch(parseInt(e.target.value))} 
-                className="w-full h-1 bg-[var(--border-app)] rounded-lg appearance-none cursor-pointer accent-indigo-600 focus:outline-none"
-              />
             </div>
 
-            {/* Depth */}
-            <div className="flex flex-col gap-1.5">
-              <div className="flex justify-between text-[11px]">
-                <span className="font-semibold text-[var(--text-secondary)]">Voice Depth</span>
-                <span className="font-mono text-indigo-400">{depth}%</span>
+            {/* Progress Steps (1. Voice Sample -> 2. Uploading -> 3. Analyzing -> 4. Created) */}
+            <div className="grid grid-cols-4 gap-1.5 p-2 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-app)] text-[10px] font-bold text-center">
+              <div className={`py-1 rounded-xl transition-all ${uploadStep === 1 ? 'bg-indigo-600 text-white shadow-sm' : uploadStep > 1 ? 'text-emerald-500 font-bold' : 'text-[var(--text-muted)]'}`}>
+                1. Sample
               </div>
-              <input 
-                type="range" 
-                min="0" 
-                max="100" 
-                value={depth} 
-                onChange={(e) => setDepth(parseInt(e.target.value))} 
-                className="w-full h-1 bg-[var(--border-app)] rounded-lg appearance-none cursor-pointer accent-indigo-600 focus:outline-none"
-              />
+              <div className={`py-1 rounded-xl transition-all ${uploadStep === 2 ? 'bg-indigo-600 text-white shadow-sm' : uploadStep > 2 ? 'text-emerald-500 font-bold' : 'text-[var(--text-muted)]'}`}>
+                2. Upload
+              </div>
+              <div className={`py-1 rounded-xl transition-all ${uploadStep === 3 ? 'bg-indigo-600 text-white shadow-sm' : uploadStep > 3 ? 'text-emerald-500 font-bold' : 'text-[var(--text-muted)]'}`}>
+                3. Analyze
+              </div>
+              <div className={`py-1 rounded-xl transition-all ${uploadStep === 4 ? 'bg-emerald-600 text-white shadow-sm' : 'text-[var(--text-muted)]'}`}>
+                4. Created
+              </div>
             </div>
 
-            {/* Tone */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-semibold text-[var(--text-secondary)]">EQ Tone Preset</label>
-              <select
-                value={tone}
-                onChange={(e) => setTone(e.target.value)}
-                className="bg-[var(--bg-input)] text-xs text-[var(--text-primary)] border border-[var(--border-app)] rounded-lg p-2 focus:outline-none focus:border-indigo-550"
-              >
-                <option value="neutral">Neutral</option>
-                <option value="deep">Deep & Bass</option>
-                <option value="warm">Warm Narration</option>
-                <option value="professional">Professional articulative</option>
-                <option value="cinematic">Cinematic Wide</option>
-                <option value="dramatic">Dramatic Studio</option>
-              </select>
-            </div>
+            {uploadStep > 1 && uploadStep < 4 ? (
+              <div className="p-6 border border-indigo-500/30 rounded-2xl bg-indigo-500/10 flex flex-col items-center justify-center text-center gap-3 animate-pulse">
+                <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin" />
+                <div className="flex flex-col gap-1">
+                  <p className="text-xs font-bold text-[var(--text-primary)]">
+                    {uploadStep === 2 ? `Uploading sample audio (${uploadProgress}%)...` : trainingStatusText}
+                  </p>
+                  <p className="text-[11px] text-[var(--text-secondary)] font-normal">
+                    Deep learning neural encoder extracting pitch envelope & timbre latents...
+                  </p>
+                </div>
 
-            {/* Speed */}
-            <VoiceSpeedControl speed={speed} onChange={setSpeed} />
-          </div>
-        </div>
-      )}
-
-      {/* Tab content: Library */}
-      {activeTab === 'library' && (
-        <div className="flex flex-col gap-6 animate-in fade-in duration-200">
-          {/* Categories Navigation */}
-          <div className="flex flex-wrap gap-2 pb-2 border-b border-[var(--border-app)]">
-            <button
-              onClick={() => setLibraryCategory('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                libraryCategory === 'all'
-                  ? 'bg-indigo-500/10 border border-indigo-500/30 text-indigo-400'
-                  : 'bg-[var(--bg-input)] border border-[var(--border-app)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              All Voices ({combinedLibrary.length})
-            </button>
-            <button
-              onClick={() => setLibraryCategory('documentary')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                libraryCategory === 'documentary'
-                  ? 'bg-indigo-500/10 border border-indigo-500/30 text-indigo-400'
-                  : 'bg-[var(--bg-input)] border border-[var(--border-app)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              Documentary ({formattedSystemVoices.filter(v => v.category === 'documentary').length})
-            </button>
-            <button
-              onClick={() => setLibraryCategory('male')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                libraryCategory === 'male'
-                  ? 'bg-indigo-500/10 border border-indigo-500/30 text-indigo-400'
-                  : 'bg-[var(--bg-input)] border border-[var(--border-app)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              Male ({formattedSystemVoices.filter(v => v.category === 'male').length})
-            </button>
-            <button
-              onClick={() => setLibraryCategory('female')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                libraryCategory === 'female'
-                  ? 'bg-indigo-500/10 border border-indigo-500/30 text-indigo-400'
-                  : 'bg-[var(--bg-input)] border border-[var(--border-app)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              Female ({formattedSystemVoices.filter(v => v.category === 'female').length})
-            </button>
-            <button
-              onClick={() => setLibraryCategory('custom')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                libraryCategory === 'custom'
-                  ? 'bg-indigo-500/10 border border-indigo-500/30 text-indigo-400'
-                  : 'bg-[var(--bg-input)] border border-[var(--border-app)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              Custom Cloned ({customVoices.length})
-            </button>
-          </div>
-
-          {/* Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredLibrary.map((voice) => {
-              const isPlaying = previewingVoiceId === voice.voiceId && !previewLoading;
-              const isVoiceLoading = previewingVoiceId === voice.voiceId && previewLoading;
-
-              return (
-                <div 
-                  key={voice.voiceId}
-                  className="rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] p-5 flex flex-col justify-between gap-4 shadow-sm hover:border-indigo-500/30 transition-all duration-200"
-                >
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-[var(--text-primary)]">{voice.name}</span>
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider shrink-0 ${
-                        voice.category === 'custom'
-                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                          : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
-                      }`}>
-                        {voice.category}
-                      </span>
-                    </div>
-
-                    <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed min-h-[36px]">
-                      {voice.description}
-                    </p>
+                {uploadStep === 2 && (
+                  <div className="w-full bg-[var(--bg-input)] rounded-full h-2 overflow-hidden border border-[var(--border-app)] mt-2">
+                    <div className="bg-indigo-600 h-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
                   </div>
-
-                  <div className="flex items-center justify-between pt-3 border-t border-[var(--border-app)] text-[10px] text-[var(--text-secondary)] font-medium">
-                    <div className="flex flex-wrap gap-1.5">
-                      <span className="bg-[var(--bg-input)] border border-[var(--border-app)] px-2 py-0.5 rounded truncate">
-                        {voice.language}
-                      </span>
-                      <span className="bg-[var(--bg-input)] border border-[var(--border-app)] px-2 py-0.5 rounded truncate">
-                        {voice.gender}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        onClick={() => handlePlayPreview(voice.voiceId)}
-                        disabled={isVoiceLoading}
-                        className="px-2.5 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition flex items-center gap-1 hover:scale-[1.02] active:scale-[0.98]"
-                      >
-                        {isVoiceLoading ? (
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        ) : isPlaying ? (
-                          <>
-                            <Pause className="w-3 h-3 fill-white" /> Pause
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-3 h-3 fill-white ml-0.5" /> Preview
-                          </>
-                        )}
-                      </button>
-
-                      {voice.category === 'custom' && (
-                        <button
-                          onClick={(e) => handleDeleteVoice(voice.voiceId, e)}
-                          disabled={deletingId === voice.voiceId}
-                          className="p-1.5 rounded bg-red-950/20 border border-red-900/30 text-red-400 hover:bg-red-900/20 transition"
-                          title="Delete cloned voice"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Tab content: Clone Voice */}
-      {activeTab === 'clone' && (
-        <form onSubmit={handleCloneVoice} className="max-w-xl mx-auto w-full flex flex-col gap-6 animate-in fade-in duration-200">
-          <div className="rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] p-6 flex flex-col gap-5 shadow-sm">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center gap-2 pb-2 border-b border-[var(--border-app)]">
-              <Upload className="w-4 h-4 text-indigo-400" /> Create Custom Voice Profile
-            </h3>
-
-            {/* 4-Step Progress Indicator */}
-            <div className="grid grid-cols-4 gap-2 my-1">
-              {[
-                { step: 1, label: '1. Voice sample' },
-                { step: 2, label: '2. Uploading...' },
-                { step: 3, label: '3. Analyzing voice' },
-                { step: 4, label: '4. Voice created' }
-              ].map(s => (
-                <div 
-                  key={s.step} 
-                  className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl border text-center transition-all ${
-                    uploadStep === s.step 
-                      ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-400 font-bold' 
-                      : uploadStep > s.step 
-                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-medium' 
-                        : 'bg-[var(--bg-input)] border-[var(--border-app)] text-[var(--text-muted)]'
-                  }`}
-                >
-                  <span className="text-[10px] truncate">{s.label}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Step 2 Progress Bar */}
-            {uploadStep === 2 && (
-              <div className="p-4 rounded-xl border border-indigo-500/30 bg-indigo-500/10 flex flex-col gap-2 animate-in fade-in">
-                <div className="flex justify-between items-center text-xs font-bold text-indigo-300">
-                  <span className="flex items-center gap-2">
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Uploading audio sample directly to cloud storage...
-                  </span>
-                  <span>{uploadProgress}%</span>
-                </div>
-                <div className="w-full bg-neutral-800 rounded-full h-2 overflow-hidden">
-                  <div 
-                    className="bg-indigo-500 h-2 rounded-full transition-all duration-200" 
-                    style={{ width: `${uploadProgress}%` }} 
+                )}
+              </div>
+            ) : uploadStep === 4 ? (
+              <div className="p-6 border border-emerald-500/30 rounded-2xl bg-emerald-500/10 flex flex-col items-center justify-center text-center gap-2">
+                <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+                <p className="text-sm font-bold text-emerald-400">AI Voice Profile Ready!</p>
+                <p className="text-xs text-[var(--text-secondary)] font-medium">Added to My Voices library.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleCloneVoice} className="flex flex-col gap-4">
+                {/* Field 1: Voice Profile Name */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-[var(--text-primary)]">Voice Profile Name</label>
+                  <input
+                    type="text"
+                    value={voiceName}
+                    onChange={(e) => setVoiceName(e.target.value)}
+                    placeholder="e.g., Documentary Male Narrator"
+                    required
+                    className="px-3.5 py-2.5 bg-[var(--bg-input)] text-[var(--text-primary)] text-xs rounded-xl border border-[var(--border-app)] focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all placeholder:text-[var(--text-muted)] font-medium"
                   />
                 </div>
-              </div>
-            )}
 
-            {/* Step 3 AI Analyzing Banner */}
-            {uploadStep === 3 && (
-              <div className="p-4 rounded-xl border border-purple-500/30 bg-purple-500/10 flex items-center gap-3 animate-in fade-in">
-                <Sparkles className="w-5 h-5 text-purple-400 animate-spin" />
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold text-purple-300">{trainingStatusText}</span>
-                  <span className="text-[10px] text-purple-400/80">Processing sample through AI adaptation pipeline</span>
+                {/* Field 2: AI Model Provider */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-[var(--text-primary)]">AI Model Provider</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setProvider('XTTS')}
+                      className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                        provider === 'XTTS'
+                          ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-600/20'
+                          : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border-[var(--border-app)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      <Zap className="w-3.5 h-3.5" />
+                      <span>Coqui XTTS v2</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setProvider('OpenVoice')}
+                      className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                        provider === 'OpenVoice'
+                          ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-600/20'
+                          : 'bg-[var(--bg-input)] text-[var(--text-secondary)] border-[var(--border-app)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      <AudioWaveform className="w-3.5 h-3.5" />
+                      <span>OpenVoice</span>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
 
-            {/* Step 4 Success Banner */}
-            {uploadStep === 4 && (
-              <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex items-center gap-3 animate-in fade-in">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold text-emerald-300">Voice created successfully!</span>
-                  <span className="text-[10px] text-emerald-400/80">Redirecting to your voice library...</span>
-                </div>
-              </div>
-            )}
-
-            {/* Voice Name */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-[var(--text-secondary)]">Voice Profile Name</label>
-              <input
-                type="text"
-                placeholder="e.g. Deep Narration Speaker"
-                value={voiceName}
-                onChange={(e) => setVoiceName(e.target.value)}
-                required
-                disabled={cloning}
-                className="w-full bg-[var(--bg-input)] text-xs text-[var(--text-primary)] border border-[var(--border-app)] rounded-lg p-2.5 focus:outline-none focus:border-indigo-500 transition-all font-medium disabled:opacity-50"
-              />
-            </div>
-
-            {/* Provider Select */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-[var(--text-secondary)]">AI Model Provider</label>
-              <select
-                value={provider}
-                onChange={(e) => setProvider(e.target.value as 'XTTS' | 'OpenVoice')}
-                disabled={cloning}
-                className="w-full bg-[var(--bg-input)] text-xs text-[var(--text-primary)] border border-[var(--border-app)] rounded-lg p-2.5 focus:outline-none focus:border-indigo-500 transition-all font-medium disabled:opacity-50"
-              >
-                <option value="XTTS">XTTS v2.0 (High voice embedding quality)</option>
-                <option value="OpenVoice">OpenVoice v2.0 (Tone color style conversion)</option>
-              </select>
-            </div>
-
-            {/* Upload Box */}
-            <div className="flex flex-col gap-2">
-              <div className="flex justify-between items-center">
-                <label className="text-xs font-semibold text-[var(--text-secondary)]">Voice Sample Audio File</label>
-                <span className="text-[10px] font-semibold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">
-                  Recommended: 30s – 3 min
-                </span>
-              </div>
-              
-              <div
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-                onClick={() => !cloning && fileInputRef.current?.click()}
-                className={`border-2 border-dashed border-[var(--border-app)] hover:border-indigo-500/50 bg-[var(--bg-input)] p-6 rounded-lg flex flex-col items-center justify-center gap-3 cursor-pointer transition ${
-                  cloning ? 'opacity-50 pointer-events-none' : ''
-                }`}
-              >
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileChange} 
-                  accept="audio/mp3,audio/mpeg,audio/wav,audio/m4a" 
-                  className="hidden" 
-                />
-                
-                <Upload className="w-8 h-8 text-indigo-400 animate-pulse" />
-                <div className="flex flex-col gap-0.5 text-center">
-                  <span className="text-xs font-bold text-[var(--text-primary)]">
-                    {audioFile ? audioFile.name : 'Select or drag & drop audio file'}
-                  </span>
-                  <span className="text-[10px] text-[var(--text-secondary)]">
-                    MP3, WAV, or M4A format (max 100MB)
-                  </span>
-                </div>
-              </div>
-
-              {/* Display Selected Audio Metadata & Optimization Option */}
-              {audioFile && (
-                <div className="mt-2 p-3 rounded-lg bg-[var(--bg-input)] border border-[var(--border-app)] flex items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <AudioWaveform className="w-4 h-4 text-indigo-400 shrink-0" />
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-bold text-[var(--text-primary)] truncate">{audioFile.name}</span>
-                      <div className="flex items-center gap-2 text-[10px] text-[var(--text-secondary)] mt-0.5">
-                        <span>Duration: {formatDurationDisplay(audioDuration)}</span>
-                        <span>•</span>
-                        <span>Size: {(audioFile.size / (1024 * 1024)).toFixed(2)} MB</span>
-                      </div>
-                    </div>
+                {/* Field 3: Voice Sample Upload */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-[var(--text-primary)]">Voice Sample Upload</label>
+                    <span className="text-[10px] text-[var(--text-muted)]">Clean audio (5s - 60s)</span>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={optimizeAudioFile}
-                    disabled={isCompressing || cloning}
-                    className="px-2.5 py-1.5 rounded-md bg-indigo-500/10 border border-indigo-500/25 text-indigo-400 hover:bg-indigo-500/20 text-[10px] font-bold flex items-center gap-1.5 shrink-0 transition disabled:opacity-50"
-                  >
-                    {isCompressing ? (
-                      <>
-                        <RefreshCw className="w-3 h-3 animate-spin" /> Optimizing...
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="w-3 h-3 text-amber-400" /> Optimize sample
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept=".mp3,.wav,.m4a,audio/*"
+                    className="hidden"
+                  />
 
-            {/* Consent Box */}
-            <div className="p-4 rounded-lg bg-[var(--bg-muted)] border border-[var(--border-app)] flex items-start gap-3 mt-1">
-              <input
-                type="checkbox"
-                id="consent-check"
-                checked={consent}
-                onChange={(e) => setConsent(e.target.checked)}
-                disabled={cloning}
-                className="w-4 h-4 rounded border-[var(--border-app)] text-indigo-600 focus:ring-indigo-500 focus:ring-opacity-25 mt-0.5"
-              />
-              <div className="flex flex-col gap-0.5 leading-normal">
-                <label htmlFor="consent-check" className="text-xs font-bold text-[var(--text-primary)] cursor-pointer select-none">
-                  Voice Ownership Consent Verification
+                  <div
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`p-5 rounded-2xl border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center text-center gap-2 ${
+                      audioFile
+                        ? 'border-indigo-500 bg-indigo-500/10'
+                        : 'border-[var(--border-app)] bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] hover:border-indigo-500/40'
+                    }`}
+                  >
+                    <Upload className={`w-6 h-6 ${audioFile ? 'text-indigo-500' : 'text-[var(--text-muted)]'}`} />
+                    {audioFile ? (
+                      <div className="flex flex-col items-center gap-0.5 min-w-0">
+                        <span className="text-xs font-bold text-indigo-400 truncate max-w-[200px]">
+                          {audioFile.name}
+                        </span>
+                        <span className="text-[10px] text-[var(--text-secondary)] font-medium">
+                          {(audioFile.size / (1024 * 1024)).toFixed(2)} MB &bull; {formatDurationDisplay(audioDuration)}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs font-bold text-[var(--text-primary)]">Click to upload or drag & drop</span>
+                        <span className="text-[10px] text-[var(--text-muted)]">Supports MP3, WAV, M4A up to 100MB</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {audioFile && (
+                    <button
+                      type="button"
+                      onClick={optimizeAudioFile}
+                      disabled={isCompressing}
+                      className="mt-1 px-3 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-xs font-bold border border-indigo-500/20 transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${isCompressing ? 'animate-spin' : ''}`} />
+                      <span>{isCompressing ? 'Optimizing...' : 'Optimize Sample Audio'}</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Field 4: Ownership Consent */}
+                <label className="flex items-start gap-2.5 p-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-app)] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={consent}
+                    onChange={(e) => setConsent(e.target.checked)}
+                    className="mt-0.5 rounded text-purple-600 focus:ring-purple-500 cursor-pointer"
+                  />
+                  <span className="text-[11px] text-[var(--text-secondary)] leading-tight font-medium">
+                    I confirm that I own or have legal authorization to clone this voice sample profile.
+                  </span>
                 </label>
-                <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">
-                  I confirm I own this voice sample or have express legal permission to clone and synthesize speech from this speaker.
-                </p>
-              </div>
-            </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={cloning || !audioFile || !voiceName.trim() || !consent}
+                  className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs shadow-lg shadow-purple-600/30 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>{cloning ? 'Processing AI Voice Model...' : 'Create Voice Clone'}</span>
+                </button>
+              </form>
+            )}
           </div>
 
-          <button
-            type="submit"
-            disabled={cloning || !voiceName.trim() || !audioFile || !consent}
-            className="w-full py-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-bold text-xs text-white shadow-md shadow-indigo-600/10 flex items-center justify-center gap-2 transition disabled:opacity-40"
-          >
-            {cloning ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin" /> Processing AI Voice Clone...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" /> Create AI Voice Clone
-              </>
-            )}
-          </button>
-        </form>
-      )}
+          {/* RIGHT COLUMN: MY VOICES PANEL (Col-6: 50% Desktop Width) */}
+          <div className="lg:col-span-6 flex flex-col gap-4 min-w-0">
+            {loadingLibrary ? (
+              <div className="p-10 text-center border border-[var(--border-app)] rounded-3xl bg-[var(--bg-card)] flex flex-col items-center justify-center gap-2">
+                <RefreshCw className="w-5 h-5 text-purple-500 animate-spin" />
+                <span className="text-xs text-[var(--text-secondary)] font-medium">Loading your voices...</span>
+              </div>
+            ) : customVoices.length === 0 ? (
+              <div className="p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-app)] shadow-lg flex flex-col gap-4">
+                <div className="flex items-center justify-between pb-3 border-b border-[var(--border-app)]">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-purple-400" />
+                    <h2 className="text-base font-extrabold text-[var(--text-primary)]">My Voices</h2>
+                  </div>
+                  <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/30 font-bold uppercase tracking-wider">
+                    0 Voices
+                  </span>
+                </div>
 
-      {/* Hidden audio tag for card preview playback */}
-      <audio
-        ref={audioPlayerRef}
-        className="hidden"
-        onPause={() => setPreviewingVoiceId(null)}
-        onEnded={() => setPreviewingVoiceId(null)}
-      />
-    </div>
-  </PremiumRouteGuard>
-);
+                <div className="p-8 text-center border border-dashed border-[var(--border-app)] rounded-2xl bg-[var(--bg-input)]/40 flex flex-col items-center justify-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                    <Mic className="w-5 h-5" />
+                  </div>
+                  <div className="flex flex-col gap-0.5 max-w-xs">
+                    <p className="text-xs font-bold text-[var(--text-primary)]">No cloned voices yet</p>
+                    <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                      Upload a sample to create your first custom voice clone profile.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <VoiceSwitcher
+                  voices={customVoices}
+                  selectedVoiceId={selectedClonedVoiceId || customVoices[0].voiceId}
+                  onSelectVoice={(v) => setSelectedClonedVoiceId(v.voiceId)}
+                  onPreviewVoice={handlePreviewVoice}
+                  previewingVoiceId={previewingVoiceId}
+                  playingVoiceId={playingVoiceId}
+                  isUserPremium={true}
+                  label="My Cloned Voices Switcher"
+                />
+
+                <div className="p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-app)] shadow-lg flex flex-col gap-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-[var(--border-app)]">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-purple-400" />
+                      <h2 className="text-base font-extrabold text-[var(--text-primary)]">All My Cloned Voices</h2>
+                    </div>
+                    <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/30 font-bold uppercase tracking-wider">
+                      {customVoices.length} {customVoices.length === 1 ? 'Voice' : 'Voices'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 max-h-[420px] overflow-y-auto pr-1">
+                    {customVoices.map((v) => (
+                      <VoiceCard
+                        key={v.voiceId}
+                        voice={v}
+                        isSelected={v.voiceId === (selectedClonedVoiceId || customVoices[0].voiceId)}
+                        isPreviewing={previewingVoiceId === v.voiceId}
+                        isPlayingPreview={playingVoiceId === v.voiceId}
+                        onPreview={handlePreviewVoice}
+                        onDelete={handleDeleteVoice}
+                        onSelect={handleUseVoiceInStudio}
+                        actionLabel="Use in Studio"
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </PremiumRouteGuard>
+  );
 }
