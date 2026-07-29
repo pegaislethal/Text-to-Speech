@@ -31,7 +31,7 @@ export const VoiceSwitcher: React.FC<VoiceSwitcherProps> = ({
 
   if (!voices || voices.length === 0) {
     return (
-      <div className="p-4 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-app)] text-center text-xs text-[var(--text-muted)]">
+      <div className="p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-app)] text-center text-xs sm:text-sm text-[var(--text-muted)] font-medium">
         No voices available
       </div>
     );
@@ -64,10 +64,10 @@ export const VoiceSwitcher: React.FC<VoiceSwitcherProps> = ({
   };
 
   return (
-    <div className="p-5 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-app)] shadow-lg flex flex-col gap-4 w-full">
+    <div className="p-5 sm:p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-app)] shadow-lg flex flex-col gap-4 w-full min-h-[300px] justify-between">
       {/* Header Bar */}
-      <div className="flex items-center justify-between pb-3 border-b border-[var(--border-app)]">
-        <span className="text-xs font-extrabold uppercase tracking-wider text-[var(--text-secondary)]">
+      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[var(--border-app)]">
+        <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[var(--text-secondary)]">
           {label} ({safeIndex + 1}/{voices.length})
         </span>
 
@@ -75,97 +75,111 @@ export const VoiceSwitcher: React.FC<VoiceSwitcherProps> = ({
           <button
             type="button"
             onClick={onOpenLibrary}
-            className="text-xs font-bold text-indigo-500 hover:underline flex items-center gap-1 cursor-pointer"
+            className="text-xs sm:text-sm font-bold text-indigo-500 hover:underline flex items-center gap-1.5 cursor-pointer"
           >
-            <Grid className="w-3.5 h-3.5" />
+            <Grid className="w-4 h-4" />
             <span>Browse Library</span>
           </button>
         )}
       </div>
 
-      {/* Main Switcher Controls Area */}
-      <div className="flex items-center gap-2">
-        {/* Left Arrow Button */}
+      {/* Switcher Layout Container */}
+      <div className="flex flex-col sm:flex-row items-stretch gap-3 w-full flex-1">
+        {/* Desktop Left Arrow Button */}
         <button
           type="button"
           onClick={handlePrev}
           disabled={voices.length <= 1}
           title="Previous Voice (←)"
-          className="w-9 h-16 rounded-xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] active:scale-95 border border-[var(--border-app)] text-[var(--text-primary)] flex items-center justify-center transition shrink-0 cursor-pointer disabled:opacity-30"
+          className="hidden sm:flex w-11 rounded-2xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] active:scale-95 border border-[var(--border-app)] text-[var(--text-primary)] items-center justify-center transition shrink-0 cursor-pointer disabled:opacity-30 self-stretch min-h-[120px]"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-6 h-6" />
         </button>
 
-        {/* Selected Voice Display Card */}
+        {/* Selected Voice Card */}
         <div
-          className={`flex-1 p-4 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-app)] flex flex-col gap-2.5 min-w-0 transition-opacity duration-200 ${
+          className={`flex-1 p-4 sm:p-5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-app)] flex flex-col justify-between gap-3.5 min-w-0 w-full transition-all duration-200 ${
             animating ? 'opacity-40 scale-[0.99]' : 'opacity-100 scale-100'
           }`}
         >
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-2.5 min-w-0">
-              {isCustomVoice ? (
-                <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
-                  <Sparkles className="w-4 h-4" />
-                </div>
-              ) : (
-                <div className="w-8 h-8 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-500 shrink-0">
-                  <Mic className="w-4 h-4" />
-                </div>
-              )}
+          <div className="flex flex-col gap-2.5 min-w-0">
+            {/* Top Row: Icon, Name & Lock Badge */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3 min-w-0 flex-1">
+                {isCustomVoice ? (
+                  <div className="w-10 h-10 rounded-2xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                ) : (
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-500 shrink-0">
+                    <Mic className="w-5 h-5" />
+                  </div>
+                )}
 
-              <div className="flex flex-col min-w-0">
-                <span className="text-xs sm:text-sm font-bold text-[var(--text-primary)] truncate">
-                  {currentVoice.name}
-                </span>
-                <span className="text-[10px] text-[var(--text-muted)] font-medium truncate">
-                  {currentVoice.accent || currentVoice.language || 'American Accent'}
-                </span>
+                <div className="flex flex-col min-w-0 flex-1">
+                  <h3 className="text-base sm:text-lg font-extrabold text-[var(--text-primary)] leading-snug line-clamp-2 break-words">
+                    {currentVoice.name}
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                    {currentVoice.accent && (
+                      <span className="text-xs font-semibold text-[var(--text-muted)]">
+                        {currentVoice.accent}
+                      </span>
+                    )}
+                    {currentVoice.category && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-md bg-[var(--bg-card)] border border-[var(--border-app)] text-[var(--text-secondary)] font-bold capitalize">
+                        {currentVoice.category}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
+
+              <span
+                className={`text-[10px] px-2.5 py-1 rounded-full font-extrabold uppercase shrink-0 flex items-center gap-1 ${
+                  isLocked
+                    ? 'bg-[var(--bg-muted)] text-[var(--text-muted)] border border-[var(--border-app)]'
+                    : currentVoice.premium || currentVoice.isPremium
+                    ? 'bg-indigo-500/15 text-indigo-500 border border-indigo-500/30'
+                    : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                }`}
+              >
+                {isLocked && <Lock className="w-3 h-3" />}
+                {isLocked ? 'Locked' : currentVoice.premium || currentVoice.isPremium ? 'Premium' : 'Free'}
+              </span>
             </div>
 
-            <span
-              className={`text-[9px] px-2 py-0.5 rounded-full font-extrabold uppercase shrink-0 flex items-center gap-1 ${
-                isLocked
-                  ? 'bg-[var(--bg-muted)] text-[var(--text-muted)] border border-[var(--border-app)]'
-                  : currentVoice.premium || currentVoice.isPremium
-                  ? 'bg-indigo-500/15 text-indigo-500 border border-indigo-500/30'
-                  : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
-              }`}
-            >
-              {isLocked && <Lock className="w-2.5 h-2.5" />}
-              {isLocked ? 'Locked' : currentVoice.premium || currentVoice.isPremium ? 'Premium' : 'Free'}
-            </span>
+            {/* Voice Description */}
+            {currentVoice.description && (
+              <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed line-clamp-3 break-words font-normal mt-1">
+                {currentVoice.description}
+              </p>
+            )}
           </div>
 
-          {currentVoice.description && (
-            <p className="text-[11px] text-[var(--text-secondary)] leading-tight line-clamp-2 h-7 overflow-hidden">
-              {currentVoice.description}
-            </p>
-          )}
-
+          {/* Action Footer */}
           {isLocked ? (
-            <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-center text-[10px] font-bold text-indigo-400">
+            <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-center text-xs font-bold text-indigo-400 mt-1">
               Upgrade to Premium to synthesize with this voice
             </div>
           ) : (
-            <div className="flex items-center gap-2 pt-1 border-t border-[var(--border-app)]">
+            <div className="pt-2 border-t border-[var(--border-app)] mt-1">
               <button
                 type="button"
                 onClick={() => onPreviewVoice(currentVoice)}
                 disabled={Boolean(previewingVoiceId)}
-                className="w-full py-1.5 rounded-xl bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-app)] text-xs font-bold text-indigo-500 flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                className="w-full py-2.5 px-4 rounded-xl bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-app)] text-xs sm:text-sm font-bold text-indigo-500 flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
               >
                 {previewingVoiceId === currentVoice.voiceId ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-500" />
+                  <RefreshCw className="w-4 h-4 animate-spin text-indigo-500" />
                 ) : playingVoiceId === currentVoice.voiceId ? (
-                  <Pause className="w-3.5 h-3.5 fill-indigo-500 text-indigo-500 animate-pulse" />
+                  <Pause className="w-4 h-4 fill-indigo-500 text-indigo-500 animate-pulse" />
                 ) : (
-                  <Play className="w-3.5 h-3.5 fill-indigo-500 text-indigo-500" />
+                  <Play className="w-4 h-4 fill-indigo-500 text-indigo-500" />
                 )}
                 <span>
                   {previewingVoiceId === currentVoice.voiceId
-                    ? 'Loading...'
+                    ? 'Loading preview...'
                     : playingVoiceId === currentVoice.voiceId
                     ? 'Stop Preview'
                     : 'Preview Voice'}
@@ -175,16 +189,38 @@ export const VoiceSwitcher: React.FC<VoiceSwitcherProps> = ({
           )}
         </div>
 
-        {/* Right Arrow Button */}
+        {/* Desktop Right Arrow Button */}
         <button
           type="button"
           onClick={handleNext}
           disabled={voices.length <= 1}
           title="Next Voice (→)"
-          className="w-9 h-16 rounded-xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] active:scale-95 border border-[var(--border-app)] text-[var(--text-primary)] flex items-center justify-center transition shrink-0 cursor-pointer disabled:opacity-30"
+          className="hidden sm:flex w-11 rounded-2xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] active:scale-95 border border-[var(--border-app)] text-[var(--text-primary)] items-center justify-center transition shrink-0 cursor-pointer disabled:opacity-30 self-stretch min-h-[120px]"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-6 h-6" />
         </button>
+
+        {/* Mobile Navigation Controls Row */}
+        <div className="flex sm:hidden items-center justify-between gap-3 w-full pt-1">
+          <button
+            type="button"
+            onClick={handlePrev}
+            disabled={voices.length <= 1}
+            className="flex-1 py-2.5 px-4 rounded-xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] active:scale-95 border border-[var(--border-app)] text-[var(--text-primary)] text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-30"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Previous</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={voices.length <= 1}
+            className="flex-1 py-2.5 px-4 rounded-xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] active:scale-95 border border-[var(--border-app)] text-[var(--text-primary)] text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-30"
+          >
+            <span>Next</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   );
