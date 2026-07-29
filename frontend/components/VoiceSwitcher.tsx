@@ -1,8 +1,8 @@
 'use client';
 
-import VoiceSelector, { VoiceSwitcher as VoiceSwitcherAlias } from './VoiceSelector';
+import VoiceExplorer from './VoiceExplorer';
 import { VoiceOption } from './VoiceCard';
 
 export type { VoiceOption };
-export const VoiceSwitcher = VoiceSelector;
-export default VoiceSelector;
+export const VoiceSwitcher = VoiceExplorer;
+export default VoiceExplorer;
