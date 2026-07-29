@@ -44,6 +44,16 @@ export const VoiceSwitcher: React.FC<VoiceSwitcherProps> = ({
   const isLocked = Boolean((currentVoice.premium || currentVoice.isPremium) && !isUserPremium);
   const isCustomVoice = Boolean(currentVoice.isCustom || currentVoice.category === 'custom');
 
+  // Extract style tags array for chips
+  const tags: string[] = [];
+  if (currentVoice.style) tags.push(currentVoice.style);
+  if (currentVoice.category && currentVoice.category !== currentVoice.style && currentVoice.category !== 'custom') {
+    tags.push(currentVoice.category);
+  }
+  if (tags.length === 0) {
+    tags.push('Narration');
+  }
+
   const triggerAnimation = () => {
     setAnimating(true);
     setTimeout(() => setAnimating(false), 200);
@@ -64,10 +74,10 @@ export const VoiceSwitcher: React.FC<VoiceSwitcherProps> = ({
   };
 
   return (
-    <div className="p-5 sm:p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-app)] shadow-lg flex flex-col gap-4 w-full min-h-[300px] justify-between">
-      {/* Header Bar */}
+    <div className="p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-app)] shadow-xl flex flex-col gap-5 w-full min-h-[320px] justify-between">
+      {/* HEADER */}
       <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[var(--border-app)]">
-        <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[var(--text-secondary)]">
+        <span className="text-sm font-bold uppercase tracking-wider text-[var(--text-secondary)]">
           {label} ({safeIndex + 1}/{voices.length})
         </span>
 
@@ -83,57 +93,37 @@ export const VoiceSwitcher: React.FC<VoiceSwitcherProps> = ({
         )}
       </div>
 
-      {/* Switcher Layout Container */}
-      <div className="flex flex-col sm:flex-row items-stretch gap-3 w-full flex-1">
-        {/* Desktop Left Arrow Button */}
+      {/* VOICE SELECTOR BODY */}
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full flex-1">
+        {/* Desktop Circular Left Arrow (44px x 44px) */}
         <button
           type="button"
           onClick={handlePrev}
           disabled={voices.length <= 1}
           title="Previous Voice (←)"
-          className="hidden sm:flex w-11 rounded-2xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] active:scale-95 border border-[var(--border-app)] text-[var(--text-primary)] items-center justify-center transition shrink-0 cursor-pointer disabled:opacity-30 self-stretch min-h-[120px]"
+          className="hidden sm:flex w-11 h-11 rounded-full bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] active:scale-95 border border-[var(--border-app)] text-[var(--text-primary)] items-center justify-center transition shadow-md shrink-0 cursor-pointer disabled:opacity-30 self-center"
         >
-          <ChevronLeft className="w-6 h-6" />
+          <ChevronLeft className="w-5 h-5" />
         </button>
 
-        {/* Selected Voice Card */}
+        {/* VOICE CARD (320px Desktop Width, 260px Min-Height) */}
         <div
-          className={`flex-1 p-4 sm:p-5 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-app)] flex flex-col justify-between gap-3.5 min-w-0 w-full transition-all duration-200 ${
+          className={`w-full max-w-[340px] sm:w-[320px] min-h-[260px] p-6 rounded-3xl bg-[var(--bg-input)] border border-[var(--border-app)] shadow-md flex flex-col justify-between gap-4 transition-all duration-200 shrink-0 ${
             animating ? 'opacity-40 scale-[0.99]' : 'opacity-100 scale-100'
           }`}
         >
-          <div className="flex flex-col gap-2.5 min-w-0">
-            {/* Top Row: Icon, Name & Lock Badge */}
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3 min-w-0 flex-1">
-                {isCustomVoice ? (
-                  <div className="w-10 h-10 rounded-2xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
-                    <Sparkles className="w-5 h-5" />
-                  </div>
-                ) : (
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-500 shrink-0">
-                    <Mic className="w-5 h-5" />
-                  </div>
-                )}
-
-                <div className="flex flex-col min-w-0 flex-1">
-                  <h3 className="text-base sm:text-lg font-extrabold text-[var(--text-primary)] leading-snug line-clamp-2 break-words">
-                    {currentVoice.name}
-                  </h3>
-                  <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                    {currentVoice.accent && (
-                      <span className="text-xs font-semibold text-[var(--text-muted)]">
-                        {currentVoice.accent}
-                      </span>
-                    )}
-                    {currentVoice.category && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-md bg-[var(--bg-card)] border border-[var(--border-app)] text-[var(--text-secondary)] font-bold capitalize">
-                        {currentVoice.category}
-                      </span>
-                    )}
-                  </div>
+          <div className="flex flex-col gap-3 min-w-0">
+            {/* 1. Voice Icon & Badge */}
+            <div className="flex items-center justify-between gap-2">
+              {isCustomVoice ? (
+                <div className="w-10 h-10 rounded-2xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
+                  <Sparkles className="w-5 h-5" />
                 </div>
-              </div>
+              ) : (
+                <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-500 shrink-0">
+                  <Mic className="w-5 h-5" />
+                </div>
+              )}
 
               <span
                 className={`text-[10px] px-2.5 py-1 rounded-full font-extrabold uppercase shrink-0 flex items-center gap-1 ${
@@ -149,26 +139,48 @@ export const VoiceSwitcher: React.FC<VoiceSwitcherProps> = ({
               </span>
             </div>
 
-            {/* Voice Description */}
+            {/* 2. Voice Name & 3. Accent/Gender */}
+            <div className="flex flex-col min-w-0">
+              <h3 className="text-lg font-bold text-[var(--text-primary)] leading-tight line-clamp-2 break-words">
+                {currentVoice.name}
+              </h3>
+              <span className="text-xs font-semibold text-[var(--text-muted)] mt-0.5">
+                {currentVoice.accent || currentVoice.language || 'American Male'}
+              </span>
+            </div>
+
+            {/* 4. Style Tags (Small Rounded Chips) */}
+            <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+              {tags.map((tag, idx) => (
+                <span
+                  key={idx}
+                  className="px-2.5 py-1 rounded-lg bg-[var(--bg-card)] border border-[var(--border-app)] text-[11px] font-bold text-indigo-400 capitalize"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+
+            {/* 5. Description */}
             {currentVoice.description && (
-              <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed line-clamp-3 break-words font-normal mt-1">
+              <p className="text-xs text-[var(--text-secondary)] leading-relaxed font-normal line-clamp-3 break-words">
                 {currentVoice.description}
               </p>
             )}
           </div>
 
-          {/* Action Footer */}
+          {/* 6. Preview Button (Height 44px) */}
           {isLocked ? (
-            <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-center text-xs font-bold text-indigo-400 mt-1">
+            <div className="p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-center text-xs font-bold text-indigo-400">
               Upgrade to Premium to synthesize with this voice
             </div>
           ) : (
-            <div className="pt-2 border-t border-[var(--border-app)] mt-1">
+            <div className="pt-2 border-t border-[var(--border-app)]">
               <button
                 type="button"
                 onClick={() => onPreviewVoice(currentVoice)}
                 disabled={Boolean(previewingVoiceId)}
-                className="w-full py-2.5 px-4 rounded-xl bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-app)] text-xs sm:text-sm font-bold text-indigo-500 flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
+                className="w-full h-11 rounded-xl bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-app)] text-xs font-bold text-indigo-500 flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
               >
                 {previewingVoiceId === currentVoice.voiceId ? (
                   <RefreshCw className="w-4 h-4 animate-spin text-indigo-500" />
@@ -189,36 +201,36 @@ export const VoiceSwitcher: React.FC<VoiceSwitcherProps> = ({
           )}
         </div>
 
-        {/* Desktop Right Arrow Button */}
+        {/* Desktop Circular Right Arrow (44px x 44px) */}
         <button
           type="button"
           onClick={handleNext}
           disabled={voices.length <= 1}
           title="Next Voice (→)"
-          className="hidden sm:flex w-11 rounded-2xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] active:scale-95 border border-[var(--border-app)] text-[var(--text-primary)] items-center justify-center transition shrink-0 cursor-pointer disabled:opacity-30 self-stretch min-h-[120px]"
+          className="hidden sm:flex w-11 h-11 rounded-full bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] active:scale-95 border border-[var(--border-app)] text-[var(--text-primary)] items-center justify-center transition shadow-md shrink-0 cursor-pointer disabled:opacity-30 self-center"
         >
-          <ChevronRight className="w-6 h-6" />
+          <ChevronRight className="w-5 h-5" />
         </button>
 
         {/* Mobile Navigation Controls Row */}
-        <div className="flex sm:hidden items-center justify-between gap-3 w-full pt-1">
+        <div className="flex sm:hidden items-center justify-center gap-4 w-full pt-1">
           <button
             type="button"
             onClick={handlePrev}
             disabled={voices.length <= 1}
-            className="flex-1 py-2.5 px-4 rounded-xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] active:scale-95 border border-[var(--border-app)] text-[var(--text-primary)] text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-30"
+            title="Previous Voice"
+            className="w-11 h-11 rounded-full bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] active:scale-95 border border-[var(--border-app)] text-[var(--text-primary)] flex items-center justify-center transition shadow-md cursor-pointer disabled:opacity-30"
           >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Previous</span>
+            <ChevronLeft className="w-5 h-5" />
           </button>
           <button
             type="button"
             onClick={handleNext}
             disabled={voices.length <= 1}
-            className="flex-1 py-2.5 px-4 rounded-xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] active:scale-95 border border-[var(--border-app)] text-[var(--text-primary)] text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-30"
+            title="Next Voice"
+            className="w-11 h-11 rounded-full bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] active:scale-95 border border-[var(--border-app)] text-[var(--text-primary)] flex items-center justify-center transition shadow-md cursor-pointer disabled:opacity-30"
           >
-            <span>Next</span>
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-5 h-5" />
           </button>
         </div>
       </div>
