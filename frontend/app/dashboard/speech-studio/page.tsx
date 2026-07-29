@@ -19,7 +19,6 @@ import {
   Download, Mic, FileText, Check, Sliders, Sparkles, X, 
   Lock, Bookmark, Save, Trash2, SlidersHorizontal, ChevronRight, Zap
 } from 'lucide-react';
-import VoiceLibrary from '../../../components/VoiceLibrary';
 import { VoiceOption } from '../../../components/VoiceCard';
 import DownloadButton from '../../../components/DownloadButton';
 import VoiceSwitcher from '../../../components/VoiceSwitcher';
@@ -47,10 +46,9 @@ export default function SpeechStudio() {
   const [depth, setDepth] = useState<number>(0);
   const [tone, setTone] = useState<string>('natural');
 
-  // Voices & Modals
+  // Voices
   const [systemVoices, setSystemVoices] = useState<VoiceOption[]>([]);
   const [customVoices, setCustomVoices] = useState<VoiceOption[]>([]);
-  const [voiceModalOpen, setVoiceModalOpen] = useState<boolean>(false);
 
   // Execution States
   const [generating, setGenerating] = useState<boolean>(false);
@@ -519,7 +517,6 @@ export default function SpeechStudio() {
             previewingVoiceId={previewingVoiceId}
             playingVoiceId={playingPreviewId}
             isUserPremium={Boolean(user?.premiumAccess)}
-            onOpenLibrary={() => setVoiceModalOpen(true)}
             label="Selected Voice"
           />
 
@@ -673,49 +670,6 @@ export default function SpeechStudio() {
           </div>
         </div>
       </div>
-
-      {/* VOICE SELECTION MODAL */}
-      {voiceModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[var(--bg-card)] border border-[var(--border-app)] rounded-3xl p-6 max-w-4xl w-full max-h-[85vh] flex flex-col gap-4 shadow-2xl overflow-hidden relative">
-            <div className="flex items-center justify-between pb-3 border-b border-[var(--border-app)]">
-              <div className="flex items-center gap-2">
-                <Mic className="w-5 h-5 text-indigo-500" />
-                <h3 className="text-base font-extrabold text-[var(--text-primary)]">
-                  Select Voice Profile
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setVoiceModalOpen(false)}
-                className="p-1.5 rounded-xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] text-[var(--text-secondary)] transition cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto pr-1">
-              <VoiceLibrary
-                systemVoices={systemVoices}
-                customVoices={customVoices}
-                selectedVoiceId={voiceId}
-                onSelectVoice={(v) => {
-                  setVoiceId(v.voiceId);
-                  setVoiceModalOpen(false);
-                  showToast(`Selected voice: ${v.name}`, 'success');
-                }}
-                onPreviewVoice={handlePreviewVoice}
-                previewingVoiceId={previewingVoiceId}
-                playingVoiceId={playingPreviewId}
-                actionLabel="Select Voice"
-                maxHeight="460px"
-                gridCols="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-                showFilters={true}
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

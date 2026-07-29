@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { VoiceOption } from './VoiceCard';
 import { useAuth } from '../context/authContext';
+import { useToast } from '../context/toastContext';
 
 export type { VoiceOption };
 
@@ -37,12 +38,14 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
   onChange,
   onPreviewVoice,
   onDeleteVoice,
+  onOpenLibrary,
   previewingVoiceId = null,
   playingVoiceId = null,
   isUserPremium = true,
   label = 'Selected Voice',
 }) => {
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<ExplorerTab>('explore');
@@ -78,8 +81,21 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
     };
   }, [allVoices, selectedVoiceId]);
 
+  const handleOpenExplorer = () => {
+    if (onOpenLibrary) {
+      onOpenLibrary();
+    } else {
+      setIsOpen(true);
+    }
+  };
+
   // Handle Voice Selection
   const handleSelect = (v: VoiceOption) => {
+    const isLocked = Boolean((v.premium || v.isPremium) && !isUserPremium);
+    if (isLocked) {
+      showToast('Upgrade to Premium to unlock this voice profile.', 'error');
+      return;
+    }
     if (onSelectVoice) onSelectVoice(v);
     if (onChange) onChange(v.voiceId);
     setIsOpen(false);
@@ -163,20 +179,11 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
               {label}
             </span>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setIsOpen(true)}
-            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs shadow-md shadow-indigo-600/30 transition flex items-center gap-1.5 cursor-pointer shrink-0"
-          >
-            <span>Choose Voice</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
         </div>
 
         {/* Selected Voice Display Card Trigger */}
         <div
-          onClick={() => setIsOpen(true)}
+          onClick={handleOpenExplorer}
           className="p-4 sm:p-5 rounded-2xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-app)] hover:border-indigo-500/40 shadow-sm flex items-center justify-between gap-4 transition-all cursor-pointer group min-w-0 box-border"
         >
           <div className="flex items-center gap-3.5 min-w-0 flex-1">
@@ -191,16 +198,20 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
             )}
 
             <div className="flex flex-col min-w-0 flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-base sm:text-lg font-extrabold text-[var(--text-primary)] group-hover:text-indigo-400 transition-colors truncate">
                   {selectedVoiceObj.name}
                 </h3>
-                {isSelectedLocked && (
+                {isSelectedLocked ? (
                   <span className="px-2 py-0.5 rounded-full bg-[var(--bg-muted)] text-[var(--text-muted)] border border-[var(--border-app)] text-[9px] font-extrabold uppercase flex items-center gap-1 shrink-0">
                     <Lock className="w-2.5 h-2.5" />
                     Locked
                   </span>
-                )}
+                ) : (selectedVoiceObj.premium || selectedVoiceObj.isPremium) ? (
+                  <span className="px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 text-[9px] font-extrabold uppercase shrink-0">
+                    Premium
+                  </span>
+                ) : null}
               </div>
 
               <span className="text-xs font-semibold text-[var(--text-muted)] mt-0.5 truncate">
@@ -220,8 +231,8 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
-            {onPreviewVoice && !isSelectedLocked && (
+          {onPreviewVoice && !isSelectedLocked && (
+            <div className="flex items-center gap-3 shrink-0">
               <button
                 type="button"
                 onClick={(e) => {
@@ -240,13 +251,8 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
                   <Play className="w-4 h-4 fill-indigo-500 text-indigo-500" />
                 )}
               </button>
-            )}
-
-            <div className="px-3.5 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs font-bold text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all flex items-center gap-1">
-              <span>Change Voice</span>
-              <ChevronRight className="w-3.5 h-3.5" />
             </div>
-          </div>
+          )}
         </div>
       </div>
 
