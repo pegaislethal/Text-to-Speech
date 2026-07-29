@@ -150,11 +150,8 @@ export default function AdminLogin() {
               {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Log In as Administrator'}
             </button>
 
-            <div className="mt-2 text-center text-[var(--text-muted)] text-[11px] font-medium">
-              Need an admin account?{' '}
-              <Link href="/admin/signup" className="text-violet-400 hover:text-violet-300 font-bold underline">
-                Register Admin
-              </Link>
+            <div className="mt-2 text-center text-[var(--text-muted)] text-[11px] font-medium border-t border-[var(--border-app)] pt-3">
+              Protected Administrator Portal &bull; Internal Accounts Only
             </div>
           </form>
         </div>

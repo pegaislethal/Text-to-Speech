@@ -9,7 +9,7 @@ const requirePermission = (requiredPermission) => {
     }
 
     if (req.user.role !== 'admin') {
-      return res.status(403).json({ success: false, message: 'Forbidden. Administrator privileges required.' });
+      return res.status(403).json({ success: false, message: 'You do not have permission to access this page.' });
     }
 
     const userPermissions = req.user.permissions || [];

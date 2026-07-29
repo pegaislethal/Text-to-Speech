@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { RefreshCw } from 'lucide-react';
-import { userSignupApi, userLoginApi, adminSignupApi, adminLoginApi } from '../services/api';
+import { userSignupApi, userLoginApi, adminLoginApi } from '../services/api';
 import { getApiUrl } from '../config/api';
 import { useToast } from './toastContext';
 
@@ -31,7 +31,6 @@ interface AuthContextType {
   loginWithGoogle: (credential: string) => Promise<void>;
   userSignup: (name: string, email: string, password: string) => Promise<void>;
   userLogin: (email: string, password: string) => Promise<void>;
-  adminSignup: (name: string, email: string, password: string) => Promise<void>;
   adminLogin: (email: string, password: string) => Promise<void>;
   loginBypass: (role: 'user' | 'admin') => Promise<void>;
   logout: (expired?: boolean) => Promise<void>;
@@ -249,26 +248,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const adminSignup = async (name: string, email: string, password: string) => {
-    setLoading(true);
-    try {
-      const data = await adminSignupApi(name, email, password);
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      syncAuthCookie(data.token);
-      setToken(data.token);
-      setUser(data.user);
-      setRole(data.user.role);
-      setIsAuthenticated(true);
-      router.push('/admin/dashboard');
-    } catch (error: any) {
-      console.error('Admin signup error:', error);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const adminLogin = async (email: string, password: string) => {
     setLoading(true);
     try {
@@ -402,7 +381,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, role, token, loading, isAuthenticated, loginWithGoogle, userSignup, userLogin, adminSignup, adminLogin, loginBypass, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, role, token, loading, isAuthenticated, loginWithGoogle, userSignup, userLogin, adminLogin, loginBypass, logout, refreshUser }}>
       {isLoggingOut && (
         <div className="fixed inset-0 z-[9999] bg-neutral-950/80 backdrop-blur-md flex flex-col items-center justify-center gap-4 transition-all duration-300 animate-in fade-in">
           <div className="relative flex items-center justify-center">

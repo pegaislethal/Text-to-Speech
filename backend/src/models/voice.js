@@ -20,8 +20,7 @@ const voiceSchema = new mongoose.Schema({
   modelPath: { type: String },
   trainingStatus: { 
     type: String, 
-    enum: ['uploaded', 'processing', 'training', 'completed', 'failed'], 
-    default: 'uploaded' 
+    default: 'processing' 
   },
   trainingProgress: { type: Number, default: 0 },
   status: { type: String, enum: ['processing', 'completed', 'failed'], default: 'completed' },

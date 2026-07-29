@@ -44,6 +44,13 @@ exports.cloneVoice = async (req, res) => {
 
     const generatedVoiceId = cloneResult.voiceId || `voice_${Date.now()}`;
 
+    const rawStatus = (cloneResult.trainingStatus || '').toLowerCase();
+    const derivedStatus = (rawStatus === 'completed' || rawStatus.includes('ready')) 
+      ? 'completed' 
+      : (rawStatus.includes('fail') || rawStatus.includes('error')) 
+        ? 'failed' 
+        : 'processing';
+
     // Save Voice Profile to DB
     const voiceProfile = new Voice({
       userId: user._id,
@@ -57,7 +64,7 @@ exports.cloneVoice = async (req, res) => {
       sampleAudioUrl: audioUrl,
       trainingStatus: cloneResult.trainingStatus || 'processing',
       trainingProgress: cloneResult.trainingProgress || 10,
-      status: cloneResult.trainingStatus === 'completed' ? 'completed' : 'processing',
+      status: derivedStatus,
       settings: cloneResult.settings || {},
       sampleFiles: [audioUrl]
     });

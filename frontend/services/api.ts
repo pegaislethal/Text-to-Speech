@@ -202,15 +202,6 @@ export const userLoginApi = async (email: string, password: string) => {
   return res.json();
 };
 
-// Admin Authentication Endpoints
-export const adminSignupApi = async (name: string, email: string, password: string) => {
-  const res = await apiFetch('/api/auth/admin/signup', {
-    method: 'POST',
-    body: JSON.stringify({ name, email, password }),
-  });
-  return res.json();
-};
-
 export const adminLoginApi = async (email: string, password: string) => {
   const res = await apiFetch('/api/auth/admin/login', {
     method: 'POST',
@@ -220,6 +211,22 @@ export const adminLoginApi = async (email: string, password: string) => {
 };
 
 // Admin Operations
+export const createAdminApi = async (name: string, email: string, password: string, permissions?: string[]) => {
+  const res = await apiFetch('/api/admin/create-admin', {
+    method: 'POST',
+    body: JSON.stringify({ name, email, password, permissions }),
+  });
+  return res.json();
+};
+
+export const updateAdminPermissionsApi = async (id: string, permissions: string[], role?: string) => {
+  const res = await apiFetch(`/api/admin/users/${id}/permissions`, {
+    method: 'PATCH',
+    body: JSON.stringify({ permissions, role }),
+  });
+  return res.json();
+};
+
 export const getAdminUsers = async (search?: string) => {
   const query = search ? `?search=${encodeURIComponent(search)}` : '';
   const res = await apiFetch(`/api/admin/users${query}`);

@@ -12,8 +12,8 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
 
-  // Exclude public admin login/signup pages from AdminRoute protection & Admin Sidebar layout
-  if (pathname === '/admin/login' || pathname === '/admin/signup') {
+  // Exclude public admin login page from AdminRoute protection & Admin Sidebar layout
+  if (pathname === '/admin/login') {
     return <>{children}</>;
   }
 

@@ -201,15 +201,15 @@ export default function DashboardAISceneGenerator() {
 
   const handleDownloadScene = async (scene: GeneratedScene, index: number) => {
     setDownloadingSceneIndex(index);
-    const paddedNumber = String(scene.sceneNumber).padStart(2, '0');
-    const filename = `scene_${paddedNumber}.mp3`;
+    const sceneNum = scene.sceneNumber !== undefined && scene.sceneNumber !== null ? scene.sceneNumber : index;
+    const filename = `Scene${sceneNum}.mp3`;
     const fullUrl = getFullAudioUrl(scene.audioUrl);
 
     const success = await downloadAudioFile(fullUrl, filename);
     setDownloadingSceneIndex(null);
 
     if (success) {
-      showToast(`Downloaded Scene ${paddedNumber}.mp3`, 'success');
+      showToast(`Downloaded ${filename}`, 'success');
     } else {
       showToast('Unable to download audio file.', 'error');
     }
@@ -218,11 +218,11 @@ export default function DashboardAISceneGenerator() {
   const handleDownloadAllZip = async () => {
     if (!generatedScenes || generatedScenes.length === 0) return;
     setDownloadingZip(true);
-    showToast('Creating ZIP archive...', 'info');
+    showToast('Preparing scene audio ZIP...', 'info');
 
     try {
       await downloadScenesZipApi(generatedScenes);
-      showToast('ZIP download started!', 'success');
+      showToast('Scene audio ZIP downloaded successfully.', 'success');
     } catch (err: any) {
       showToast(err.message || 'Unable to create ZIP file.', 'error');
     } finally {

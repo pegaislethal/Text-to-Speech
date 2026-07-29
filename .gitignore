@@ -65,6 +65,16 @@ lerna-debug.log*
 tmp/
 
 # ==========================================
+# Python Environments & Portable Runtimes
+# ==========================================
+.python/
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# ==========================================
 # Operating System Files
 # ==========================================
 # System-generated metadata files.

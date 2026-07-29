@@ -5,12 +5,13 @@ import dynamic from 'next/dynamic';
 import { 
   getAdminUsers, updateAdminUser, toggleAdminUserPremium, 
   deleteAdminUser, getAdminStats, getAdminSettings, updateAdminSettings,
-  getAnalyticsOverview, getAnalyticsVoices, getAnalyticsTimeline
+  getAnalyticsOverview, getAnalyticsVoices, getAnalyticsTimeline,
+  createAdminApi, updateAdminPermissionsApi
 } from '../../../services/api';
 import { 
   Search, ShieldAlert, Check, ToggleLeft, ToggleRight, Trash2, 
   Save, RefreshCw, Users, Music, Activity, Star, Mail, Edit3, ShieldCheck, 
-  Settings, Layers, Sliders, CheckCircle2, AlertCircle, Volume2
+  Settings, Layers, Sliders, CheckCircle2, AlertCircle, Volume2, UserPlus, Shield, Key, Lock, X
 } from 'lucide-react';
 import { useToast } from '../../../context/toastContext';
 
@@ -35,6 +36,7 @@ interface UserItem {
   email: string;
   profileImage?: string;
   role: 'user' | 'admin';
+  permissions?: string[];
   isActive: boolean;
   premiumAccess: boolean;
   freeCredits: number;
@@ -58,7 +60,7 @@ interface VoiceItem {
   premium: boolean;
 }
 
-type AdminTab = 'analytics' | 'users' | 'premium' | 'settings';
+type AdminTab = 'analytics' | 'users' | 'admins' | 'premium' | 'settings';
 
 export default function UnifiedAdminDashboard() {
   const { showToast } = useToast();
@@ -72,6 +74,20 @@ export default function UnifiedAdminDashboard() {
   const [search, setSearch] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [savingId, setSavingId] = useState<string | null>(null);
+
+  // Admin Creation & Permission Modal States
+  const [showCreateAdminModal, setShowCreateAdminModal] = useState<boolean>(false);
+  const [newAdminName, setNewAdminName] = useState<string>('');
+  const [newAdminEmail, setNewAdminEmail] = useState<string>('');
+  const [newAdminPassword, setNewAdminPassword] = useState<string>('');
+  const [newAdminPermissions, setNewAdminPermissions] = useState<string[]>([
+    'MANAGE_USERS', 'MANAGE_PREMIUM', 'VIEW_ANALYTICS', 'MANAGE_ADMINS'
+  ]);
+  const [createAdminLoading, setCreateAdminLoading] = useState<boolean>(false);
+
+  const [editingAdminUser, setEditingAdminUser] = useState<UserItem | null>(null);
+  const [editPermissions, setEditPermissions] = useState<string[]>([]);
+  const [updatePermissionsLoading, setUpdatePermissionsLoading] = useState<boolean>(false);
 
   // States for user modifications
   const [editedCredits, setEditedCredits] = useState<{ [key: string]: number }>({});
@@ -262,6 +278,64 @@ export default function UnifiedAdminDashboard() {
     }
   };
 
+  const handleCreateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAdminName || !newAdminEmail || !newAdminPassword) {
+      showToast('All fields are required', 'error');
+      return;
+    }
+    if (newAdminPassword.length < 6) {
+      showToast('Password must be at least 6 characters long', 'error');
+      return;
+    }
+    setCreateAdminLoading(true);
+    try {
+      const res = await createAdminApi(newAdminName, newAdminEmail, newAdminPassword, newAdminPermissions);
+      if (res.success) {
+        showToast(res.message || 'Administrator created successfully', 'success');
+        setShowCreateAdminModal(false);
+        setNewAdminName('');
+        setNewAdminEmail('');
+        setNewAdminPassword('');
+        setNewAdminPermissions(['MANAGE_USERS', 'MANAGE_PREMIUM', 'VIEW_ANALYTICS', 'MANAGE_ADMINS']);
+        loadDashboardData();
+      } else {
+        showToast(res.message || 'Failed to create administrator', 'error');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Error creating administrator', 'error');
+    } finally {
+      setCreateAdminLoading(false);
+    }
+  };
+
+  const handleUpdateAdminPermissions = async () => {
+    if (!editingAdminUser) return;
+    setUpdatePermissionsLoading(true);
+    try {
+      const res = await updateAdminPermissionsApi(editingAdminUser._id, editPermissions);
+      if (res.success) {
+        showToast('Admin permissions updated successfully', 'success');
+        setEditingAdminUser(null);
+        loadDashboardData();
+      } else {
+        showToast(res.message || 'Failed to update permissions', 'error');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Error updating permissions', 'error');
+    } finally {
+      setUpdatePermissionsLoading(false);
+    }
+  };
+
+  const togglePermissionCheckbox = (perm: string, list: string[], setList: React.Dispatch<React.SetStateAction<string[]>>) => {
+    if (list.includes(perm)) {
+      setList(list.filter(p => p !== perm));
+    } else {
+      setList([...list, perm]);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-8 animate-in fade-in duration-300 text-[var(--text-primary)]">
       {/* Page Header */}
@@ -295,6 +369,17 @@ export default function UnifiedAdminDashboard() {
           }`}
         >
           User Directory
+        </button>
+        <button
+          onClick={() => setActiveTab('admins')}
+          className={`pb-3 text-xs sm:text-sm font-semibold border-b-2 transition-all duration-150 outline-none flex items-center gap-1.5 ${
+            activeTab === 'admins'
+              ? 'border-indigo-500 text-indigo-400 font-bold'
+              : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          <Shield className="w-3.5 h-3.5" />
+          Admin Management
         </button>
         <button
           onClick={() => setActiveTab('premium')}
@@ -738,6 +823,265 @@ export default function UnifiedAdminDashboard() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Tab: Admin Management */}
+      {activeTab === 'admins' && (
+        <div className="flex flex-col gap-6 animate-in fade-in duration-200">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[var(--border-app)] pb-4">
+            <div>
+              <h2 className="text-lg font-bold text-[var(--text-primary)]">System Administrators</h2>
+              <p className="text-xs text-[var(--text-secondary)]">Create new administrator profiles and manage system permissions.</p>
+            </div>
+            <button
+              onClick={() => setShowCreateAdminModal(true)}
+              className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white shadow-lg shadow-indigo-600/20 transition flex items-center gap-2 cursor-pointer active:scale-95"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Create New Admin</span>
+            </button>
+          </div>
+
+          {/* Admin Accounts Table */}
+          <div className="rounded-xl border border-[var(--border-app)] bg-[var(--bg-card)] overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-[var(--border-app)] bg-[var(--bg-input)] text-[var(--text-secondary)] font-bold text-[10px] uppercase tracking-wider">
+                    <th className="p-4">Administrator</th>
+                    <th className="p-4">Role & Status</th>
+                    <th className="p-4">Granted Permissions</th>
+                    <th className="p-4 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border-app)]">
+                  {users.filter(u => u.role === 'admin').map((admin) => (
+                    <tr key={admin._id} className="hover:bg-[var(--bg-card-hover)] transition-colors">
+                      <td className="p-4 flex items-center gap-3.5">
+                        <img
+                          src={admin.profileImage || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120'}
+                          alt={admin.name}
+                          className="w-9 h-9 rounded-full border border-indigo-500/40 object-cover shrink-0"
+                        />
+                        <div className="flex flex-col min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-[var(--text-primary)] truncate">{admin.name}</span>
+                            <span className="px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400 border border-violet-500/20 text-[9px] font-bold uppercase">
+                              Admin
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-[var(--text-secondary)] mt-0.5 truncate">{admin.email}</span>
+                        </div>
+                      </td>
+
+                      <td className="p-4">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                          admin.isActive 
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                            : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${admin.isActive ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
+                          {admin.isActive ? 'Active Operator' : 'Suspended'}
+                        </span>
+                      </td>
+
+                      <td className="p-4">
+                        <div className="flex flex-wrap gap-1 max-w-md">
+                          {(admin.permissions && admin.permissions.length > 0 ? admin.permissions : ['MANAGE_USERS', 'MANAGE_PREMIUM', 'VIEW_ANALYTICS']).map((perm) => (
+                            <span key={perm} className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 text-[9px] font-mono font-semibold">
+                              {perm}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+
+                      <td className="p-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingAdminUser(admin);
+                              setEditPermissions(admin.permissions || ['MANAGE_USERS', 'MANAGE_PREMIUM', 'VIEW_ANALYTICS', 'MANAGE_ADMINS']);
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg border border-[var(--border-app)] bg-[var(--bg-input)] text-[var(--text-primary)] hover:border-indigo-500/50 text-[11px] font-semibold flex items-center gap-1 transition"
+                          >
+                            <Key className="w-3.5 h-3.5 text-indigo-400" />
+                            <span>Edit Permissions</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create New Admin Modal */}
+      {showCreateAdminModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-app)] rounded-2xl max-w-lg w-full p-6 shadow-2xl flex flex-col gap-6 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-[var(--border-app)] pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[var(--text-primary)]">Create System Administrator</h3>
+                  <p className="text-xs text-[var(--text-secondary)]">Internal creation of operator accounts.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowCreateAdminModal(false)}
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1 rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateAdmin} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="System Operator"
+                  value={newAdminName}
+                  onChange={(e) => setNewAdminName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-app)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 transition"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">Admin Email</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="admin@21sttech.com"
+                  value={newAdminEmail}
+                  onChange={(e) => setNewAdminEmail(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-app)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 transition"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">Password</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={newAdminPassword}
+                  onChange={(e) => setNewAdminPassword(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-[var(--bg-input)] border border-[var(--border-app)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-indigo-500 transition"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2 pt-2 border-t border-[var(--border-app)]">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">Assign Permissions</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'MANAGE_USERS', label: 'User Directory Management' },
+                    { id: 'MANAGE_PREMIUM', label: 'Premium & Quota Controls' },
+                    { id: 'VIEW_ANALYTICS', label: 'System Analytics' },
+                    { id: 'MANAGE_ADMINS', label: 'Admin Management' }
+                  ].map((perm) => (
+                    <label key={perm.id} className="flex items-center gap-2 p-2 rounded-lg bg-[var(--bg-input)] border border-[var(--border-app)] text-xs text-[var(--text-primary)] cursor-pointer hover:border-indigo-500/40">
+                      <input
+                        type="checkbox"
+                        checked={newAdminPermissions.includes(perm.id)}
+                        onChange={() => togglePermissionCheckbox(perm.id, newAdminPermissions, setNewAdminPermissions)}
+                        className="rounded border-[var(--border-app)] text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>{perm.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border-app)]">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateAdminModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createAdminLoading}
+                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white shadow-md shadow-indigo-600/20 disabled:opacity-50 transition flex items-center gap-2 cursor-pointer"
+                >
+                  {createAdminLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                  <span>Create Admin</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Admin Permissions Modal */}
+      {editingAdminUser && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[var(--bg-card)] border border-[var(--border-app)] rounded-2xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-6 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-[var(--border-app)] pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                  <Key className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[var(--text-primary)]">Edit Permissions</h3>
+                  <p className="text-xs text-[var(--text-secondary)]">{editingAdminUser.email}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setEditingAdminUser(null)}
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] p-1 rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">Granted Permissions</label>
+              {[
+                { id: 'MANAGE_USERS', label: 'User Directory Management' },
+                { id: 'MANAGE_PREMIUM', label: 'Premium & Quota Controls' },
+                { id: 'VIEW_ANALYTICS', label: 'System Analytics' },
+                { id: 'MANAGE_ADMINS', label: 'Admin Management' }
+              ].map((perm) => (
+                <label key={perm.id} className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-app)] text-xs text-[var(--text-primary)] cursor-pointer hover:border-indigo-500/40 transition">
+                  <span className="font-semibold">{perm.label}</span>
+                  <input
+                    type="checkbox"
+                    checked={editPermissions.includes(perm.id)}
+                    onChange={() => togglePermissionCheckbox(perm.id, editPermissions, setEditPermissions)}
+                    className="w-4 h-4 rounded border-[var(--border-app)] text-indigo-600 focus:ring-indigo-500"
+                  />
+                </label>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--border-app)]">
+              <button
+                type="button"
+                onClick={() => setEditingAdminUser(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-card-hover)] transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateAdminPermissions}
+                disabled={updatePermissionsLoading}
+                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white shadow-md shadow-indigo-600/20 disabled:opacity-50 transition flex items-center gap-2 cursor-pointer"
+              >
+                {updatePermissionsLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                <span>Save Permissions</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

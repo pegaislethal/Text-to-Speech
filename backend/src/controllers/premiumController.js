@@ -211,6 +211,80 @@ exports.downloadScenesZip = async (req, res) => {
   }
 
   try {
+    // Sort scenes numerically by sceneNumber to preserve proper numeric sequence (Scene0, Scene1 ... Scene10)
+    const sortedScenes = [...scenes].sort((a, b) => {
+      const numA = typeof a.sceneNumber === 'number' ? a.sceneNumber : parseInt(a.sceneNumber, 10);
+      const numB = typeof b.sceneNumber === 'number' ? b.sceneNumber : parseInt(b.sceneNumber, 10);
+      return (isNaN(numA) ? 0 : numA) - (isNaN(numB) ? 0 : numB);
+    });
+
+    // Validate and load audio buffers before initializing ZIP stream
+    const filesToZip = [];
+
+    for (const scene of sortedScenes) {
+      const sceneNum = (scene.sceneNumber !== undefined && scene.sceneNumber !== null && !isNaN(parseInt(scene.sceneNumber, 10)))
+        ? parseInt(scene.sceneNumber, 10)
+        : 0;
+
+      const filenameInsideZip = `Scene${sceneNum}.mp3`;
+
+      if (!scene.audioUrl) {
+        return res.status(400).json({
+          success: false,
+          message: `Scene ${sceneNum} audio could not be added to ZIP.`
+        });
+      }
+
+      let buffer = null;
+
+      if (scene.audioUrl.startsWith('http://') || scene.audioUrl.startsWith('https://')) {
+        try {
+          const fetchRes = await fetch(scene.audioUrl);
+          if (!fetchRes.ok) {
+            return res.status(400).json({
+              success: false,
+              message: `Scene ${sceneNum} audio could not be added to ZIP.`
+            });
+          }
+          const arrayBuffer = await fetchRes.arrayBuffer();
+          buffer = Buffer.from(arrayBuffer);
+        } catch (fetchErr) {
+          console.error(`Fetch error for Scene ${sceneNum}:`, fetchErr);
+          return res.status(400).json({
+            success: false,
+            message: `Scene ${sceneNum} audio could not be added to ZIP.`
+          });
+        }
+      } else {
+        const cleanPath = scene.audioUrl.startsWith('/') ? scene.audioUrl : `/${scene.audioUrl}`;
+        const localPath = path.join(__dirname, '../../public', cleanPath);
+        if (!fs.existsSync(localPath)) {
+          return res.status(400).json({
+            success: false,
+            message: `Scene ${sceneNum} audio could not be added to ZIP.`
+          });
+        }
+        try {
+          buffer = fs.readFileSync(localPath);
+        } catch (readErr) {
+          console.error(`Read error for Scene ${sceneNum}:`, readErr);
+          return res.status(400).json({
+            success: false,
+            message: `Scene ${sceneNum} audio could not be added to ZIP.`
+          });
+        }
+      }
+
+      if (!buffer || buffer.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Scene ${sceneNum} audio could not be added to ZIP.`
+        });
+      }
+
+      filesToZip.push({ name: filenameInsideZip, buffer });
+    }
+
     const archiverModule = await import('archiver');
     const archiver = archiverModule.default || archiverModule;
 
@@ -231,24 +305,8 @@ exports.downloadScenesZip = async (req, res) => {
 
     archive.pipe(res);
 
-    for (const scene of scenes) {
-      const paddedNumber = String(scene.sceneNumber || 1).padStart(2, '0');
-      const filenameInsideZip = `scene_${paddedNumber}.mp3`;
-
-      if (scene.audioUrl && (scene.audioUrl.startsWith('http://') || scene.audioUrl.startsWith('https://'))) {
-        const fetchRes = await fetch(scene.audioUrl);
-        if (fetchRes.ok) {
-          const arrayBuffer = await fetchRes.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          archive.append(buffer, { name: filenameInsideZip });
-        }
-      } else if (scene.audioUrl) {
-        const cleanPath = scene.audioUrl.startsWith('/') ? scene.audioUrl : `/${scene.audioUrl}`;
-        const localPath = path.join(__dirname, '../../public', cleanPath);
-        if (fs.existsSync(localPath)) {
-          archive.file(localPath, { name: filenameInsideZip });
-        }
-      }
+    for (const fileItem of filesToZip) {
+      archive.append(fileItem.buffer, { name: fileItem.name });
     }
 
     await archive.finalize();

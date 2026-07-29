@@ -30,7 +30,6 @@ console.log('Google auth route initialized');
 router.post('/auth/google', authController.googleLogin);
 router.post('/auth/signup', authController.userSignup);
 router.post('/auth/login', authController.userLogin);
-router.post('/auth/admin/signup', authController.adminSignup);
 router.post('/auth/admin/login', authController.adminLogin);
 router.post('/auth/logout', authController.logout);
 router.post('/auth/refresh', authMiddleware, authController.refreshSession);
@@ -102,5 +101,7 @@ router.patch('/admin/users/:id/premium', authMiddleware, adminMiddleware, requir
 router.get('/admin/stats', authMiddleware, adminMiddleware, requirePermission('VIEW_ANALYTICS'), adminController.getStats);
 router.get('/admin/settings', authMiddleware, adminMiddleware, requirePermission('MANAGE_USERS'), adminController.getSettings);
 router.patch('/admin/settings', authMiddleware, adminMiddleware, requirePermission('MANAGE_USERS'), adminController.updateSettings);
+router.post('/admin/create-admin', authMiddleware, adminMiddleware, requirePermission('MANAGE_ADMINS'), adminController.createAdmin);
+router.patch('/admin/users/:id/permissions', authMiddleware, adminMiddleware, requirePermission('MANAGE_ADMINS'), adminController.updateAdminPermissions);
 
 module.exports = router;
