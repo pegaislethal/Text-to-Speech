@@ -56,7 +56,7 @@ export const VoiceSwitcher: React.FC<VoiceSwitcherProps> = ({
 
   const triggerAnimation = () => {
     setAnimating(true);
-    setTimeout(() => setAnimating(false), 200);
+    setTimeout(() => setAnimating(false), 150);
   };
 
   const handlePrev = () => {
@@ -74,9 +74,9 @@ export const VoiceSwitcher: React.FC<VoiceSwitcherProps> = ({
   };
 
   return (
-    <div className="p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-app)] shadow-xl flex flex-col gap-5 w-full min-h-[320px] justify-between">
-      {/* HEADER */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[var(--border-app)]">
+    <div className="p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-app)] shadow-xl flex flex-col justify-between w-full max-w-[700px] min-h-[420px] relative overflow-hidden">
+      {/* HEADER SECTION */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-[var(--border-app)] mb-6">
         <span className="text-sm font-bold uppercase tracking-wider text-[var(--text-secondary)]">
           {label} ({safeIndex + 1}/{voices.length})
         </span>
@@ -85,7 +85,7 @@ export const VoiceSwitcher: React.FC<VoiceSwitcherProps> = ({
           <button
             type="button"
             onClick={onOpenLibrary}
-            className="px-3 py-1.5 rounded-xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-app)] text-xs font-bold text-indigo-500 hover:text-indigo-400 flex items-center gap-1.5 transition-all shadow-sm cursor-pointer shrink-0"
+            className="px-3.5 py-1.5 rounded-xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-app)] text-xs font-bold text-indigo-500 hover:text-indigo-400 flex items-center gap-1.5 transition-all shadow-sm cursor-pointer shrink-0"
           >
             <Grid className="w-3.5 h-3.5" />
             <span>Browse Library</span>
@@ -93,23 +93,23 @@ export const VoiceSwitcher: React.FC<VoiceSwitcherProps> = ({
         )}
       </div>
 
-      {/* VOICE SELECTOR BODY */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full flex-1">
-        {/* Desktop Circular Left Arrow (44px x 44px) */}
+      {/* VOICE NAVIGATION AREA */}
+      <div className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-4 w-full flex-1 my-auto">
+        {/* Desktop Left Circular Arrow Button (44px x 44px) */}
         <button
           type="button"
           onClick={handlePrev}
           disabled={voices.length <= 1}
           title="Previous Voice (←)"
-          className="hidden sm:flex w-11 h-11 rounded-full bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] active:scale-95 border border-[var(--border-app)] text-[var(--text-primary)] items-center justify-center transition shadow-md shrink-0 cursor-pointer disabled:opacity-30 self-center"
+          className="hidden md:flex w-11 h-11 rounded-full bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] active:scale-95 border border-[var(--border-app)] text-[var(--text-primary)] items-center justify-center transition shadow-md shrink-0 cursor-pointer disabled:opacity-30 self-center"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
 
-        {/* VOICE CARD (320px Desktop Width, 260px Min-Height) */}
+        {/* VOICE CARD (Fully contained inside parent) */}
         <div
-          className={`w-full max-w-[340px] sm:w-[320px] min-h-[260px] p-6 rounded-3xl bg-[var(--bg-input)] border border-[var(--border-app)] shadow-md flex flex-col justify-between gap-4 transition-all duration-200 shrink-0 ${
-            animating ? 'opacity-40 scale-[0.99]' : 'opacity-100 scale-100'
+          className={`w-full max-w-[340px] flex-1 min-w-0 min-h-[260px] p-6 rounded-3xl bg-[var(--bg-input)] border border-[var(--border-app)] shadow-md flex flex-col justify-between gap-4 transition-opacity duration-150 relative ${
+            animating ? 'opacity-30' : 'opacity-100'
           }`}
         >
           <div className="flex flex-col gap-3 min-w-0">
@@ -149,7 +149,7 @@ export const VoiceSwitcher: React.FC<VoiceSwitcherProps> = ({
               </span>
             </div>
 
-            {/* 4. Style Tags (Small Rounded Chips) */}
+            {/* 4. Style Tags (Rounded Chips) */}
             <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
               {tags.map((tag, idx) => (
                 <span
@@ -175,7 +175,7 @@ export const VoiceSwitcher: React.FC<VoiceSwitcherProps> = ({
               Upgrade to Premium to synthesize with this voice
             </div>
           ) : (
-            <div className="pt-2 border-t border-[var(--border-app)]">
+            <div className="pt-2 border-t border-[var(--border-app)] mt-1">
               <button
                 type="button"
                 onClick={() => onPreviewVoice(currentVoice)}
@@ -207,13 +207,13 @@ export const VoiceSwitcher: React.FC<VoiceSwitcherProps> = ({
           onClick={handleNext}
           disabled={voices.length <= 1}
           title="Next Voice (→)"
-          className="hidden sm:flex w-11 h-11 rounded-full bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] active:scale-95 border border-[var(--border-app)] text-[var(--text-primary)] items-center justify-center transition shadow-md shrink-0 cursor-pointer disabled:opacity-30 self-center"
+          className="hidden md:flex w-11 h-11 rounded-full bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] active:scale-95 border border-[var(--border-app)] text-[var(--text-primary)] items-center justify-center transition shadow-md shrink-0 cursor-pointer disabled:opacity-30 self-center"
         >
           <ChevronRight className="w-5 h-5" />
         </button>
 
         {/* Mobile Navigation Controls Row */}
-        <div className="flex sm:hidden items-center justify-center gap-4 w-full pt-1">
+        <div className="flex md:hidden items-center justify-center gap-4 w-full pt-2">
           <button
             type="button"
             onClick={handlePrev}
