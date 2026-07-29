@@ -154,12 +154,12 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
   return (
     <div className="w-full">
       {/* TRIGGER WORKSPACE CARD */}
-      <div className="p-5 sm:p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-app)] shadow-lg flex flex-col gap-4 w-full">
+      <div className="p-5 sm:p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-app)] shadow-lg flex flex-col gap-4 w-full box-border">
         {/* Header Title Row */}
         <div className="flex items-center justify-between pb-3 border-b border-[var(--border-app)]">
-          <div className="flex items-center gap-2">
-            <Mic className="w-4 h-4 text-indigo-500" />
-            <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[var(--text-secondary)]">
+          <div className="flex items-center gap-2 min-w-0">
+            <Mic className="w-4 h-4 text-indigo-500 shrink-0" />
+            <span className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-[var(--text-secondary)] truncate">
               {label}
             </span>
           </div>
@@ -167,7 +167,7 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
           <button
             type="button"
             onClick={() => setIsOpen(true)}
-            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs shadow-md shadow-indigo-600/30 transition flex items-center gap-1.5 cursor-pointer"
+            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs shadow-md shadow-indigo-600/30 transition flex items-center gap-1.5 cursor-pointer shrink-0"
           >
             <span>Choose Voice</span>
             <ChevronRight className="w-3.5 h-3.5" />
@@ -177,7 +177,7 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
         {/* Selected Voice Display Card */}
         <div
           onClick={() => setIsOpen(true)}
-          className="p-4 sm:p-5 rounded-2xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-app)] hover:border-indigo-500/40 shadow-sm flex items-center justify-between gap-4 transition-all cursor-pointer group"
+          className="p-4 sm:p-5 rounded-2xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-app)] hover:border-indigo-500/40 shadow-sm flex items-center justify-between gap-4 transition-all cursor-pointer group min-w-0 box-border"
         >
           <div className="flex items-center gap-3.5 min-w-0 flex-1">
             {isCustomSelected ? (
@@ -196,7 +196,7 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
                   {selectedVoiceObj.name}
                 </h3>
                 {isSelectedLocked && (
-                  <span className="px-2 py-0.5 rounded-full bg-[var(--bg-muted)] text-[var(--text-muted)] border border-[var(--border-app)] text-[9px] font-extrabold uppercase flex items-center gap-1">
+                  <span className="px-2 py-0.5 rounded-full bg-[var(--bg-muted)] text-[var(--text-muted)] border border-[var(--border-app)] text-[9px] font-extrabold uppercase flex items-center gap-1 shrink-0">
                     <Lock className="w-2.5 h-2.5" />
                     Locked
                   </span>
@@ -250,24 +250,24 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
         </div>
       </div>
 
-      {/* FULL VOICE EXPLORER MODAL / PANEL (700px - 900px Desktop Width) */}
+      {/* FULL VOICE EXPLORER MODAL (STRICTLY BOUNDED PARENT) */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/70 backdrop-blur-md animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/70 backdrop-blur-md animate-in fade-in duration-150 overflow-hidden">
           <div
             ref={modalRef}
-            className="w-full max-w-[880px] max-h-[88vh] bg-[var(--bg-card)] border border-[var(--border-app)] rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
+            className="w-full max-w-[860px] max-h-[85vh] h-auto bg-[var(--bg-card)] border border-[var(--border-app)] rounded-3xl shadow-2xl flex flex-col overflow-hidden relative box-border animate-in zoom-in-95 duration-150"
           >
-            {/* 1. Modal Header Bar */}
-            <div className="p-5 sm:p-6 pb-4 border-b border-[var(--border-app)] flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-500">
+            {/* 1. Fixed Header Bar */}
+            <div className="p-5 sm:p-6 pb-4 border-b border-[var(--border-app)] flex items-center justify-between gap-4 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-500 shrink-0">
                   <Mic className="w-5 h-5" />
                 </div>
-                <div className="flex flex-col">
-                  <h2 className="text-lg sm:text-xl font-extrabold text-[var(--text-primary)] leading-tight">
+                <div className="flex flex-col min-w-0">
+                  <h2 className="text-lg sm:text-xl font-extrabold text-[var(--text-primary)] leading-tight truncate">
                     Select a Voice
                   </h2>
-                  <p className="text-xs text-[var(--text-muted)] font-medium">
+                  <p className="text-xs text-[var(--text-muted)] font-medium truncate">
                     Explore high-quality AI voices and custom voice clones
                   </p>
                 </div>
@@ -276,14 +276,14 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="w-9 h-9 rounded-xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-app)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center transition cursor-pointer"
+                className="w-9 h-9 rounded-xl bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-app)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center transition cursor-pointer shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* 2. Navigation Tabs (Explore vs. My Voices) */}
-            <div className="px-6 pt-4 border-b border-[var(--border-app)] flex items-center gap-6">
+            {/* 2. Navigation Tabs */}
+            <div className="px-6 pt-3 border-b border-[var(--border-app)] flex items-center gap-6 shrink-0">
               <button
                 type="button"
                 onClick={() => setActiveTab('explore')}
@@ -310,9 +310,9 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
               </button>
             </div>
 
-            {/* 3. Search & Multi-Filters Toolbar */}
-            <div className="p-5 sm:p-6 pb-3 border-b border-[var(--border-app)] bg-[var(--bg-input)]/30 flex flex-col gap-3.5">
-              {/* Search Bar */}
+            {/* 3. Fixed Search & Multi-Filters Toolbar */}
+            <div className="p-4 sm:p-5 pb-3 border-b border-[var(--border-app)] bg-[var(--bg-input)]/30 flex flex-col gap-3 shrink-0">
+              {/* Search Input */}
               <div className="relative w-full">
                 <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-4 top-1/2 -translate-y-1/2" />
                 <input
@@ -321,7 +321,7 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search voices by name, style, accent, provider..."
                   autoFocus
-                  className="w-full pl-11 pr-10 py-3 bg-[var(--bg-input)] text-[var(--text-primary)] text-xs sm:text-sm rounded-2xl border border-[var(--border-app)] focus:border-indigo-500 outline-none placeholder:text-[var(--text-muted)] font-medium shadow-sm"
+                  className="w-full pl-11 pr-10 py-2.5 bg-[var(--bg-input)] text-[var(--text-primary)] text-xs sm:text-sm rounded-2xl border border-[var(--border-app)] focus:border-indigo-500 outline-none placeholder:text-[var(--text-muted)] font-medium shadow-sm"
                 />
                 {searchQuery && (
                   <button
@@ -334,10 +334,9 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
                 )}
               </div>
 
-              {/* Filter Chips / Dropdowns */}
+              {/* Filter Chips Toolbar */}
               {activeTab === 'explore' && (
                 <div className="flex flex-wrap items-center gap-2 text-xs">
-                  {/* Language */}
                   <select
                     value={selectedLanguage}
                     onChange={(e) => setSelectedLanguage(e.target.value)}
@@ -351,7 +350,6 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
                     <option value="Japanese">Japanese</option>
                   </select>
 
-                  {/* Accent */}
                   <select
                     value={selectedAccent}
                     onChange={(e) => setSelectedAccent(e.target.value)}
@@ -365,7 +363,6 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
                     <option value="Indian">Indian</option>
                   </select>
 
-                  {/* Category */}
                   <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
@@ -379,7 +376,6 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
                     <option value="Cinematic">Cinematic</option>
                   </select>
 
-                  {/* Gender */}
                   <select
                     value={selectedGender}
                     onChange={(e) => setSelectedGender(e.target.value)}
@@ -390,7 +386,6 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
                     <option value="Female">Female</option>
                   </select>
 
-                  {/* Tier */}
                   <select
                     value={selectedTier}
                     onChange={(e) => setSelectedTier(e.target.value)}
@@ -404,8 +399,8 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
               )}
             </div>
 
-            {/* 4. Voice Item List Rows (80px - 100px Height) */}
-            <div className="p-5 sm:p-6 overflow-y-auto flex flex-col gap-3 max-h-[500px]">
+            {/* 4. Strictly Bounded Internal Scrollable Voice List Container */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 flex flex-col gap-3 max-h-[420px] box-border">
               {filteredVoices.length === 0 ? (
                 <div className="p-12 text-center text-xs sm:text-sm text-[var(--text-muted)] font-medium">
                   {activeTab === 'my-voices'
@@ -422,14 +417,14 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
                     <div
                       key={v.voiceId}
                       onClick={() => handleSelect(v)}
-                      className={`p-4 sm:p-5 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer min-h-[84px] ${
+                      className={`w-full min-h-[84px] p-4 sm:p-5 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer box-border ${
                         isItemActive
                           ? 'border-indigo-500 bg-indigo-500/10 shadow-md'
                           : 'border-[var(--border-app)] bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] hover:border-indigo-500/30'
                       }`}
                     >
                       {/* Left: Icon & Voice Information */}
-                      <div className="flex items-start gap-4 min-w-0 flex-1">
+                      <div className="flex items-start gap-3.5 min-w-0 flex-1">
                         {isCustom ? (
                           <div className="w-11 h-11 rounded-2xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
                             <Sparkles className="w-5 h-5" />
@@ -442,27 +437,27 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
 
                         <div className="flex flex-col min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <h4 className={`text-base font-extrabold truncate ${isItemActive ? 'text-indigo-400' : 'text-[var(--text-primary)]'}`}>
+                            <h4 className={`text-sm sm:text-base font-extrabold truncate ${isItemActive ? 'text-indigo-400' : 'text-[var(--text-primary)]'}`}>
                               {v.name}
                             </h4>
                             {isItemLocked && (
-                              <span className="text-[9px] px-2 py-0.5 rounded-full bg-[var(--bg-card)] border border-[var(--border-app)] text-[var(--text-muted)] font-bold uppercase flex items-center gap-1">
+                              <span className="text-[9px] px-2 py-0.5 rounded-full bg-[var(--bg-card)] border border-[var(--border-app)] text-[var(--text-muted)] font-bold uppercase flex items-center gap-1 shrink-0">
                                 <Lock className="w-2.5 h-2.5" />
                                 Locked
                               </span>
                             )}
                             {v.premium || v.isPremium ? (
-                              <span className="text-[9px] px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-500 border border-indigo-500/30 font-bold uppercase">
+                              <span className="text-[9px] px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-500 border border-indigo-500/30 font-bold uppercase shrink-0">
                                 Premium
                               </span>
                             ) : (
-                              <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold uppercase">
+                              <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold uppercase shrink-0">
                                 Free
                               </span>
                             )}
                           </div>
 
-                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                          <div className="flex flex-wrap items-center gap-2 mt-0.5">
                             <span className="text-xs font-semibold text-[var(--text-muted)]">
                               {v.accent || v.language || 'American Male'}
                             </span>
@@ -472,7 +467,7 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
                             </span>
                           </div>
 
-                          <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
                             {getTags(v).map((tag, idx) => (
                               <span
                                 key={idx}
@@ -486,7 +481,7 @@ export const VoiceExplorer: React.FC<VoiceExplorerProps> = ({
                       </div>
 
                       {/* Right Actions: Preview Button & Select Button */}
-                      <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                      <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-center">
                         {onPreviewVoice && !isItemLocked && (
                           <button
                             type="button"
