@@ -289,8 +289,8 @@ exports.adminLogin = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid admin credentials' });
     }
 
-    if (user.role !== 'admin') {
-      return res.status(403).json({ success: false, message: 'Access denied. Account is not an administrator.' });
+    if (user.role !== 'admin' && user.role !== 'sub_admin') {
+      return res.status(403).json({ success: false, message: 'Access denied. Account does not have administrative privileges.' });
     }
 
     if (!user.passwordHash) {

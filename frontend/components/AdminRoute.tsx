@@ -30,7 +30,7 @@ export default function AdminRoute({ children }: { children: React.ReactNode }) 
     );
   }
 
-  if (!user || user.role !== 'admin') {
+  if (!user || (user.role !== 'admin' && user.role !== 'sub_admin')) {
     return (
       <div className="min-h-screen bg-[#09090b] text-[#f3f4f6] flex items-center justify-center px-6">
         <div className="max-w-md w-full rounded-2xl border border-neutral-900 bg-neutral-950/40 backdrop-blur-xl p-8 shadow-2xl text-center flex flex-col items-center gap-6">

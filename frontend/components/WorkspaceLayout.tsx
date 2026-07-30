@@ -220,7 +220,7 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
                   {user.name}
                 </span>
                 <span className="text-[10px] text-[var(--text-muted)] truncate">
-                  {user.role === 'admin' ? 'Administrator' : (user.premiumAccess ? 'Premium Member' : 'Free Plan')}
+                  {user.role === 'admin' ? 'Administrator' : user.role === 'sub_admin' ? 'Sub Admin' : (user.premiumAccess ? 'Premium Member' : 'Free Plan')}
                 </span>
               </div>
               <ChevronUp className={`w-3.5 h-3.5 text-[var(--text-muted)] transition-transform duration-200 ml-auto shrink-0 ${dropdownOpen ? 'rotate-180' : ''}`} />

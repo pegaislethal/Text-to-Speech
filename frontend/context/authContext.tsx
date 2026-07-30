@@ -14,7 +14,7 @@ export interface User {
   profileImage?: string;
   profileImageUrl?: string;
   bio?: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'sub_admin' | 'admin';
   permissions?: string[];
   premiumAccess: boolean;
   freeCredits: number;
@@ -24,7 +24,7 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  role: 'user' | 'admin' | null;
+  role: 'user' | 'sub_admin' | 'admin' | null;
   token: string | null;
   loading: boolean;
   isAuthenticated: boolean;
@@ -32,7 +32,7 @@ interface AuthContextType {
   userSignup: (name: string, email: string, password: string) => Promise<void>;
   userLogin: (email: string, password: string) => Promise<void>;
   adminLogin: (email: string, password: string) => Promise<void>;
-  loginBypass: (role: 'user' | 'admin') => Promise<void>;
+  loginBypass: (role: 'user' | 'sub_admin' | 'admin') => Promise<void>;
   logout: (expired?: boolean) => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -41,7 +41,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [role, setRole] = useState<'user' | 'admin' | null>(null);
+  const [role, setRole] = useState<'user' | 'sub_admin' | 'admin' | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -235,7 +235,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(data.user);
       setRole(data.user.role);
       setIsAuthenticated(true);
-      if (data.user.role === 'admin') {
+      if (data.user.role === 'admin' || data.user.role === 'sub_admin') {
         router.push('/admin/dashboard');
       } else {
         router.push('/dashboard');
@@ -268,7 +268,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const loginBypass = async (role: 'user' | 'admin') => {
+  const loginBypass = async (role: 'user' | 'sub_admin' | 'admin') => {
     setLoading(true);
     try {
       const mockUser = {

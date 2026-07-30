@@ -8,7 +8,7 @@ const premiumController = require('../controllers/premiumController');
 const userController = require('../controllers/userController');
 const voiceController = require('../controllers/voiceController');
 const authMiddleware = require('../middleware/authMiddleware');
-const adminMiddleware = require('../middleware/adminMiddleware');
+const { requireAdmin, requireAdminOrSubAdmin } = require('../middleware/adminMiddleware');
 const premiumMiddleware = require('../middleware/premiumMiddleware');
 const { requirePermission } = require('../middleware/permissionMiddleware');
 
@@ -79,10 +79,10 @@ router.delete('/history', authMiddleware, ttsController.clearHistory);
 
 // Analytics Operations
 const analyticsController = require('../controllers/analyticsController');
-router.get('/analytics/seed', authMiddleware, adminMiddleware, analyticsController.seedMockData);
-router.get('/analytics/overview', authMiddleware, adminMiddleware, analyticsController.getOverview);
-router.get('/analytics/voices', authMiddleware, adminMiddleware, analyticsController.getVoices);
-router.get('/analytics/timeline', authMiddleware, adminMiddleware, analyticsController.getTimeline);
+router.get('/analytics/seed', authMiddleware, requireAdmin, analyticsController.seedMockData);
+router.get('/analytics/overview', authMiddleware, requireAdminOrSubAdmin, analyticsController.getOverview);
+router.get('/analytics/voices', authMiddleware, requireAdminOrSubAdmin, analyticsController.getVoices);
+router.get('/analytics/timeline', authMiddleware, requireAdminOrSubAdmin, analyticsController.getTimeline);
 
 // Upload Operations
 const uploadController = require('../controllers/uploadController');
@@ -93,15 +93,29 @@ router.get('/presets', authMiddleware, presetController.getPresets);
 router.post('/presets', authMiddleware, presetController.createPreset);
 router.delete('/presets/:id', authMiddleware, presetController.deletePreset);
 
-// Admin Operations
-router.get('/admin/users', authMiddleware, adminMiddleware, requirePermission('MANAGE_USERS'), adminController.getUsers);
-router.patch('/admin/users/:id', authMiddleware, adminMiddleware, requirePermission('MANAGE_USERS'), adminController.updateUser);
-router.delete('/admin/users/:id', authMiddleware, adminMiddleware, requirePermission('MANAGE_USERS'), adminController.deleteUser);
-router.patch('/admin/users/:id/premium', authMiddleware, adminMiddleware, requirePermission('MANAGE_PREMIUM'), adminController.togglePremium);
-router.get('/admin/stats', authMiddleware, adminMiddleware, requirePermission('VIEW_ANALYTICS'), adminController.getStats);
-router.get('/admin/settings', authMiddleware, adminMiddleware, requirePermission('MANAGE_USERS'), adminController.getSettings);
-router.patch('/admin/settings', authMiddleware, adminMiddleware, requirePermission('MANAGE_USERS'), adminController.updateSettings);
-router.post('/admin/create-admin', authMiddleware, adminMiddleware, requirePermission('MANAGE_ADMINS'), adminController.createAdmin);
-router.patch('/admin/users/:id/permissions', authMiddleware, adminMiddleware, requirePermission('MANAGE_ADMINS'), adminController.updateAdminPermissions);
+// Admin & Sub-Admin Operations
+router.get('/admin/users', authMiddleware, requireAdminOrSubAdmin, adminController.getUsers);
+router.patch('/admin/users/:id', authMiddleware, requireAdmin, adminController.updateUser);
+router.patch('/admin/users/:id/role', authMiddleware, requireAdmin, adminController.updateUser);
+router.delete('/admin/users/:id', authMiddleware, requireAdmin, adminController.deleteUser);
+router.patch('/admin/users/:id/premium', authMiddleware, requireAdminOrSubAdmin, adminController.togglePremium);
+router.get('/admin/stats', authMiddleware, requireAdminOrSubAdmin, adminController.getStats);
+router.get('/admin/settings', authMiddleware, requireAdmin, adminController.getSettings);
+router.patch('/admin/settings', authMiddleware, requireAdmin, adminController.updateSettings);
+
+// Sub-Admin Management (Admin Only)
+router.post('/admin/sub-admins', authMiddleware, requireAdmin, adminController.createSubAdmin);
+router.get('/admin/sub-admins', authMiddleware, requireAdmin, adminController.getSubAdmins);
+router.patch('/admin/sub-admins/:id/status', authMiddleware, requireAdmin, adminController.updateSubAdminStatus);
+router.delete('/admin/sub-admins/:id', authMiddleware, requireAdmin, adminController.deleteSubAdmin);
+
+// Audit Logs (Admin + Sub-Admin)
+router.get('/admin/audit-logs', authMiddleware, requireAdminOrSubAdmin, adminController.getAuditLogs);
+
+// Admin Creation (Legacy / Super-Admin creation fallback)
+router.post('/admin/create-admin', authMiddleware, requireAdmin, adminController.createAdmin);
+router.patch('/admin/users/:id/permissions', authMiddleware, requireAdmin, adminController.updateAdminPermissions);
+
+module.exports = router;
 
 module.exports = router;

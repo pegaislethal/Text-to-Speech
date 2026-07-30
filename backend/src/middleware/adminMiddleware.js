@@ -1,9 +1,22 @@
-const adminMiddleware = (req, res, next) => {
+const requireAdmin = (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
     next();
   } else {
-    return res.status(403).json({ success: false, message: 'You do not have permission to access this page.' });
+    return res.status(403).json({ success: false, message: 'Forbidden. Administrator privileges required.' });
   }
 };
 
-module.exports = adminMiddleware;
+const requireAdminOrSubAdmin = (req, res, next) => {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'sub_admin')) {
+    next();
+  } else {
+    return res.status(403).json({ success: false, message: 'Forbidden. Administrator or Sub-Admin privileges required.' });
+  }
+};
+
+module.exports = {
+  adminMiddleware: requireAdmin,
+  requireAdmin,
+  requireAdminOrSubAdmin
+};
+

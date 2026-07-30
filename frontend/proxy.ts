@@ -79,7 +79,7 @@ export function proxy(request: NextRequest) {
   }
 
   // 3. Admin authorization checks
-  if (isAdminProtected && role !== 'admin') {
+  if (isAdminProtected && role !== 'admin' && role !== 'sub_admin') {
     return new NextResponse(
       JSON.stringify({ 
         success: false, 
@@ -94,7 +94,7 @@ export function proxy(request: NextRequest) {
 
   // 4. Authenticated user accessing auth routes or homepage -> Redirect to dashboard
   if ((isUserAuth || isHomepage) && token) {
-    const dashboardUrl = new URL(role === 'admin' ? '/admin/dashboard' : '/dashboard', request.url);
+    const dashboardUrl = new URL((role === 'admin' || role === 'sub_admin') ? '/admin/dashboard' : '/dashboard', request.url);
     return NextResponse.redirect(dashboardUrl);
   }
 

@@ -274,6 +274,42 @@ export const updateAdminSettings = async (body: any) => {
   return res.json();
 };
 
+// Sub-Admin Management API
+export const createSubAdminApi = async (body: { name: string; email: string; password: string; status?: 'active' | 'inactive' }) => {
+  const res = await apiFetch('/api/admin/sub-admins', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  return res.json();
+};
+
+export const getSubAdminsApi = async () => {
+  const res = await apiFetch('/api/admin/sub-admins');
+  return res.json();
+};
+
+export const updateSubAdminStatusApi = async (id: string, isActive: boolean) => {
+  const res = await apiFetch(`/api/admin/sub-admins/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ isActive }),
+  });
+  return res.json();
+};
+
+export const deleteSubAdminApi = async (id: string) => {
+  const res = await apiFetch(`/api/admin/sub-admins/${id}`, {
+    method: 'DELETE',
+  });
+  return res.json();
+};
+
+// Audit Logs API
+export const getAuditLogsApi = async () => {
+  const res = await apiFetch('/api/admin/audit-logs');
+  return res.json();
+};
+
+
 export const logoutApi = async () => {
   const res = await apiFetch('/api/auth/logout', {
     method: 'POST',

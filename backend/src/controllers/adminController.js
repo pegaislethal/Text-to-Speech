@@ -1,7 +1,25 @@
 const User = require('../models/user');
 const AudioHistory = require('../models/audioHistory');
 const Settings = require('../models/settings');
+const AuditLog = require('../models/auditLog');
 const bcrypt = require('bcryptjs');
+
+const logAdminAction = async (req, action, targetUser, details) => {
+  try {
+    await AuditLog.create({
+      performedBy: req.user._id,
+      performedByName: req.user.name || req.user.email,
+      performedByEmail: req.user.email,
+      performedByRole: req.user.role,
+      action,
+      targetUser: targetUser?._id,
+      targetUserEmail: targetUser?.email,
+      details
+    });
+  } catch (err) {
+    console.error('Audit log error:', err);
+  }
+};
 
 // Get all users with search
 exports.getUsers = async (req, res) => {
@@ -29,13 +47,20 @@ exports.updateUser = async (req, res) => {
   const { id } = req.params;
   const { role, isActive, freeCredits } = req.body;
 
+  if (role && req.user.role !== 'admin') {
+    return res.status(403).json({ success: false, message: 'Forbidden. Only full admin can change user roles.' });
+  }
+
   try {
     const user = await User.findById(id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    if (role) user.role = role;
+    if (role) {
+      user.role = role;
+      await logAdminAction(req, 'CHANGE_USER_ROLE', user, `${req.user.name || req.user.email} changed role of ${user.email} to ${role}`);
+    }
     if (isActive !== undefined) user.isActive = isActive;
     if (freeCredits !== undefined) user.freeCredits = freeCredits;
 
@@ -60,6 +85,8 @@ exports.deleteUser = async (req, res) => {
     // Remove history for this user
     await AudioHistory.deleteMany({ userId: id });
 
+    await logAdminAction(req, 'DELETE_USER', user, `${req.user.name || req.user.email} deleted user account ${user.email}`);
+
     res.status(200).json({ success: true, message: 'User deleted successfully' });
   } catch (error) {
     console.error('Delete user error:', error);
@@ -80,6 +107,15 @@ exports.togglePremium = async (req, res) => {
 
     user.premiumAccess = premiumAccess;
     await user.save();
+
+    const actionText = premiumAccess ? 'upgraded' : 'removed premium access from';
+    const actionType = premiumAccess ? 'GRANT_PREMIUM' : 'REMOVE_PREMIUM';
+    await logAdminAction(
+      req,
+      actionType,
+      user,
+      `${req.user.name || req.user.email} (${req.user.role}) ${actionText} user ${user.email}`
+    );
 
     res.status(200).json({ success: true, user });
   } catch (error) {
@@ -249,7 +285,7 @@ exports.updateAdminPermissions = async (req, res) => {
       targetUser.permissions = permissions;
     }
 
-    if (role && ['user', 'admin'].includes(role)) {
+    if (role && ['user', 'sub_admin', 'admin'].includes(role)) {
       targetUser.role = role;
     }
 
@@ -271,4 +307,139 @@ exports.updateAdminPermissions = async (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to update admin permissions' });
   }
 };
+
+// Create a new Sub Admin (Callable ONLY by full Admin)
+exports.createSubAdmin = async (req, res) => {
+  const { name, email, password, status = 'active' } = req.body;
+
+  if (!name || !email || !password) {
+    return res.status(400).json({ success: false, message: 'Name, email, and temporary password are required' });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+  }
+
+  try {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'An account with this email already exists' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    const subAdmin = new User({
+      name,
+      email,
+      passwordHash,
+      role: 'sub_admin',
+      isActive: status === 'active',
+      premiumAccess: true,
+      permissions: ['MANAGE_USERS', 'MANAGE_PREMIUM', 'VIEW_ANALYTICS']
+    });
+
+    await subAdmin.save();
+
+    await logAdminAction(
+      req,
+      'CREATE_SUB_ADMIN',
+      subAdmin,
+      `${req.user.name || req.user.email} created sub-admin account for ${email}`
+    );
+
+    res.status(201).json({
+      success: true,
+      message: 'Sub-admin account created successfully',
+      subAdmin: {
+        id: subAdmin._id,
+        name: subAdmin.name,
+        email: subAdmin.email,
+        role: subAdmin.role,
+        isActive: subAdmin.isActive,
+        createdAt: subAdmin.createdAt
+      }
+    });
+  } catch (error) {
+    console.error('Create sub-admin error:', error);
+    res.status(500).json({ success: false, message: 'Failed to create sub-admin: ' + error.message });
+  }
+};
+
+// Get list of Sub-Admins
+exports.getSubAdmins = async (req, res) => {
+  try {
+    const subAdmins = await User.find({ role: 'sub_admin' }).sort({ createdAt: -1 });
+    res.status(200).json({ success: true, subAdmins });
+  } catch (error) {
+    console.error('Fetch sub-admins error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch sub-admins' });
+  }
+};
+
+// Update Sub-Admin Active Status (Disable / Enable)
+exports.updateSubAdminStatus = async (req, res) => {
+  const { id } = req.params;
+  const { isActive } = req.body;
+
+  try {
+    const subAdmin = await User.findOne({ _id: id, role: 'sub_admin' });
+    if (!subAdmin) {
+      return res.status(404).json({ success: false, message: 'Sub-admin not found' });
+    }
+
+    subAdmin.isActive = isActive;
+    await subAdmin.save();
+
+    const action = isActive ? 'ENABLE_SUB_ADMIN' : 'DISABLE_SUB_ADMIN';
+    await logAdminAction(
+      req,
+      action,
+      subAdmin,
+      `${req.user.name || req.user.email} ${isActive ? 'enabled' : 'disabled'} sub-admin ${subAdmin.email}`
+    );
+
+    res.status(200).json({ success: true, subAdmin });
+  } catch (error) {
+    console.error('Update sub-admin status error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update sub-admin status' });
+  }
+};
+
+// Remove Sub-Admin
+exports.deleteSubAdmin = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const subAdmin = await User.findOne({ _id: id, role: 'sub_admin' });
+    if (!subAdmin) {
+      return res.status(404).json({ success: false, message: 'Sub-admin not found' });
+    }
+
+    await User.findByIdAndDelete(id);
+
+    await logAdminAction(
+      req,
+      'REMOVE_SUB_ADMIN',
+      subAdmin,
+      `${req.user.name || req.user.email} removed sub-admin account ${subAdmin.email}`
+    );
+
+    res.status(200).json({ success: true, message: 'Sub-admin removed successfully' });
+  } catch (error) {
+    console.error('Delete sub-admin error:', error);
+    res.status(500).json({ success: false, message: 'Failed to remove sub-admin' });
+  }
+};
+
+// Get Audit Logs
+exports.getAuditLogs = async (req, res) => {
+  try {
+    const logs = await AuditLog.find().sort({ createdAt: -1 }).limit(100);
+    res.status(200).json({ success: true, logs });
+  } catch (error) {
+    console.error('Fetch audit logs error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch audit logs' });
+  }
+};
+
 

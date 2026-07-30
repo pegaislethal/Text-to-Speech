@@ -8,7 +8,7 @@ const userSchema = new mongoose.Schema({
   profileImageUrl: { type: String },
   bio: { type: String, default: '' },
   googleId: { type: String, unique: true, sparse: true },
-  role: { type: String, enum: ['user', 'admin'], default: 'user' },
+  role: { type: String, enum: ['user', 'sub_admin', 'admin'], default: 'user' },
   permissions: [{ type: String }],
   isActive: { type: Boolean, default: true },
   premiumAccess: { type: Boolean, default: false },
