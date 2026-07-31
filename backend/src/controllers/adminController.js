@@ -47,14 +47,25 @@ exports.updateUser = async (req, res) => {
   const { id } = req.params;
   const { role, isActive, freeCredits } = req.body;
 
-  if (role && req.user.role !== 'admin') {
-    return res.status(403).json({ success: false, message: 'Forbidden. Only full admin can change user roles.' });
-  }
-
   try {
     const user = await User.findById(id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Role protection rule: Sub-admin cannot modify admin accounts or assign admin roles
+    if (user.role === 'admin' && req.user.role === 'sub_admin') {
+      await logAdminAction(
+        req,
+        'ATTEMPTED_ADMIN_MODIFICATION',
+        user,
+        `${req.user.name || req.user.email} (sub_admin) attempted unauthorized modification of admin account ${user.email}`
+      );
+      return res.status(403).json({ success: false, message: 'Cannot modify admin accounts.' });
+    }
+
+    if (role && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Cannot modify admin accounts.' });
     }
 
     if (role) {
@@ -81,6 +92,17 @@ exports.deleteUser = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    // Protection rule: Sub-admin cannot delete admin accounts
+    if (user.role === 'admin' && req.user.role === 'sub_admin') {
+      await logAdminAction(
+        req,
+        'ATTEMPTED_ADMIN_DELETION',
+        user,
+        `${req.user.name || req.user.email} (sub_admin) attempted unauthorized deletion of admin account ${user.email}`
+      );
+      return res.status(403).json({ success: false, message: 'Cannot modify admin accounts.' });
+    }
+
     await User.findByIdAndDelete(id);
     // Remove history for this user
     await AudioHistory.deleteMany({ userId: id });
@@ -103,6 +125,17 @@ exports.togglePremium = async (req, res) => {
     const user = await User.findById(id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Protection rule: Sub-admin cannot modify admin accounts
+    if (user.role === 'admin' && req.user.role === 'sub_admin') {
+      await logAdminAction(
+        req,
+        'ATTEMPTED_ADMIN_MODIFICATION',
+        user,
+        `${req.user.name || req.user.email} (sub_admin) attempted unauthorized premium update on admin account ${user.email}`
+      );
+      return res.status(403).json({ success: false, message: 'Cannot modify admin accounts.' });
     }
 
     user.premiumAccess = premiumAccess;

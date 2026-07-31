@@ -272,6 +272,10 @@ export default function UnifiedAdminDashboard() {
   };
 
   const openPremiumConfirmation = (user: UserItem, targetStatus: boolean) => {
+    if (user.role === 'admin' && !isFullAdmin) {
+      showToast('Cannot modify admin accounts.', 'error');
+      return;
+    }
     setConfirmPremiumModal({ user, targetStatus });
   };
 
@@ -840,7 +844,11 @@ export default function UnifiedAdminDashboard() {
                           <td className="p-4 text-right">
                             <div className="flex items-center justify-end gap-2">
                               {/* Premium Management Button with Confirmation Modal */}
-                              {u.premiumAccess ? (
+                              {u.role === 'admin' && !isFullAdmin ? (
+                                <span className="text-[10px] font-bold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 rounded-lg inline-flex items-center gap-1">
+                                  <Lock className="w-3 h-3" /> Admin Protected
+                                </span>
+                              ) : u.premiumAccess ? (
                                 <button
                                   onClick={() => openPremiumConfirmation(u, false)}
                                   className="px-2.5 py-1 rounded-lg bg-neutral-800 hover:bg-red-950/40 text-neutral-300 hover:text-red-400 border border-neutral-700 hover:border-red-500/30 text-xs font-bold transition flex items-center gap-1"
@@ -936,7 +944,11 @@ export default function UnifiedAdminDashboard() {
                         </span>
                       </td>
                       <td className="p-3 text-right">
-                        {u.premiumAccess ? (
+                        {u.role === 'admin' && !isFullAdmin ? (
+                          <span className="text-[10px] font-bold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-1 rounded-md inline-flex items-center gap-1">
+                            <Lock className="w-3 h-3" /> Admin Protected
+                          </span>
+                        ) : u.premiumAccess ? (
                           <button
                             onClick={() => openPremiumConfirmation(u, false)}
                             className="px-3 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold transition"

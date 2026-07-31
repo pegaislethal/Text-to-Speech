@@ -172,8 +172,8 @@ export default function WorkspaceLayout({ children, isAdminArea = false }: Works
               );
             })}
 
-            {/* Quick Switch for Admin */}
-            {user.role === 'admin' && (
+            {/* Quick Switch for Admin & Sub-Admin */}
+            {(user.role === 'admin' || user.role === 'sub_admin') && (
               <div className="mt-4 pt-4 border-t border-[var(--border-app)] flex flex-col gap-1">
                 <span className="text-[10px] text-[var(--text-muted)] font-semibold uppercase tracking-wider px-3 mb-1">
                   System Context

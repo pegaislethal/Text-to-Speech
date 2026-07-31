@@ -5,7 +5,7 @@ const cache = new Map();
 const CACHE_TTL_MS = 30000; // 30 seconds cache
 
 const getCacheKey = (endpoint, req) => {
-  const isGlobal = req.user.role === 'admin' && req.query.global === 'true';
+  const isGlobal = (req.user.role === 'admin' || req.user.role === 'sub_admin') && req.query.global === 'true';
   return `${endpoint}:${isGlobal ? 'global' : req.user._id.toString()}`;
 };
 
@@ -38,7 +38,7 @@ exports.invalidateAnalyticsCache = invalidateAnalyticsCache;
 
 exports.getOverview = async (req, res) => {
   try {
-    if (!req.user || req.user.role !== 'admin') {
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'sub_admin')) {
       return res.status(403).json({ success: false, message: 'Admin access required' });
     }
 
@@ -118,7 +118,7 @@ exports.getOverview = async (req, res) => {
 
 exports.getVoices = async (req, res) => {
   try {
-    if (!req.user || req.user.role !== 'admin') {
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'sub_admin')) {
       return res.status(403).json({ success: false, message: 'Admin access required' });
     }
 
@@ -164,7 +164,7 @@ exports.getVoices = async (req, res) => {
 
 exports.getTimeline = async (req, res) => {
   try {
-    if (!req.user || req.user.role !== 'admin') {
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'sub_admin')) {
       return res.status(403).json({ success: false, message: 'Admin access required' });
     }
 
