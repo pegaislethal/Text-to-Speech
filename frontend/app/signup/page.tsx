@@ -3,11 +3,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/authContext';
 import { GoogleLogin } from '@react-oauth/google';
-import { Sparkles, AlertCircle, RefreshCw, ArrowRight, User, Mail, Lock, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+import { Sparkles, AlertCircle, RefreshCw, ArrowRight, User, Mail, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
-
 import { useRouter } from 'next/navigation';
 import ThemeToggle from '../../components/ThemeToggle';
+import PasswordInput from '../../components/PasswordInput';
 
 export default function UserSignup() {
   const { user, loginWithGoogle, userSignup, loading } = useAuth();
@@ -189,27 +189,15 @@ export default function UserSignup() {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-[var(--text-secondary)]">Password</label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="At least 6 characters"
-                    minLength={6}
-                    required
-                    className="w-full bg-[var(--bg-input)] border border-[var(--border-app)] focus:border-indigo-500/80 focus:ring-2 focus:ring-indigo-500/20 text-[var(--text-primary)] text-xs rounded-xl pl-10 pr-10 py-3 outline-none transition placeholder:text-[var(--text-muted)]"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
+              <div>
+                <PasswordInput
+                  label="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="At least 6 characters"
+                  minLength={6}
+                  required
+                />
               </div>
 
               <button

@@ -51,14 +51,19 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
           currentPath.startsWith('/login') || 
           currentPath.startsWith('/signup') || 
           currentPath.startsWith('/admin/login') || 
-          currentPath.startsWith('/admin/signup');
+          currentPath.startsWith('/admin/signup') ||
+          currentPath.startsWith('/forgot-password') ||
+          currentPath.startsWith('/reset-password');
         const isAuthEndpoint = 
           endpoint.includes('/api/auth/login') || 
           endpoint.includes('/api/auth/user-login') || 
           endpoint.includes('/api/auth/admin-login') || 
           endpoint.includes('/api/auth/signup') || 
           endpoint.includes('/api/auth/user-signup') || 
-          endpoint.includes('/api/auth/google');
+          endpoint.includes('/api/auth/google') ||
+          endpoint.includes('/api/auth/forgot-password') ||
+          endpoint.includes('/api/auth/verify-reset-otp') ||
+          endpoint.includes('/api/auth/reset-password');
 
         if (!isAuthRoute && !isAuthEndpoint) {
           const isExplicitSessionExpired = 
@@ -515,5 +520,30 @@ export const deleteCustomVoiceApi = async (id: string) => {
   });
   return res.json();
 };
+
+export const forgotPasswordApi = async (email: string) => {
+  const res = await apiFetch('/api/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+  return res.json();
+};
+
+export const verifyResetOtpApi = async (email: string, otp: string) => {
+  const res = await apiFetch('/api/auth/verify-reset-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp }),
+  });
+  return res.json();
+};
+
+export const resetPasswordApi = async (email: string, resetToken: string, newPassword: string, confirmPassword: string) => {
+  const res = await apiFetch('/api/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ email, resetToken, newPassword, confirmPassword }),
+  });
+  return res.json();
+};
+
 
 

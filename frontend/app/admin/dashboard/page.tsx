@@ -17,6 +17,7 @@ import {
   Settings, Layers, Sliders, CheckCircle2, AlertCircle, Volume2, UserPlus, Shield, Key, Lock, X, FileText, UserCheck, UserX, Sparkles
 } from 'lucide-react';
 import { useToast } from '../../../context/toastContext';
+import PasswordInput from '../../../components/PasswordInput';
 
 const VoicePopularityChart = dynamic(
   () => import('../../../components/DashboardCharts').then((mod) => mod.VoicePopularityChart),
@@ -1215,14 +1216,12 @@ export default function UnifiedAdminDashboard() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-[var(--text-secondary)] uppercase">Temporary Password</label>
-                <input
-                  type="password"
+                <PasswordInput
+                  label="TEMPORARY PASSWORD"
                   required
                   value={newSubAdminPassword}
                   onChange={(e) => setNewSubAdminPassword(e.target.value)}
                   placeholder="Minimum 6 characters"
-                  className="w-full mt-1 bg-[var(--bg-input)] border border-[var(--border-app)] rounded-xl px-3.5 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-indigo-500"
                 />
               </div>
 

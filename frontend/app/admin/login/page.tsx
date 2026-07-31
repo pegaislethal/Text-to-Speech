@@ -5,6 +5,7 @@ import { useAuth } from '../../../context/authContext';
 import { Shield, AlertCircle, RefreshCw, ArrowRight, Lock, Mail, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import PasswordInput from '../../../components/PasswordInput';
 
 export default function AdminLogin() {
   const { adminLogin, loading, user } = useAuth();
@@ -127,19 +128,19 @@ export default function AdminLogin() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">Password</label>
-              <div className="relative">
-                <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-[var(--bg-input)] border border-[var(--border-app)] rounded-xl text-xs text-[var(--text-primary)] focus:outline-none focus:border-violet-500/50 transition placeholder:text-[var(--text-muted)]"
-                />
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">Password</label>
+                <Link href="/forgot-password" className="text-[11px] font-semibold text-violet-400 hover:text-violet-300 transition">
+                  Forgot password?
+                </Link>
               </div>
+              <PasswordInput
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
             </div>
 
             <button

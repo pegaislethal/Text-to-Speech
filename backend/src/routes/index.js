@@ -33,6 +33,9 @@ router.post('/auth/login', authController.userLogin);
 router.post('/auth/admin/login', authController.adminLogin);
 router.post('/auth/logout', authController.logout);
 router.post('/auth/refresh', authMiddleware, authController.refreshSession);
+router.post('/auth/forgot-password', authController.forgotPassword);
+router.post('/auth/verify-reset-otp', authController.verifyResetOtp);
+router.post('/auth/reset-password', authController.resetPassword);
 router.get('/auth/me', authMiddleware, (req, res) => {
   res.status(200).json({
     success: true,
