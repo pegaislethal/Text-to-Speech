@@ -12,7 +12,9 @@ import {
   deletePreset, 
   getApiUrl, 
   downloadAudioFile, 
-  getVoiceLibraryApi 
+  getVoiceLibraryApi,
+  getVoiceProfilesApi,
+  VoiceProfileData
 } from '../../../services/api';
 import { 
   Play, Pause, Volume2, AlertCircle, RefreshCw, 
@@ -61,10 +63,11 @@ export default function SpeechStudio() {
   const [audioDuration, setAudioDuration] = useState<number>(0);
   const [currentTime, setCurrentTime] = useState<number>(0);
 
-  // Preset System States
+  // Preset & Profile System States
   const [presets, setPresets] = useState<PresetItem[]>([]);
   const [presetNameInput, setPresetNameInput] = useState<string>('');
   const [savingPreset, setSavingPreset] = useState<boolean>(false);
+  const [savedVoiceProfiles, setSavedVoiceProfiles] = useState<VoiceProfileData[]>([]);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -74,6 +77,7 @@ export default function SpeechStudio() {
   useEffect(() => {
     loadVoiceLibrary();
     loadPresets();
+    loadVoiceProfiles();
     audioRef.current = new Audio();
     previewAudioRef.current = new Audio();
 
@@ -93,13 +97,36 @@ export default function SpeechStudio() {
     };
   }, [user]);
 
-  // Check URL search parameter for preselected voiceId
+  // Check URL search parameter for preselected voiceId and voice profile settings
   useEffect(() => {
     const urlVoiceId = searchParams.get('voiceId');
     if (urlVoiceId) {
       setVoiceId(urlVoiceId);
     }
+    const urlSpeed = searchParams.get('speed');
+    if (urlSpeed) setSpeed(parseFloat(urlSpeed));
+    const urlPitch = searchParams.get('pitch');
+    if (urlPitch) setPitch(parseInt(urlPitch));
+    const urlDepth = searchParams.get('depth');
+    if (urlDepth) setDepth(parseInt(urlDepth));
+    const urlTone = searchParams.get('tone');
+    if (urlTone) setTone(urlTone.toLowerCase());
+    const profileName = searchParams.get('profileName');
+    if (profileName) {
+      showToast(`Loaded voice profile "${profileName}"`, 'info');
+    }
   }, [searchParams]);
+
+  const loadVoiceProfiles = async () => {
+    try {
+      const res = await getVoiceProfilesApi();
+      if (res && res.success && Array.isArray(res.profiles)) {
+        setSavedVoiceProfiles(res.profiles);
+      }
+    } catch (err) {
+      console.warn('Failed to load voice profiles:', err);
+    }
+  };
 
   const loadVoiceLibrary = async () => {
     try {
@@ -153,6 +180,10 @@ export default function SpeechStudio() {
   };
 
   const allVoices = useMemo(() => [...systemVoices, ...customVoices], [systemVoices, customVoices]);
+
+  const matchingVoiceProfiles = useMemo(() => {
+    return savedVoiceProfiles.filter((p) => p.voiceId === voiceId);
+  }, [savedVoiceProfiles, voiceId]);
 
   const selectedVoiceObj = useMemo(() => {
     return allVoices.find((v) => v.voiceId === voiceId) || {
@@ -519,6 +550,53 @@ export default function SpeechStudio() {
             isUserPremium={Boolean(user?.premiumAccess)}
             label="Selected Voice"
           />
+
+          {/* SAVED VOICE PROFILES BANNER FOR SELECTED VOICE */}
+          {matchingVoiceProfiles.length > 0 && (
+            <div className="p-4 rounded-3xl bg-indigo-500/10 border border-indigo-500/30 shadow-lg flex flex-col gap-3 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs">
+                  <Bookmark className="w-4 h-4 shrink-0" />
+                  <span>Saved voice settings available</span>
+                </div>
+                <span className="text-[10px] font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  {matchingVoiceProfiles.length} {matchingVoiceProfiles.length === 1 ? 'Profile' : 'Profiles'}
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {matchingVoiceProfiles.map((p) => (
+                  <div
+                    key={p._id}
+                    className="p-3 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-app)] flex items-center justify-between gap-2"
+                  >
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-bold text-[var(--text-primary)] truncate">
+                        {p.profileName}
+                      </span>
+                      <span className="text-[10px] text-[var(--text-muted)] font-mono truncate">
+                        Speed: {p.speed}x | Pitch: {p.pitch} | Depth: {p.voiceDepth}% | {p.tonePreset}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSpeed(p.speed);
+                        setPitch(p.pitch);
+                        setDepth(p.voiceDepth);
+                        setTone(p.tonePreset.toLowerCase());
+                        showToast(`Applied voice profile "${p.profileName}"`, 'success');
+                      }}
+                      className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shrink-0 cursor-pointer shadow-md shadow-indigo-600/20"
+                    >
+                      Apply Profile
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* CARD 2: REAL VOICE CONTROLS (Only controls affecting backend audio) */}
           <div className="p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-app)] shadow-lg flex flex-col gap-4">

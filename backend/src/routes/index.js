@@ -7,6 +7,7 @@ const presetController = require('../controllers/presetController');
 const premiumController = require('../controllers/premiumController');
 const userController = require('../controllers/userController');
 const voiceController = require('../controllers/voiceController');
+const voiceProfileController = require('../controllers/voiceProfileController');
 const authMiddleware = require('../middleware/authMiddleware');
 const { requireAdmin, requireAdminLevel, requireAdminOrSubAdmin } = require('../middleware/adminMiddleware');
 const premiumMiddleware = require('../middleware/premiumMiddleware');
@@ -95,6 +96,12 @@ router.post('/upload/signature', authMiddleware, uploadController.getSignature);
 router.get('/presets', authMiddleware, presetController.getPresets);
 router.post('/presets', authMiddleware, presetController.createPreset);
 router.delete('/presets/:id', authMiddleware, presetController.deletePreset);
+
+// Voice Control Profiles Operations
+router.post('/voice-profiles', authMiddleware, voiceProfileController.createProfile);
+router.get('/voice-profiles', authMiddleware, voiceProfileController.getProfiles);
+router.put('/voice-profiles/:id', authMiddleware, voiceProfileController.updateProfile);
+router.delete('/voice-profiles/:id', authMiddleware, voiceProfileController.deleteProfile);
 
 // Admin & Sub-Admin Operations
 // Allowed: Admin + Sub-Admin

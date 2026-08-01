@@ -14,6 +14,9 @@ interface VoiceLibraryProps {
   selectedVoiceId?: string;
   onSelectVoice?: (voice: VoiceOption) => void;
   onPreviewVoice?: (voice: VoiceOption) => void;
+  onPreviewWithControls?: (voice: VoiceOption, settings: any) => void;
+  onProfileSaved?: (newProfile: any) => void;
+  showControlPanelToggle?: boolean;
   onDeleteVoice?: (voiceId: string) => void;
   onGenerateSpeech?: (voice: VoiceOption) => void;
   previewingVoiceId?: string | null;
@@ -30,6 +33,9 @@ export const VoiceLibrary: React.FC<VoiceLibraryProps> = ({
   selectedVoiceId,
   onSelectVoice,
   onPreviewVoice,
+  onPreviewWithControls,
+  onProfileSaved,
+  showControlPanelToggle = true,
   onDeleteVoice,
   onGenerateSpeech,
   previewingVoiceId = null,
@@ -190,6 +196,9 @@ export const VoiceLibrary: React.FC<VoiceLibraryProps> = ({
                 isPlayingPreview={isPlaying}
                 onSelect={onSelectVoice ? handleVoiceSelect : undefined}
                 onPreview={onPreviewVoice}
+                showControlPanelToggle={showControlPanelToggle}
+                onPreviewWithControls={onPreviewWithControls}
+                onProfileSaved={onProfileSaved}
                 onDelete={onDeleteVoice}
                 onGenerateSpeech={onGenerateSpeech}
                 actionLabel={actionLabel}

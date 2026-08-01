@@ -109,11 +109,19 @@ export const generateSceneVoicesApi = async (script: string, voiceId: string, sp
   return res.json();
 };
 
-export const previewSpeechApi = async (voiceId: string, text?: string, speed?: number, pitch?: number, tone?: string, depth?: number) => {
+export const previewSpeechApi = async (
+  voiceId: string, 
+  text?: string, 
+  speed?: number, 
+  pitch?: number, 
+  tone?: string, 
+  depth?: number,
+  emotion?: string
+) => {
   console.log('Selected voice for preview:', voiceId);
   const res = await apiFetch('/api/tts/preview', {
     method: 'POST',
-    body: JSON.stringify({ voiceId, text, speed, pitch, tone, depth }),
+    body: JSON.stringify({ voiceId, text, speed, pitch, tone, depth, emotion }),
   });
   return res.json();
 };
@@ -544,6 +552,71 @@ export const resetPasswordApi = async (email: string, resetToken: string, newPas
   });
   return res.json();
 };
+
+// ==========================================
+// Voice Control Profiles APIs
+// ==========================================
+
+export interface VoiceProfileData {
+  _id?: string;
+  userId?: string;
+  voiceId: string;
+  voiceName: string;
+  profileName: string;
+  speed: number;
+  pitch: number;
+  voiceDepth: number;
+  tonePreset: string;
+  emotion?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const getVoiceProfilesApi = async (voiceId?: string) => {
+  try {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) return { success: false, profiles: [] };
+    const query = voiceId ? `?voiceId=${encodeURIComponent(voiceId)}` : '';
+    const res = await apiFetch(`/api/voice-profiles${query}`);
+    return await res.json();
+  } catch (err) {
+    console.warn('getVoiceProfilesApi fallback:', err);
+    return { success: false, profiles: [] };
+  }
+};
+
+export const saveVoiceProfileApi = async (data: {
+  voiceId: string;
+  voiceName: string;
+  profileName: string;
+  speed: number;
+  pitch: number;
+  voiceDepth: number;
+  tonePreset: string;
+  emotion?: string;
+}) => {
+  const res = await apiFetch('/api/voice-profiles', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return res.json();
+};
+
+export const updateVoiceProfileApi = async (id: string, data: Partial<VoiceProfileData>) => {
+  const res = await apiFetch(`/api/voice-profiles/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+  return res.json();
+};
+
+export const deleteVoiceProfileApi = async (id: string) => {
+  const res = await apiFetch(`/api/voice-profiles/${id}`, {
+    method: 'DELETE',
+  });
+  return res.json();
+};
+
 
 
 

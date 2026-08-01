@@ -288,8 +288,9 @@ exports.previewSpeech = async (req, res) => {
   const pitch = req.body.pitchOffset !== undefined ? req.body.pitchOffset : (req.body.pitch || 0);
   const depth = req.body.voiceDepth !== undefined ? req.body.voiceDepth : (req.body.depth || 0);
   const tone = req.body.eqPreset || req.body.eq || req.body.tone || 'natural';
+  const emotion = req.body.emotion || 'Neutral';
 
-  console.log('Preview request params:', { targetVoiceId, pitch, tone, depth, speed });
+  console.log('Preview request params:', { targetVoiceId, pitch, tone, depth, speed, emotion });
 
   if (!targetVoiceId) {
     return res.status(400).json({ success: false, message: 'voiceId is required for preview' });
@@ -331,7 +332,7 @@ exports.previewSpeech = async (req, res) => {
     }
 
     // Voice Preview Handling: return cached previewUrl only if default parameters are used
-    const isDefaultParams = pitch === 0 && speed === 1.0 && depth === 0 && (tone === 'natural' || tone === 'neutral');
+    const isDefaultParams = pitch === 0 && speed === 1.0 && depth === 0 && (tone === 'natural' || tone === 'neutral') && (emotion === 'Neutral' || emotion === 'neutral');
     if (voiceDoc) {
       if (voiceDoc.previewAvailable === false) {
         return res.status(400).json({

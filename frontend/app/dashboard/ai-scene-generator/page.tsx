@@ -8,12 +8,13 @@ import { useToast } from '../../../context/toastContext';
 import DownloadButton from '../../../components/DownloadButton';
 import { 
   generateSceneVoicesApi, getApiUrl, downloadAudioFile, 
-  downloadScenesZipApi, getVoiceLibraryApi, previewSpeechApi 
+  downloadScenesZipApi, getVoiceLibraryApi, previewSpeechApi,
+  getVoiceProfilesApi, VoiceProfileData
 } from '../../../services/api';
 import { 
   Sparkles, FileText, Mic, RefreshCw, AlertCircle, Play, Pause, 
   Clapperboard, Layers, FolderArchive, RotateCcw, CheckCircle2, 
-  SlidersHorizontal, ChevronRight, Zap, Download, X 
+  SlidersHorizontal, ChevronRight, Zap, Download, X, Bookmark
 } from 'lucide-react';
 import { VoiceOption } from '../../../components/VoiceCard';
 import VoiceSwitcher from '../../../components/VoiceSwitcher';
@@ -62,12 +63,15 @@ export default function DashboardAISceneGenerator() {
   const [generatedScenes, setGeneratedScenes] = useState<GeneratedScene[]>([]);
   const [playingIndex, setPlayingIndex] = useState<number | null>(null);
 
+  const [savedVoiceProfiles, setSavedVoiceProfiles] = useState<VoiceProfileData[]>([]);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioRefs = useRef<{ [key: number]: HTMLAudioElement | null }>({});
   const BACKEND_URL = getApiUrl();
 
   useEffect(() => {
     loadVoiceLibrary();
+    loadVoiceProfiles();
     audioRef.current = new Audio();
     
     const prevAudio = audioRef.current;
@@ -78,6 +82,17 @@ export default function DashboardAISceneGenerator() {
       if (prevAudio) prevAudio.pause();
     };
   }, [user]);
+
+  const loadVoiceProfiles = async () => {
+    try {
+      const res = await getVoiceProfilesApi();
+      if (res && res.success && Array.isArray(res.profiles)) {
+        setSavedVoiceProfiles(res.profiles);
+      }
+    } catch (err) {
+      console.warn('Failed to load voice profiles:', err);
+    }
+  };
 
   const loadVoiceLibrary = async () => {
     try {
@@ -120,6 +135,10 @@ export default function DashboardAISceneGenerator() {
   };
 
   const allVoices = useMemo(() => [...systemVoices, ...customVoices], [systemVoices, customVoices]);
+
+  const matchingVoiceProfiles = useMemo(() => {
+    return savedVoiceProfiles.filter((p) => p.voiceId === voiceId);
+  }, [savedVoiceProfiles, voiceId]);
 
   const selectedVoiceObj = useMemo(() => {
     return allVoices.find((v) => v.voiceId === voiceId) || {
@@ -510,6 +529,53 @@ export default function DashboardAISceneGenerator() {
               isUserPremium={Boolean(user?.premiumAccess)}
               label="Selected Narration Voice"
             />
+
+            {/* SAVED VOICE PROFILES BANNER FOR SELECTED VOICE */}
+            {matchingVoiceProfiles.length > 0 && (
+              <div className="p-4 rounded-3xl bg-indigo-500/10 border border-indigo-500/30 shadow-lg flex flex-col gap-3 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs">
+                    <Bookmark className="w-4 h-4 shrink-0" />
+                    <span>Saved voice settings available</span>
+                  </div>
+                  <span className="text-[10px] font-mono font-extrabold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                    {matchingVoiceProfiles.length} {matchingVoiceProfiles.length === 1 ? 'Profile' : 'Profiles'}
+                  </span>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  {matchingVoiceProfiles.map((p) => (
+                    <div
+                      key={p._id}
+                      className="p-3 rounded-2xl bg-[var(--bg-input)] border border-[var(--border-app)] flex items-center justify-between gap-2"
+                    >
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-xs font-bold text-[var(--text-primary)] truncate">
+                          {p.profileName}
+                        </span>
+                        <span className="text-[10px] text-[var(--text-muted)] font-mono truncate">
+                          Speed: {p.speed}x | Pitch: {p.pitch} | Depth: {p.voiceDepth}% | {p.tonePreset}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSpeed(p.speed);
+                          setPitch(p.pitch);
+                          setDepth(p.voiceDepth);
+                          setTone(p.tonePreset.toLowerCase());
+                          showToast(`Applied voice profile "${p.profileName}"`, 'success');
+                        }}
+                        className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shrink-0 cursor-pointer shadow-md shadow-indigo-600/20"
+                      >
+                        Apply Profile
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* CARD 2: VOICE CONTROLS */}
             <div className="p-6 rounded-3xl bg-[var(--bg-card)] border border-[var(--border-app)] shadow-lg flex flex-col gap-4">
