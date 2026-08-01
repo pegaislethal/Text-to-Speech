@@ -1,9 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Play, Pause, RefreshCw, Lock, Check, Sparkles, Trash2, Mic, Volume2, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
-import VoiceControlPanel from './VoiceControlPanel';
-import { VoiceProfileData } from '../services/api';
+import React from 'react';
+import { Play, Pause, RefreshCw, Lock, Check, Sparkles, Trash2, Mic, Volume2 } from 'lucide-react';
 
 export interface VoiceOption {
   voiceId: string;
@@ -34,19 +32,6 @@ interface VoiceCardProps {
   onGenerateSpeech?: (voice: VoiceOption) => void;
   actionLabel?: string;
   compact?: boolean;
-  // Voice Controls Props
-  showControlPanelToggle?: boolean;
-  onPreviewWithControls?: (
-    voice: VoiceOption,
-    settings: {
-      speed: number;
-      pitch: number;
-      depth: number;
-      tone: string;
-      emotion: string;
-    }
-  ) => void;
-  onProfileSaved?: (newProfile: VoiceProfileData) => void;
 }
 
 export const VoiceCard: React.FC<VoiceCardProps> = ({
@@ -61,14 +46,9 @@ export const VoiceCard: React.FC<VoiceCardProps> = ({
   onGenerateSpeech,
   actionLabel,
   compact = false,
-  showControlPanelToggle = true,
-  onPreviewWithControls,
-  onProfileSaved,
 }) => {
   const isCustomVoice = voice.isCustom || voice.category === 'custom';
   const isPremiumVoice = voice.premium || voice.isPremium;
-
-  const [controlsExpanded, setControlsExpanded] = useState<boolean>(false);
 
   return (
     <div
@@ -77,7 +57,7 @@ export const VoiceCard: React.FC<VoiceCardProps> = ({
         onSelect ? 'cursor-pointer' : ''
       } ${
         isSelected
-          ? 'border-indigo-500 bg-indigo-500/10 shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-500/50'
+          ? 'border-indigo-500 bg-indigo-500/10 shadow-lg shadow-indigo-500/10 ring-2 ring-indigo-500/50 scale-[1.01]'
           : 'border-[var(--border-app)] bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] hover:border-indigo-500/30'
       }`}
     >
@@ -187,26 +167,6 @@ export const VoiceCard: React.FC<VoiceCardProps> = ({
           </button>
         )}
 
-        {showControlPanelToggle && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setControlsExpanded(!controlsExpanded);
-            }}
-            className={`h-8 px-2.5 rounded-xl border text-[11px] font-bold transition flex items-center gap-1 cursor-pointer shrink-0 ${
-              controlsExpanded
-                ? 'bg-indigo-600 text-white border-indigo-600'
-                : 'bg-[var(--bg-input)] hover:bg-[var(--bg-card-hover)] text-[var(--text-secondary)] border-[var(--border-app)]'
-            }`}
-            title="Voice Controls"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>Controls</span>
-            {controlsExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-          </button>
-        )}
-
         {onSelect && (
           <button
             type="button"
@@ -230,7 +190,7 @@ export const VoiceCard: React.FC<VoiceCardProps> = ({
             ) : isLocked ? (
               <span className="truncate">Locked</span>
             ) : (
-              <span className="truncate">{actionLabel || 'Use Voice'}</span>
+              <span className="truncate">{actionLabel || 'Select Voice'}</span>
             )}
           </button>
         )}
@@ -263,32 +223,6 @@ export const VoiceCard: React.FC<VoiceCardProps> = ({
           </button>
         )}
       </div>
-
-      {/* Expandable Voice Controls Panel */}
-      {controlsExpanded && (
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className="pt-2 border-t border-[var(--border-app)] mt-2"
-        >
-          <VoiceControlPanel
-            voice={voice}
-            onPreviewWithSettings={(v, settings) => {
-              if (onPreviewWithControls) {
-                onPreviewWithControls(v, settings);
-              } else if (onPreview) {
-                onPreview(v);
-              }
-            }}
-            isPreviewing={isPreviewing}
-            isPlayingPreview={isPlayingPreview}
-            onProfileSaved={(newProfile) => {
-              if (onProfileSaved) {
-                onProfileSaved(newProfile);
-              }
-            }}
-          />
-        </div>
-      )}
     </div>
   );
 };

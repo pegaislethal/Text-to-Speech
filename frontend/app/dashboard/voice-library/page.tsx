@@ -6,6 +6,7 @@ import WorkspaceLayout from '../../../components/WorkspaceLayout';
 import { useAuth } from '../../../context/authContext';
 import { useToast } from '../../../context/toastContext';
 import VoiceLibrary from '../../../components/VoiceLibrary';
+import VoiceControlPanel from '../../../components/VoiceControlPanel';
 import { VoiceOption } from '../../../components/VoiceCard';
 import {
   getVoiceLibraryApi,
@@ -17,7 +18,7 @@ import {
   deleteVoiceProfileApi,
   VoiceProfileData,
 } from '../../../services/api';
-import { Sparkles, Mic, Volume2, RefreshCw, Bookmark, Sliders, Trash2, Edit3, Check, X, ArrowRight, Play, Pause } from 'lucide-react';
+import { Sparkles, Mic, Volume2, RefreshCw, Bookmark, Sliders, Trash2, Edit3, Check, X, ArrowRight, Play, Pause, Info, SlidersHorizontal } from 'lucide-react';
 
 export default function VoiceLibraryPage() {
   const { user } = useAuth();
@@ -27,6 +28,8 @@ export default function VoiceLibraryPage() {
   const [systemVoices, setSystemVoices] = useState<VoiceOption[]>([]);
   const [customVoices, setCustomVoices] = useState<VoiceOption[]>([]);
   const [savedProfiles, setSavedProfiles] = useState<VoiceProfileData[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<VoiceOption | null>(null);
+  
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingProfiles, setLoadingProfiles] = useState<boolean>(false);
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
@@ -106,6 +109,11 @@ export default function VoiceLibraryPage() {
 
         setSystemVoices(sysVoices);
         setCustomVoices(custVoices);
+
+        // Auto-select first voice if none selected
+        if (sysVoices.length > 0) {
+          setSelectedVoice(sysVoices[0]);
+        }
       }
     } catch (err) {
       console.error('Failed to load voice library:', err);
@@ -131,7 +139,7 @@ export default function VoiceLibraryPage() {
   };
 
   const handlePreviewVoice = async (v: VoiceOption) => {
-    await handlePreviewVoiceWithSettings(v, {
+    await handlePreviewWithSettings(v, `Hi, I am ${v.name}. Welcome to 21st Tech AI Voice Library.`, {
       speed: 1.0,
       pitch: 0,
       depth: 50,
@@ -140,8 +148,9 @@ export default function VoiceLibraryPage() {
     });
   };
 
-  const handlePreviewVoiceWithSettings = async (
+  const handlePreviewWithSettings = async (
     v: VoiceOption,
+    textPrompt: string,
     settings: {
       speed: number;
       pitch: number;
@@ -160,10 +169,9 @@ export default function VoiceLibraryPage() {
 
     setPreviewingVoiceId(v.voiceId);
     try {
-      const demoText = `Hi, I am ${v.name}. Welcome to 21st Tech AI Voice Library.`;
       const res = await previewSpeechApi(
         v.voiceId,
-        demoText,
+        textPrompt,
         settings.speed,
         settings.pitch,
         settings.tone,
@@ -198,6 +206,9 @@ export default function VoiceLibraryPage() {
       if (res.success) {
         showToast('Voice profile deleted successfully.', 'success');
         setCustomVoices((prev) => prev.filter((v) => v.voiceId !== voiceId));
+        if (selectedVoice?.voiceId === voiceId) {
+          setSelectedVoice(null);
+        }
       } else {
         showToast(res.message || 'Failed to delete voice profile.', 'error');
       }
@@ -207,8 +218,7 @@ export default function VoiceLibraryPage() {
   };
 
   const handleSelectVoice = (v: VoiceOption) => {
-    // Navigate to speech studio with voice selected
-    router.push(`/dashboard/speech-studio?voiceId=${encodeURIComponent(v.voiceId)}`);
+    setSelectedVoice(v);
   };
 
   // Saved Voice Profile Actions
@@ -286,7 +296,7 @@ export default function VoiceLibraryPage() {
               </span>
             </h1>
             <p className="text-xs text-slate-300 font-medium mt-0.5">
-              Browse AI voices, configure custom control profiles, and choose your perfect narrator.
+              Browse AI voices, configure custom control profiles, and preview speech prompts.
             </p>
           </div>
         </div>
@@ -300,6 +310,36 @@ export default function VoiceLibraryPage() {
           <span>Clone New Voice</span>
         </button>
       </div>
+
+      {/* DEDICATED VOICE CONTROL PANEL BOX (Renders when a voice is selected) */}
+      {selectedVoice ? (
+        <VoiceControlPanel
+          voice={selectedVoice}
+          onPreviewWithSettings={handlePreviewWithSettings}
+          isPreviewing={Boolean(previewingVoiceId === selectedVoice.voiceId)}
+          isPlayingPreview={Boolean(playingVoiceId === selectedVoice.voiceId)}
+          onProfileSaved={(newProfile) => {
+            setSavedProfiles((prev) => [newProfile, ...prev]);
+          }}
+          onDeselectVoice={() => setSelectedVoice(null)}
+          onUseInStudio={(settings) => {
+            const params = new URLSearchParams({
+              voiceId: selectedVoice.voiceId,
+              speed: settings.speed.toString(),
+              pitch: settings.pitch.toString(),
+              depth: settings.depth.toString(),
+              tone: settings.tone,
+              emotion: settings.emotion,
+            });
+            router.push(`/dashboard/speech-studio?${params.toString()}`);
+          }}
+        />
+      ) : (
+        <div className="p-6 rounded-3xl bg-[var(--bg-card)] border border-dashed border-indigo-500/30 flex items-center gap-3 text-xs text-[var(--text-secondary)] shadow-sm">
+          <Info className="w-5 h-5 text-indigo-500 shrink-0" />
+          <span>Select any voice card from the library below to open the dedicated voice parameters & prompt preview panel.</span>
+        </div>
+      )}
 
       {/* MY SAVED VOICE PROFILES SECTION */}
       {user && (
@@ -325,7 +365,7 @@ export default function VoiceLibraryPage() {
             </div>
           ) : savedProfiles.length === 0 ? (
             <div className="p-6 text-center border border-dashed border-[var(--border-app)] rounded-2xl bg-[var(--bg-input)]/50 text-xs text-[var(--text-muted)]">
-              No saved voice profiles yet. Select any voice below, open <strong className="text-indigo-400">Controls ▼</strong>, adjust your parameters, and click <strong className="text-indigo-400">Save Voice Profile</strong>.
+              No saved voice profiles yet. Select any voice below, customize your parameters, enter a script prompt, and click <strong className="text-indigo-400">Save Voice Profile</strong>.
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -386,7 +426,7 @@ export default function VoiceLibraryPage() {
 
                       <div className="grid grid-cols-2 gap-2 text-[11px]">
                         <div>
-                          <label className="text-[var(--text-muted)]">Tone</label>
+                          <label className="text-[var(--text-muted)] font-medium">Tone</label>
                           <select
                             value={editForm.tonePreset}
                             onChange={(e) => setEditForm({ ...editForm, tonePreset: e.target.value })}
@@ -400,7 +440,7 @@ export default function VoiceLibraryPage() {
                           </select>
                         </div>
                         <div>
-                          <label className="text-[var(--text-muted)]">Emotion</label>
+                          <label className="text-[var(--text-muted)] font-medium">Emotion</label>
                           <select
                             value={editForm.emotion}
                             onChange={(e) => setEditForm({ ...editForm, emotion: e.target.value })}
@@ -512,16 +552,17 @@ export default function VoiceLibraryPage() {
         <VoiceLibrary
           systemVoices={systemVoices}
           customVoices={customVoices}
+          selectedVoiceId={selectedVoice?.voiceId}
           onSelectVoice={handleSelectVoice}
           onPreviewVoice={handlePreviewVoice}
-          onPreviewWithControls={handlePreviewVoiceWithSettings}
+          onPreviewWithControls={handlePreviewWithSettings}
           onProfileSaved={(newProfile) => {
             setSavedProfiles((prev) => [newProfile, ...prev]);
           }}
           onDeleteVoice={handleDeleteVoice}
           previewingVoiceId={previewingVoiceId}
           playingVoiceId={playingVoiceId}
-          actionLabel="Use in Studio"
+          actionLabel="Select Voice"
           maxHeight="none"
           gridCols="grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
           showFilters={true}
