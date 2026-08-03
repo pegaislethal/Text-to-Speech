@@ -37,10 +37,13 @@ async def generate_voice_speech(req: GenerateRequest):
         if not os.path.exists(mp3_path):
             raise HTTPException(status_code=500, detail="Speech generation failed to generate audio output file.")
 
+        media_type = "audio/wav" if mp3_path.endswith(".wav") else "audio/mpeg"
+        filename = f"speech_{req.voiceId}.wav" if mp3_path.endswith(".wav") else f"speech_{req.voiceId}.mp3"
+
         return FileResponse(
             mp3_path,
-            media_type="audio/mpeg",
-            filename=f"speech_{req.voiceId}.mp3"
+            media_type=media_type,
+            filename=filename
         )
     except Exception as e:
         print(f"[GenerateEndpoint] Error: {e}")

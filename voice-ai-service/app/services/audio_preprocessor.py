@@ -16,8 +16,15 @@ class AudioPreprocessor:
 
     def download_audio(self, url_or_path: str, target_dir: str) -> str:
         """Download remote audio or verify local path and store in target_dir."""
-        if os.path.exists(url_or_path):
-            return url_or_path
+        clean_path = url_or_path
+        if clean_path.startswith("file://"):
+            import urllib.parse
+            import urllib.request
+            parsed = urllib.parse.urlparse(clean_path)
+            clean_path = urllib.request.url2pathname(parsed.path)
+
+        if os.path.exists(clean_path):
+            return clean_path
         
         response = requests.get(url_or_path, stream=True)
         response.raise_for_status()

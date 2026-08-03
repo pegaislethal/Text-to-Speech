@@ -125,6 +125,8 @@ coverage/
 *.ogg
 /ai-output/
 /generated/
+/voice-ai-service/storage/
+/voice-ai-service/app/models/voices/
 
 # ==========================================
 # Local Configuration Files

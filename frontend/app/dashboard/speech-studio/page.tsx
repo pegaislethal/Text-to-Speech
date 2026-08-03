@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '../../../context/authContext';
 import { useToast } from '../../../context/toastContext';
@@ -33,7 +33,7 @@ interface PresetItem {
   settings?: any;
 }
 
-export default function SpeechStudio() {
+function SpeechStudioContent() {
   const { user, refreshUser } = useAuth();
   const { showToast } = useToast();
   const searchParams = useSearchParams();
@@ -749,5 +749,17 @@ export default function SpeechStudio() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SpeechStudio() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-7xl mx-auto p-8 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <SpeechStudioContent />
+    </Suspense>
   );
 }

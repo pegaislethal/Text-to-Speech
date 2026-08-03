@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { forgotPasswordApi, verifyResetOtpApi, resetPasswordApi } from '../../services/api';
@@ -12,7 +12,7 @@ import { useToast } from '../../context/toastContext';
 import ThemeToggle from '../../components/ThemeToggle';
 import PasswordInput from '../../components/PasswordInput';
 
-export default function ForgotPasswordPage() {
+function ForgotPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showToast } = useToast();
@@ -419,5 +419,17 @@ export default function ForgotPasswordPage() {
         © 2026 21st Tech. All rights reserved.
       </footer>
     </div>
+  );
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-primary)] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <ForgotPasswordContent />
+    </Suspense>
   );
 }

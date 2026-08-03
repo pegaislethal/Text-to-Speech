@@ -48,30 +48,46 @@ class InferenceService:
 
         # 3. Bass Enhancement (0-100 sub-bass gain between 60Hz - 250Hz)
         if bass_enhancement > 0:
-            bass_gain_db = (min(100.0, max(0.0, bass_enhancement)) / 100.0) * 5.0
-            sound = sound.low_pass_filter(250).apply_gain(bass_gain_db).overlay(sound)
+            try:
+                bass_gain_db = (min(100.0, max(0.0, bass_enhancement)) / 100.0) * 5.0
+                sound = sound.low_pass_filter(250).apply_gain(bass_gain_db).overlay(sound)
+            except Exception:
+                pass
 
         # 4. Voice Depth (0-100 body resonance boost)
         if depth > 0:
-            depth_gain_db = (min(100.0, max(0.0, depth)) / 100.0) * 4.0
-            sound = sound.low_pass_filter(2500).apply_gain(depth_gain_db).overlay(sound)
+            try:
+                depth_gain_db = (min(100.0, max(0.0, depth)) / 100.0) * 4.0
+                sound = sound.low_pass_filter(2500).apply_gain(depth_gain_db).overlay(sound)
+            except Exception:
+                pass
 
         # 5. Tone EQ Presets (Documentary, Cinematic, Dark, Podcast, Natural)
         tone_lower = (tone or "natural").strip().lower()
-        if tone_lower == "documentary":
-            sound = sound.high_pass_filter(80).low_pass_filter(10000).apply_gain(1.5)
-        elif tone_lower == "cinematic":
-            sound = sound.high_pass_filter(70).low_pass_filter(12000).apply_gain(3.5)
-        elif tone_lower == "dark":
-            sound = sound.low_pass_filter(4500).apply_gain(3.0)
-        elif tone_lower == "podcast":
-            sound = sound.high_pass_filter(100).apply_gain(2.0)
-        elif tone_lower == "warm":
-            sound = sound.low_pass_filter(6000).apply_gain(1.5)
+        try:
+            if tone_lower == "documentary":
+                sound = sound.high_pass_filter(80).low_pass_filter(10000).apply_gain(1.5)
+            elif tone_lower == "cinematic":
+                sound = sound.high_pass_filter(70).low_pass_filter(12000).apply_gain(3.5)
+            elif tone_lower == "dark":
+                sound = sound.low_pass_filter(4500).apply_gain(3.0)
+            elif tone_lower == "podcast":
+                sound = sound.high_pass_filter(100).apply_gain(2.0)
+            elif tone_lower == "warm":
+                sound = sound.low_pass_filter(6000).apply_gain(1.5)
+        except Exception:
+            pass
 
-        # 6. Peak Normalization & Export as High-Bitrate MP3 (192kbps)
+        # 6. Peak Normalization & Export
         sound = sound.normalize(headroom=0.5)
-        sound.export(output_mp3_path, format="mp3", bitrate="192k")
+        try:
+            sound.export(output_mp3_path, format="mp3", bitrate="192k")
+            return output_mp3_path
+        except Exception as e:
+            # Fallback to WAV format if ffmpeg binary is not installed in system PATH
+            wav_path = output_mp3_path.rsplit('.', 1)[0] + ".wav"
+            sound.export(wav_path, format="wav")
+            return wav_path
 
         # Cleanup temporary WAV file
         if os.path.exists(temp_proc_wav):
